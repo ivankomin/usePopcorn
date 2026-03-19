@@ -1,0 +1,14 @@
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Red+Hat+Display:ital,wght@0,300..900;1,300..900&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --color-main-bg: #0d0d0d;
+  --color-light-bg: #1a1a1a;
+  --color-accent: #bbff4d;
+  --color-grey: #9e9e9e;
+  --color-body-text: #e6e6e6;
+  --color-lighter-bg: #333333;
+  --color-grey-lighter: #666666;
+  --font-geist: "Geist", sans-serif;
+  --font-inter: "Red Hat Display", sans-serif;
+}

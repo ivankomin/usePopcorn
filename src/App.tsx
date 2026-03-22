@@ -2,10 +2,8 @@ import { createBrowserRouter } from "react-router";
 import AppLayout from "./pages/AppLayout";
 import Home from "./pages/Home";
 import { RouterProvider } from "react-router";
-import Movies from "./pages/Movies";
-import Series from "./pages/Series";
-import MovieDetails from "./pages/MovieDetails";
-import SeriesDetails from "./pages/SeriesDetails";
+import MediaList from "./pages/MediaList";
+import MediaDetails from "./pages/MediaDetails";
 import Watchlist from "./pages/Watchlist";
 import About from "./pages/legal/About";
 import Privacy from "./pages/legal/Privacy";
@@ -23,19 +21,19 @@ const router = createBrowserRouter([
       },
       {
         path: "/movies",
-        element: <Movies />,
+        element: <MediaList type="movie" />,
       },
       {
         path: "/series",
-        element: <Series />,
+        element: <MediaList type="series" />,
       },
       {
         path: "/movies/:id",
-        element: <MovieDetails />,
+        element: <MediaDetails type="movie" />,
       },
       {
         path: "/series/:id",
-        element: <SeriesDetails />,
+        element: <MediaDetails type="series" />,
       },
       {
         path: "/watchlist",

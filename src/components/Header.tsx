@@ -1,5 +1,6 @@
 import { Link, NavLink } from "react-router";
-import { Search as SearchIcon, Book, User, LogOut } from "lucide-react";
+import { Book, User, LogOut } from "lucide-react";
+import Search from "./Search";
 
 export default function Header() {
   const navLinkStyles = ({ isActive }: { isActive: boolean }) =>
@@ -16,7 +17,9 @@ export default function Header() {
           className="flex items-baseline gap-1 font-bold tracking-tighter"
           to="/"
         >
-          <span className="text-body-text font-geist text-4xl uppercase">Use</span>
+          <span className="text-body-text font-geist text-4xl uppercase">
+            Use
+          </span>
           <span className="text-6xl">🍿</span>
         </Link>
 
@@ -33,16 +36,7 @@ export default function Header() {
         </div>
       </div>
 
-      <div className="mr-12 ml-auto w-100">
-        <div className="group relative">
-          <SearchIcon className="text-grey group-focus-within:text-accent absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 transition-colors" />
-          <input
-            type="text"
-            placeholder="Search..."
-            className="bg-lighter-bg text-body-text focus:border-grey-lighter placeholder:text-grey/50 w-full rounded-xl border border-transparent py-2.5 pr-4 pl-12 transition-all outline-none"
-          />
-        </div>
-      </div>
+      <Search />
 
       <div className="flex items-center gap-8">
         <NavLink

@@ -28,7 +28,7 @@ export function transformMedia(raw: RawMedia): Media {
     return {
       ...base,
       type: "movie",
-      boxOffice: Number(raw.BoxOffice?.slice(1).replace(",", "")),
+      boxOffice: Number(raw.BoxOffice?.slice(1).replace(/,/g, "")),
     };
   }
 

@@ -47,14 +47,3 @@ export interface Media {
   totalSeasons?: number;
   boxOffice?: number;
 }
-
-export interface Movie extends Media {
-  type: "movie";
-  boxOffice: number;
-}
-
-export interface Series extends Media {
-  type: "series";
-  totalSeasons: number;
-}
-

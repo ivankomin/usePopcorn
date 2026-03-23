@@ -28,12 +28,8 @@ const router = createBrowserRouter([
         element: <MediaList type="series" />,
       },
       {
-        path: "/movies/:id",
-        element: <MediaDetails type="movie" />,
-      },
-      {
-        path: "/series/:id",
-        element: <MediaDetails type="series" />,
+        path: "/:type/:id",
+        element: <MediaDetails />,
       },
       {
         path: "/watchlist",

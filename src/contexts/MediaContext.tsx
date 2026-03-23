@@ -1,5 +1,6 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useCallback, useContext, useState } from "react";
 import type { Media } from "../types/Media";
+import { transformMedia } from "../utils/transformMedia";
 
 const apiKey = import.meta.env.VITE_API_KEY;
 
@@ -8,7 +9,7 @@ interface MediaContextType {
   results: Media[];
   loading: boolean;
   error: string | null;
-  fetchMedia: (id: string) => Promise<void>;
+  fetchMedia: (id: string) => Promise<Media | null>;
   searchMedia: (title: string) => Promise<void>;
 }
 
@@ -20,7 +21,7 @@ function MediaProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>("");
 
-  async function fetchMedia(id: string) {
+  const fetchMedia = useCallback(async (id: string) => {
     try {
       setError("");
       setLoading(true);
@@ -28,20 +29,28 @@ function MediaProvider({ children }: { children: React.ReactNode }) {
       const response = await fetch(
         `https://www.omdbapi.com/?i=${id}&apikey=${apiKey}`,
       );
+
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }
+
       const data = await response.json();
       if (data.Response === "False") {
         throw new Error(data.Error);
       }
-      setMedia(data);
+
+      const media = transformMedia(data);
+
+      setMedia(media);
+
+      return media;
     } catch (error) {
       setError((error as Error).message);
+      return null;
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   async function searchMedia(title: string) {
     try {
@@ -49,16 +58,27 @@ function MediaProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
 
       const response = await fetch(
-        `https://www.omdbapi.com/?t=${title}&apikey=${apiKey}`,
+        `https://www.omdbapi.com/?s=${title}&apikey=${apiKey}`,
       );
+
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }
+
       const data = await response.json();
       if (data.Response === "False") {
         throw new Error(data.Error);
       }
-      setResults(data);
+
+      const results = (
+        await Promise.all(
+          data.Search.map((item: { imdbID: string }) =>
+            fetchMedia(item.imdbID),
+          ),
+        )
+      ).filter(Boolean) as Media[];
+
+      setResults(results);
     } catch (error) {
       setError((error as Error).message);
     } finally {

@@ -1,8 +1,18 @@
+import MediaCard from "../components/MediaCard";
+import { useMedia } from "../contexts/MediaContext";
+
 interface MediaListProps {
-  type: string;
+  type: "movie" | "series";
 }
 export default function MediaList({ type }: MediaListProps) {
-  if (type === "movie") return <div>Movies</div>;
-  if (type === "series") return <div>Series</div>;
-  return <div>MediaList</div>;
+  const { results } = useMedia();
+  const filteredMedia = results.filter((m) => m.type === type);
+
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+      {filteredMedia.map((media) => (
+        <MediaCard key={media.imdbID} media={media} />
+      ))}
+    </div>
+  );
 }

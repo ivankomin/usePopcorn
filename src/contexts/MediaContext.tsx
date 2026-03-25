@@ -52,39 +52,43 @@ function MediaProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  async function searchMedia(title: string) {
-    try {
-      setError("");
-      setLoading(true);
+  const searchMedia = useCallback(
+    async (title: string) => {
+      try {
+        setError("");
+        setResults([]);
+        setLoading(true);
 
-      const response = await fetch(
-        `https://www.omdbapi.com/?s=${title}&apikey=${apiKey}`,
-      );
+        const response = await fetch(
+          `https://www.omdbapi.com/?s=${title}&apikey=${apiKey}`,
+        );
 
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+
+        const data = await response.json();
+        if (data.Response === "False") {
+          throw new Error(data.Error);
+        }
+
+        const results = (
+          await Promise.all(
+            data.Search.map((item: { imdbID: string }) =>
+              fetchMedia(item.imdbID),
+            ),
+          )
+        ).filter(Boolean) as Media[];
+
+        setResults(results);
+      } catch (error) {
+        setError((error as Error).message);
+      } finally {
+        setLoading(false);
       }
-
-      const data = await response.json();
-      if (data.Response === "False") {
-        throw new Error(data.Error);
-      }
-
-      const results = (
-        await Promise.all(
-          data.Search.map((item: { imdbID: string }) =>
-            fetchMedia(item.imdbID),
-          ),
-        )
-      ).filter(Boolean) as Media[];
-
-      setResults(results);
-    } catch (error) {
-      setError((error as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }
+    },
+    [fetchMedia],
+  );
 
   return (
     <MediaContext.Provider

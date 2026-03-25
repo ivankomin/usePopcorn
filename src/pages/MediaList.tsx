@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import MediaCard from "../components/MediaCard";
 import { useMedia } from "../contexts/MediaContext";
 
@@ -5,7 +6,12 @@ interface MediaListProps {
   type: "movie" | "series";
 }
 export default function MediaList({ type }: MediaListProps) {
-  const { results } = useMedia();
+  const { results, searchMedia } = useMedia();
+
+  useEffect(() => {
+    searchMedia("");
+  }, [searchMedia, type]);
+
   const filteredMedia = results.filter((m) => m.type === type);
 
   return (

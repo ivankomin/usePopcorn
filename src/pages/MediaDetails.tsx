@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useMedia } from "../contexts/MediaContext";
 import { useParams } from "react-router";
+import Loader from "../components/Loader";
 
 export default function MediaDetails() {
   const { id, type } = useParams();
@@ -17,8 +18,9 @@ export default function MediaDetails() {
   }
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <Loader />;
   }
+  
   return (
     <div className="flex flex-col items-center">
       <img src={media.poster} alt={media.title} />

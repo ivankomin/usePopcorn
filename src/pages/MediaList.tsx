@@ -3,9 +3,10 @@ import MediaCard from "../components/MediaCard";
 import { useMedia } from "../contexts/MediaContext";
 import { useLocation } from "react-router";
 import { getMediaType } from "../utils/getMediaType";
+import Loader from "../components/Loader";
 
 export default function MediaList() {
-  const { results, searchMedia } = useMedia();
+  const { results, searchMedia, loading, clearResults } = useMedia();
   const location = useLocation();
 
   const type = getMediaType(location.pathname);
@@ -13,7 +14,14 @@ export default function MediaList() {
   //fetch some initial media on mount
   useEffect(() => {
     searchMedia("man", type);
-  }, [searchMedia, type]);
+    return () => {
+      clearResults();
+    };
+  }, [searchMedia, type, clearResults]);
+
+  if (loading) {
+    return <Loader />;
+  }
 
   const filteredMedia = results.filter((m) => m.type === type);
 

@@ -9,8 +9,9 @@ interface MediaContextType {
   results: Media[];
   loading: boolean;
   error: string | null;
-  fetchMedia: (id: string) => Promise<Media | null>;
+  fetchMedia: (id: string) => Promise<void>;
   searchMedia: (title: string, type: string) => Promise<void>;
+  clearResults: () => void;
 }
 
 const MediaContext = createContext<MediaContextType | null>(null);
@@ -38,18 +39,21 @@ function MediaProvider({ children }: { children: React.ReactNode }) {
       if (data.Response === "False") {
         throw new Error(data.Error);
       }
-
       const media = transformMedia(data);
-
       setMedia(media);
-
-      return media;
     } catch (error) {
       setError((error as Error).message);
-      return null;
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  const getMediaDetails = useCallback(async (id: string) => {
+    const res = await fetch(
+      `https://www.omdbapi.com/?i=${id}&apikey=${apiKey}`,
+    );
+    const data = await res.json();
+    return data.Response === "True" ? transformMedia(data) : null;
   }, []);
 
   const searchMedia = useCallback(
@@ -75,7 +79,7 @@ function MediaProvider({ children }: { children: React.ReactNode }) {
         const results = (
           await Promise.all(
             data.Search.map((item: { imdbID: string }) =>
-              fetchMedia(item.imdbID),
+              getMediaDetails(item.imdbID),
             ),
           )
         ).filter(Boolean) as Media[];
@@ -87,8 +91,13 @@ function MediaProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
       }
     },
-    [fetchMedia],
+    [getMediaDetails],
   );
+
+  const clearResults = useCallback(() => {
+    setResults([]);
+    setLoading(false);
+  }, []);
 
   return (
     <MediaContext.Provider
@@ -99,6 +108,7 @@ function MediaProvider({ children }: { children: React.ReactNode }) {
         error,
         fetchMedia,
         searchMedia,
+        clearResults,
       }}
     >
       {children}

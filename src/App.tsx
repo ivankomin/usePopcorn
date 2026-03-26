@@ -21,11 +21,11 @@ const router = createBrowserRouter([
       },
       {
         path: "/movies",
-        element: <MediaList type="movie" />,
+        element: <MediaList />,
       },
       {
         path: "/series",
-        element: <MediaList type="series" />,
+        element: <MediaList />,
       },
       {
         path: "/:type/:id",

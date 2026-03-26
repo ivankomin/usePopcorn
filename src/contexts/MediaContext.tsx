@@ -10,7 +10,7 @@ interface MediaContextType {
   loading: boolean;
   error: string | null;
   fetchMedia: (id: string) => Promise<Media | null>;
-  searchMedia: (title: string) => Promise<void>;
+  searchMedia: (title: string, type: string) => Promise<void>;
 }
 
 const MediaContext = createContext<MediaContextType | null>(null);
@@ -53,14 +53,14 @@ function MediaProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const searchMedia = useCallback(
-    async (title: string) => {
+    async (title: string, type: string) => {
       try {
         setError("");
         setResults([]);
         setLoading(true);
 
         const response = await fetch(
-          `https://www.omdbapi.com/?s=${title}&apikey=${apiKey}`,
+          `https://www.omdbapi.com/?s=${title}&apikey=${apiKey}&type=${type}`,
         );
 
         if (!response.ok) {

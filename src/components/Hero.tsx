@@ -21,7 +21,7 @@ export default function Hero() {
           </h1>
 
           <p className="font-main text-body-text/90 mt-4 max-w-xl text-2xl font-bold drop-shadow-lg">
-            All your favorite movies in one place!
+            All your favorite movies and series in one place!
           </p>
         </div>
       </div>

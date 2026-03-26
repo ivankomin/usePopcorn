@@ -2,10 +2,14 @@ import { Search as SearchIcon } from "lucide-react";
 import { useMedia } from "../contexts/MediaContext";
 import { useLocation } from "react-router";
 import { useEffect, useState } from "react";
+import { getMediaType } from "../utils/getMediaType";
 export default function Search() {
   const [query, setQuery] = useState("");
   const { searchMedia } = useMedia();
   const location = useLocation();
+
+  const type = getMediaType(location.pathname);
+
   const hideOn = ["/", "/login", "/watchlist"];
   const isDetailPage =
     location.pathname.startsWith("/movies/") ||
@@ -27,8 +31,13 @@ export default function Search() {
           placeholder="Search..."
           className="bg-lighter-bg text-body-text focus:border-grey-lighter placeholder:text-grey/50 w-full rounded-xl border border-transparent py-2.5 pr-4 pl-12 transition-all outline-none"
           onChange={(e) => {
-            setQuery(e.target.value);
-            searchMedia(e.target.value);
+            const value = e.target.value;
+            setQuery(value);
+            if (!value) {
+              searchMedia("man", type);
+            } else {
+              searchMedia(value, type);
+            }
           }}
         />
       </div>

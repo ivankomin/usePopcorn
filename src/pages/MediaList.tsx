@@ -26,7 +26,7 @@ export default function MediaList() {
   const filteredMedia = results.filter((m) => m.type === type);
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+    <div className="mx-auto flex max-w-5xl flex-col gap-4 p-4">
       {filteredMedia.map((media) => (
         <MediaCard key={media.imdbID} media={media} />
       ))}

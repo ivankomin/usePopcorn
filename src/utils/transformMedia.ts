@@ -3,7 +3,7 @@ import type { Media, RawMedia } from "../types/Media";
 export function transformMedia(raw: RawMedia): Media {
   const base = {
     title: raw.Title,
-    year: Number(raw.Year),
+    year: raw.Year,
     rated: raw.Rated,
     released: raw.Released,
     runtime: Number(raw.Runtime.slice(0, raw.Runtime.indexOf(" "))),

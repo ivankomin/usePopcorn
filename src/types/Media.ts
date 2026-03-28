@@ -25,7 +25,7 @@ export interface RawMedia {
 
 export interface Media {
   title: string;
-  year: number;
+  year: string;
   rated: string;
   released: string;
   runtime: number;

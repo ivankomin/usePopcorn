@@ -52,11 +52,13 @@ export default function Header() {
         </NavLink>
 
         <div className="border-lighter-bg flex items-center gap-6 border-l pl-8">
-          <button className="text-body-text hover:text-accent transition-colors">
-            <User className="h-7 w-7" />
-          </button>
+          <NavLink to="/login">
+            <button className="text-body-text hover:text-accent transition-colors hover:cursor-pointer">
+              <User className="h-7 w-7" />
+            </button>
+          </NavLink>
 
-          <button className="text-grey hover:text-body-text transition-colors">
+          <button className="text-grey hover:text-body-text transition-colors hover:cursor-pointer">
             <LogOut className="h-7 w-7" />
           </button>
         </div>

@@ -1,10 +1,12 @@
 import { Search as SearchIcon } from "lucide-react";
 import { useMedia } from "../contexts/MediaContext";
-import { useLocation } from "react-router";
+import { useLocation, useSearchParams } from "react-router";
 import { useEffect, useState } from "react";
 import { getMediaType } from "../utils/getMediaType";
 export default function Search() {
   const [query, setQuery] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const { searchMedia } = useMedia();
   const location = useLocation();
 
@@ -35,7 +37,9 @@ export default function Search() {
             setQuery(value);
             if (!value) {
               searchMedia("man", type);
+              setSearchParams({});
             } else {
+              setSearchParams({ q: value });
               searchMedia(value, type);
             }
           }}

@@ -9,21 +9,20 @@ interface MediaCardProps {
 
 export default function MediaCard({ media }: MediaCardProps) {
   const cleanYear = media.year.replace(/\D+$/, "");
+  const runTimeString = `${Math.floor(media.runtime / 60)} hrs ${media.runtime % 60} min`;
 
   const handleAddClick = (e: React.MouseEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     e.stopPropagation();
     console.log("Added to watchlist:", media.imdbID);
   };
 
   return (
-    <div className="group bg-light-bg relative flex items-center gap-6 rounded-2xl p-4 transition-all hover:bg-[#252525] border border-transparent">
-
+    <div className="group bg-light-bg relative flex items-center gap-6 rounded-2xl border border-transparent p-4 transition-all hover:bg-[#252525]">
       <Link
         to={`/${media.type === "movie" ? "movies" : "series"}/${media.imdbID}`}
         className="flex flex-1 items-start gap-6"
       >
-
         <div className="h-44 w-32 shrink-0 overflow-hidden rounded-lg shadow-lg">
           <img
             src={media.poster}
@@ -34,7 +33,7 @@ export default function MediaCard({ media }: MediaCardProps) {
 
         <div className="flex flex-1 flex-col justify-between self-stretch py-1">
           <div>
-            <h2 className="text-2xl font-semibold text-white hover:text-accent transition-colors duration-300">
+            <h2 className="hover:text-accent text-2xl font-semibold text-white transition-colors duration-300">
               {media.title}{" "}
               <span className="text-lg font-normal text-gray-500 italic">
                 ({cleanYear})
@@ -43,9 +42,15 @@ export default function MediaCard({ media }: MediaCardProps) {
 
             <div className="mt-1 flex items-center gap-2 text-base text-neutral-400/90">
               <span>{media.genres.join(", ")}</span>
-              <span className="text-stone-600 text-2xl leading-none">&bull;</span>
+              <span className="text-2xl leading-none text-stone-600">
+                &bull;
+              </span>
               <span>
-                {Math.floor(media.runtime / 60)} hrs {media.runtime % 60} min
+                {media.type === "movie"
+                  ? runTimeString
+                  : media.totalSeasons === 1
+                    ? "1 Season"
+                    : `${media.totalSeasons} Seasons`}
               </span>
             </div>
 
@@ -73,7 +78,7 @@ export default function MediaCard({ media }: MediaCardProps) {
         <button
           type="button"
           onClick={handleAddClick}
-          className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-gray-500 text-gray-300 transition-all hover:border-accent hover:bg-accent hover:text-light-bg cursor-pointer"
+          className="hover:border-accent hover:bg-accent hover:text-light-bg flex h-12 w-12 cursor-pointer items-center justify-center rounded-full border-2 border-gray-500 text-gray-300 transition-all"
           aria-label="Add to watchlist"
         >
           <Plus size={28} />

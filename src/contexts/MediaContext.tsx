@@ -1,4 +1,10 @@
-import { createContext, useCallback, useContext, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useRef,
+  useState,
+} from "react";
 import type { Media } from "../types/Media";
 import { transformMedia } from "../utils/transformMedia";
 
@@ -21,6 +27,7 @@ function MediaProvider({ children }: { children: React.ReactNode }) {
   const [results, setResults] = useState<Media[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>("");
+  const controller = useRef<AbortController | null>(null);
 
   const fetchMedia = useCallback(async (id: string) => {
     try {
@@ -56,8 +63,12 @@ function MediaProvider({ children }: { children: React.ReactNode }) {
     return data.Response === "True" ? transformMedia(data) : null;
   }, []);
 
+  //this code fucking sucks lmaaaaaoo (i GOTTA use tanstack query for the next project)
   const searchMedia = useCallback(
     async (title: string, type: string) => {
+      controller.current?.abort();
+      controller.current = new AbortController();
+
       try {
         setError("");
         setResults([]);
@@ -65,6 +76,9 @@ function MediaProvider({ children }: { children: React.ReactNode }) {
 
         const response = await fetch(
           `https://www.omdbapi.com/?s=${title}&apikey=${apiKey}&type=${type}`,
+          {
+            signal: controller.current.signal,
+          },
         );
 
         if (!response.ok) {
@@ -85,10 +99,12 @@ function MediaProvider({ children }: { children: React.ReactNode }) {
         ).filter(Boolean) as Media[];
 
         setResults(results);
-      } catch (error) {
-        setError((error as Error).message);
-      } finally {
         setLoading(false);
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") {
+          setError((error as Error).message);
+          setLoading(false);
+        }
       }
     },
     [getMediaDetails],

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useMedia } from "../contexts/MediaContext";
 import { useParams } from "react-router";
-import { Star, Plus, Share2 } from "lucide-react";
+import { Star, PlusCircle, Share2, Trophy } from "lucide-react";
 import Loader from "../components/Loader";
 
 export default function MediaDetails() {
@@ -19,22 +19,33 @@ export default function MediaDetails() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center bg-[#0a0a0a] p-6 md:p-12">
-      <div className="bg-light-bg relative flex w-full max-w-6xl flex-col gap-12 rounded-3xl p-8 shadow-2xl md:flex-row md:p-12">
-        <div className="flex shrink-0 flex-col items-center gap-6 md:items-start">
-          <img
-            src={media.poster}
-            alt={media.title}
-            className="w-full max-w-87.5 rounded-2xl border border-neutral-700 shadow-2xl"
-          />
-          <div className="flex w-full gap-4">
-            <button className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-full border border-neutral-700 px-4 py-3 text-neutral-300 transition-all hover:bg-neutral-800 hover:text-white">
-              <Plus size={20} />
-              <span className="text-sm font-medium">Add to Watchlist</span>
-            </button>
-            <button className="flex h-12 w-12 cursor-pointer items-center justify-center rounded-full border border-neutral-700 text-neutral-400 transition-all hover:bg-neutral-800 hover:text-white">
-              <Share2 size={20} />
-            </button>
+    <div className="bg-main-bg flex min-h-screen flex-col items-center p-6 md:p-12">
+      <div className="bg-light-bg relative flex w-full max-w-6xl flex-col gap-12 rounded-3xl p-8 shadow-2xl md:flex-row md:p-12 mt-12">
+        <div className="flex shrink-0 flex-col items-center md:items-start">
+          <div className="w-full max-w-87.5 overflow-hidden rounded-xl bg-[#141414] shadow-xl shadow-black/50">
+            <img
+              src={media.poster}
+              alt={media.title}
+              className="w-full object-cover"
+            />
+
+            <div className="flex w-full items-center justify-between border-t border-neutral-800/50 px-5 py-3">
+              <button className="group flex cursor-pointer items-center gap-3 text-neutral-200 transition-colors hover:text-white">
+                <PlusCircle
+                  size={28}
+                  strokeWidth={1.5}
+                  className="text-neutral-100"
+                />
+
+                <span className="text-lg font-medium tracking-wide">
+                  Add to Watchlist
+                </span>
+              </button>
+
+              <button className="flex cursor-pointer items-center justify-center text-neutral-200 transition-colors hover:text-white">
+                <Share2 size={24} strokeWidth={1.5} />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -44,17 +55,19 @@ export default function MediaDetails() {
               <h1 className="text-4xl font-bold tracking-tight text-white md:text-5xl">
                 {media.title}
                 <span className="ml-3 text-2xl font-light text-neutral-500 italic md:text-3xl">
-                  ({media.year})
+                  ({media.year.replace(/\D+$/, "")})
                 </span>
-                <span className="ml-3 inline-block rounded-full border border-red-500/50 px-2 py-0.5 align-middle text-xs font-bold text-red-500">
+                <span
+                  className={`ml-3 inline-flex aspect-square min-w-8 items-center justify-center rounded-full border-3 p-1.5 text-xs leading-none font-bold uppercase ${media.rated.includes("R") || media.rated.includes("TV-MA") ? "border-red-400 text-red-400" : "border-yellow-200 text-yellow-200"}`}
+                >
                   {media.rated}
                 </span>
               </h1>
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className="mt-5 flex flex-wrap gap-4">
                 {media.genres.map((genre) => (
                   <span
                     key={genre}
-                    className="rounded-full bg-[#b4f44d] px-4 py-1 text-sm font-bold tracking-wider text-[#0a0a0a] uppercase"
+                    className="bg-tag-green rounded-md px-3 py-1.5 text-sm font-bold tracking-wider text-[#0a0a0a] uppercase"
                   >
                     {genre}
                   </span>
@@ -63,19 +76,19 @@ export default function MediaDetails() {
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-4xl font-bold text-white">
+              <span className="text-body-text text-3xl font-bold">
                 {media.imdbRating}
               </span>
-              <Star size={32} fill="#fcc419" stroke="#fcc419" />
+              <Star size={36} fill="#fcc419" stroke="#fcc419" />
             </div>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-neutral-800 bg-[#141414]/50 p-6 md:p-8">
-            <div className="grid grid-cols-1 gap-y-4 text-[15px] text-neutral-400">
+          <div className="mt-3 rounded-2xl border-4 border-neutral-700/80 bg-[#141414]/50 p-6 md:p-8">
+            <div className="grid grid-cols-1 gap-y-4 text-base text-neutral-400">
               <p>
                 <span className="inline-block w-32 font-medium text-white">
                   Country:
-                </span>{" "}
+                </span>
                 {media.country}
               </p>
               <p>
@@ -91,7 +104,7 @@ export default function MediaDetails() {
                 </span>
                 <span
                   className={
-                    type === "movies" ? "font-medium text-green-500" : ""
+                    type === "movies" ? "font-medium text-green-400" : ""
                   }
                 >
                   {type === "movies"
@@ -106,7 +119,15 @@ export default function MediaDetails() {
                 <span className="inline-block w-32 font-medium text-white">
                   Age rating:
                 </span>{" "}
-                <span className="text-red-500">{media.rated}</span>
+                <span
+                  className={
+                    media.rated.includes("R") || media.rated.includes("TV-MA")
+                      ? "text-red-500"
+                      : ""
+                  }
+                >
+                  {media.rated}
+                </span>
               </p>
               <p>
                 <span className="inline-block w-32 font-medium text-white">
@@ -116,9 +137,9 @@ export default function MediaDetails() {
               </p>
               <p>
                 <span className="inline-block w-32 font-medium text-white">
-                  Director:
+                  {type === "movies" ? "Director:" : "Writer:"}
                 </span>{" "}
-                {media.director}
+                {type === "movies" ? media.director : media.writer}
               </p>
               <p>
                 <span className="inline-block w-32 font-medium text-white">
@@ -127,8 +148,8 @@ export default function MediaDetails() {
                 {media.actors.join(", ")}
               </p>
 
-              <div className="flex items-start gap-2 pt-2 text-neutral-300">
-                <Star size={18} className="mt-0.5 shrink-0 text-neutral-600" />
+              <div className="flex items-start gap-2 text-neutral-300">
+                <Trophy size={28} className="mb-1 shrink-0 text-yellow-600" />
                 <p>{media.awards}</p>
               </div>
             </div>

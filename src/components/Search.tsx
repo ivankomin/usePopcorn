@@ -39,8 +39,8 @@ export default function Search() {
               searchMedia("man", type);
               setSearchParams({});
             } else {
-              setSearchParams({ q: value });
-              searchMedia(value, type);
+              setSearchParams({ q: value.trim() });
+              searchMedia(value.trim(), type);
             }
           }}
         />

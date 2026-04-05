@@ -20,7 +20,7 @@ export default function MediaDetails() {
 
   return (
     <div className="bg-main-bg flex min-h-screen flex-col items-center p-6 md:p-12">
-      <div className="bg-light-bg relative flex w-full max-w-6xl flex-col gap-12 rounded-3xl p-8 shadow-2xl md:flex-row md:p-12 mt-12">
+      <div className="bg-light-bg relative flex w-full max-w-7xl flex-col gap-12 rounded-3xl p-8 shadow-2xl md:flex-row md:p-12 mt-12">
         <div className="flex shrink-0 flex-col items-center md:items-start">
           <div className="w-full max-w-87.5 overflow-hidden rounded-xl bg-[#141414] shadow-xl shadow-black/50">
             <img

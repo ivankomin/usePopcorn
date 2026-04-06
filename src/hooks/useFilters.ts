@@ -29,6 +29,7 @@ export function useFilters(media: Media[], type: string) {
       ...filters,
       [key]: value,
     });
+    console.log("Updated filters:", { ...filters, [key]: value });
   }
 
   function resetFilters() {

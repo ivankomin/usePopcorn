@@ -35,7 +35,7 @@ function MediaProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
 
       const response = await fetch(
-        `https://www.omdbapi.com/?i=${id}&apikey=${apiKey}`,
+        `https://www.omdbapi.com/?i=${id}&apikey=${apiKey}&plot=full`,
       );
 
       if (!response.ok) {

@@ -43,9 +43,7 @@ export default function GenresDropdown({
       <DropdownMenu.Trigger asChild>
         <button className="flex w-full items-center justify-between rounded-xl border border-neutral-700 bg-transparent px-4 py-2.5 text-base text-neutral-400 transition-colors outline-none hover:border-neutral-500">
           <span className="truncate">
-            {selected.length > 0
-              ? `${selected.join(", ")}`
-              : "Genre"}
+            {selected.length > 0 ? `${selected.join(", ")}` : "Genre"}
           </span>
           <ChevronDown
             size={16}
@@ -56,7 +54,7 @@ export default function GenresDropdown({
 
       <DropdownMenu.Portal>
         <DropdownMenu.Content
-          className="z-50 w-[--radix-dropdown-menu-trigger-width] overflow-hidden rounded-xl border border-neutral-700 bg-neutral-900 p-1 shadow-xl"
+          className="w-[--radix-dropdown-menu-trigger-width] overflow-hidden rounded-xl border border-neutral-700 bg-neutral-900 p-1 shadow-xl"
           sideOffset={6}
         >
           {genresList.map((genre) => (
@@ -64,7 +62,7 @@ export default function GenresDropdown({
               key={genre}
               checked={selected.includes(genre)}
               onCheckedChange={() => toggleGenre(genre)}
-              className="flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm text-neutral-300 transition-colors outline-none hover:bg-neutral-800 focus:bg-neutral-800"
+              className="flex cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm text-neutral-300 transition-colors outline-none hover:bg-neutral-800 focus:bg-neutral-800"
             >
               {genre}
               <DropdownMenu.ItemIndicator>

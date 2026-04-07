@@ -1,15 +1,6 @@
 import { useState } from "react";
 import type { Media } from "../types/Media";
-
-export interface Filter {
-  minRating: number;
-  maxRating: number;
-  minYear: number;
-  maxYear: number;
-  minRuntime: number;
-  maxRuntime: number;
-  genres: string[];
-}
+import type { Filter } from "../types/Filter";
 
 const defaultFilters: Filter = {
   minRating: 0,
@@ -25,11 +16,7 @@ export function useFilters(media: Media[], type: string) {
   const [filters, setFilters] = useState<Filter>(defaultFilters);
 
   function updateFilters<K extends keyof Filter>(key: K, value: Filter[K]) {
-    setFilters({
-      ...filters,
-      [key]: value,
-    });
-    console.log("Updated filters:", { ...filters, [key]: value });
+    setFilters((prev) => ({ ...prev, [key]: value }));
   }
 
   function resetFilters() {

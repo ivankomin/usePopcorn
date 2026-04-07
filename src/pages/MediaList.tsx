@@ -13,7 +13,7 @@ export default function MediaList() {
   const [searchParams] = useSearchParams();
   const type = getMediaType(location.pathname);
   const query: string | null = searchParams.get("q");
-  const { filters, filteredMedia, updateFilters } = useFilters(results, type);
+  const { filters, filteredMedia, updateFilters, resetFilters } = useFilters(results, type);
 
   //fetch some initial media on mount
   useEffect(() => {
@@ -24,9 +24,8 @@ export default function MediaList() {
   }, [searchMedia, type, clearResults, query]);
 
   return (
-    //TODO: improve UI, add functional input fields, implement filtering logic
     <div className="flex w-full justify-between gap-10 p-8">
-      <FilterSidebar filters={filters} updateFilters={updateFilters} />
+      <FilterSidebar filters={filters} updateFilters={updateFilters} resetFilters={resetFilters} />
 
       <main className="ml-50 max-w-6xl flex-1">
         <div className="mb-6">
@@ -43,7 +42,6 @@ export default function MediaList() {
           </div>
         ) : (
           <>
-            {/* Media Cards List */}
             <div className="flex flex-col gap-6">
               {filteredMedia.map((media) => (
                 <MediaCard key={media.imdbID} media={media} />

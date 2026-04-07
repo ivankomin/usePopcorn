@@ -54,7 +54,8 @@ function MediaProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     }
   }, []);
-
+  //the omdb api's search object only returns basic info for each media, so i need to make a separate request for each media to get the full details
+  //this is probably not a very good practice, but i don't really see a better way for now
   const getMediaDetails = useCallback(async (id: string) => {
     const res = await fetch(
       `https://www.omdbapi.com/?i=${id}&apikey=${apiKey}`,

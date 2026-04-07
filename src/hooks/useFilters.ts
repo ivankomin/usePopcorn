@@ -5,7 +5,7 @@ import type { Filter } from "../types/Filter";
 const defaultFilters: Filter = {
   minRating: 0,
   maxRating: 10,
-  minYear: 0,
+  minYear: 1900,
   maxYear: 2026,
   minRuntime: 0,
   maxRuntime: 300,

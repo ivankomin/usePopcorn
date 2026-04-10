@@ -1,6 +1,6 @@
 import { Link, NavLink } from "react-router";
 import { Book, User, LogOut } from "lucide-react";
-import Search from "./Search";
+import Search from ".//Search";
 
 export default function Header() {
   const navLinkStyles = ({ isActive }: { isActive: boolean }) =>

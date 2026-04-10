@@ -1,8 +1,8 @@
 import { Search as SearchIcon } from "lucide-react";
-import { useMedia } from "../contexts/MediaContext";
+import { useMedia } from "../../contexts/MediaContext";
 import { useLocation, useSearchParams } from "react-router";
 import { useEffect, useState } from "react";
-import { getMediaType } from "../utils/getMediaType";
+import { getMediaType } from "../../utils/getMediaType";
 export default function Search() {
   const [query, setQuery] = useState("");
   const [searchParams, setSearchParams] = useSearchParams();

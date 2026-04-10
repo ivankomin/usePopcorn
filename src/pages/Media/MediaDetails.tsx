@@ -1,8 +1,8 @@
 import { useEffect } from "react";
-import { useMedia } from "../contexts/MediaContext";
+import { useMedia } from "../../contexts/MediaContext";
 import { useParams } from "react-router";
 import { Star, PlusCircle, Share2, Trophy } from "lucide-react";
-import Loader from "../components/Loader";
+import Loader from "../../components/Loader";
 
 export default function MediaDetails() {
   const { id, type } = useParams();

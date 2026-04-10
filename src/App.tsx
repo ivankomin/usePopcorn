@@ -3,7 +3,7 @@ import AppLayout from "./pages/AppLayout";
 import Home from "./pages/Home";
 import { RouterProvider } from "react-router";
 import MediaList from "./pages/Media/MediaList";
-import MediaDetails from "./pages/MediaDetails";
+import MediaDetails from "./pages/Media/MediaDetails";
 import Watchlist from "./pages/Media/Watchlist";
 import About from "./pages/legal/About";
 import Privacy from "./pages/legal/Privacy";

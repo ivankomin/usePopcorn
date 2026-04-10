@@ -41,7 +41,7 @@ export default function GenresDropdown({
   return (
     <DropdownMenu.Root open={open} onOpenChange={setOpen}>
       <DropdownMenu.Trigger asChild>
-        <button className="flex w-full items-center justify-between rounded-xl border border-neutral-700 bg-transparent px-4 py-2.5 text-base text-neutral-400 transition-colors outline-none hover:border-neutral-500">
+        <button className="flex w-full items-center justify-between rounded-xl border border-neutral-700 bg-[#141414] px-4 py-2.5 text-base text-neutral-400 transition-colors outline-none hover:border-neutral-500">
           <span className="truncate">
             {selected.length > 0 ? `${selected.join(", ")}` : "Genre"}
           </span>

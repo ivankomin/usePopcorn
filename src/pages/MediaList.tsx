@@ -13,19 +13,32 @@ export default function MediaList() {
   const [searchParams] = useSearchParams();
   const type = getMediaType(location.pathname);
   const query: string | null = searchParams.get("q");
-  const { filters, filteredMedia, updateFilters, resetFilters } = useFilters(results, type);
+  const {
+    filters,
+    filteredMedia,
+    updateFilters,
+    resetFilters,
+    hasActiveFilters,
+  } = useFilters(results, type);
 
-  //fetch some initial media on mount
+  //fetch some initial media on mount + reset filters and results on unmount
   useEffect(() => {
     searchMedia(query || "man", type);
     return () => {
       clearResults();
+      resetFilters();
     };
-  }, [searchMedia, type, clearResults, query]);
+  }, [searchMedia, type, clearResults, query, resetFilters]);
 
   return (
     <div className="flex w-full justify-between gap-10 p-8">
-      <FilterSidebar filters={filters} updateFilters={updateFilters} resetFilters={resetFilters} />
+      <FilterSidebar
+        filters={filters}
+        updateFilters={updateFilters}
+        resetFilters={resetFilters}
+        hasActiveFilters={hasActiveFilters}
+        type={type}
+      />
 
       <main className="ml-50 max-w-6xl flex-1">
         <div className="mb-6">

@@ -1,19 +1,36 @@
 import GenresDropdown from "./GenresDropdown";
 import type { Filter } from "../types/Filter";
-import { ChevronDown } from "lucide-react";
 import YearInput from "./YearInput";
+import RuntimeSeasonsDropdown from "./RuntimeSeasonsDropdown.tsx";
 
 interface FilterSidebarProps {
   filters: Filter;
   updateFilters: <K extends keyof Filter>(key: K, value: Filter[K]) => void;
   resetFilters: () => void;
+  hasActiveFilters: boolean;
+  type: "" | "movie" | "series";
 }
 export default function FilterSidebar({
   filters,
   updateFilters,
   resetFilters,
+  hasActiveFilters,
+  type,
 }: FilterSidebarProps) {
-  //TODO: rework the runtime dropdown into separate component and style with radix ui, probably think some more on general styling of the sidebar as well
+  const runtimeSeasonsValues = {
+    min: type === "movie" ? filters.minRuntime : filters.minSeasons,
+    max: type === "movie" ? filters.maxRuntime : filters.maxSeasons,
+  };
+  function handleRuntimeSeasonsChange(min: number, max: number) {
+    if (type === "movie") {
+      updateFilters("minRuntime", min);
+      updateFilters("maxRuntime", max);
+    } else {
+      updateFilters("minSeasons", min);
+      updateFilters("maxSeasons", max);
+    }
+  }
+
   return (
     <aside className="mt-30 w-72 shrink-0">
       <div className="bg-light-bg rounded-3xl border border-neutral-800/50 p-6 shadow-2xl">
@@ -21,12 +38,14 @@ export default function FilterSidebar({
           <h2 className="text-body-text text-xl font-bold tracking-tight">
             Filters
           </h2>
-          <button
-            onClick={() => resetFilters()}
-            className="hover:text-body-text text-xs font-bold tracking-widest text-neutral-400 uppercase transition-colors hover:cursor-pointer hover:underline"
-          >
-            Clear all
-          </button>
+          {hasActiveFilters && (
+            <button
+              onClick={() => resetFilters()}
+              className="hover:text-body-text text-xs font-bold tracking-widest text-neutral-400 uppercase transition-colors hover:cursor-pointer hover:underline"
+            >
+              Clear all
+            </button>
+          )}
         </div>
 
         <div className="space-y-8">
@@ -105,32 +124,19 @@ export default function FilterSidebar({
               />
             </div>
           </section>
-          
+
           <section>
             <p className="mb-3 text-xs font-extrabold tracking-widest text-neutral-400 uppercase">
-              Duration
+              {type === "movie" ? "Runtime" : "Seasons"}
             </p>
-            <div className="relative">
-              <select
-                className="focus:border-accent w-full cursor-pointer appearance-none rounded-xl border border-neutral-800 bg-[#141414] px-4 py-2.5 text-sm text-neutral-300 transition-colors outline-none hover:border-neutral-700"
-                onChange={(e) => {
-                  const [min, max] = e.target.value.split("-").map(Number);
-                  updateFilters("minRuntime", min);
-                  updateFilters("maxRuntime", max || Infinity);
-                }}
-                value={`${filters.minRuntime}-${filters.maxRuntime || ""}`}
-              >
-                <option value="0-0">Any Runtime</option>
-                <option value="0-60">Under 1 hour</option>
-                <option value="60-120">1–2 hours</option>
-                <option value="120-180">2–3 hours</option>
-                <option value="180-">3+ hours</option>
-              </select>
-              <ChevronDown
-                className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-neutral-500"
-                size={16}
-              />
-            </div>
+            <RuntimeSeasonsDropdown
+              min={runtimeSeasonsValues.min}
+              max={runtimeSeasonsValues.max}
+              onChange={(min, max) => {
+                handleRuntimeSeasonsChange(min, max);
+              }}
+              type={type}
+            />
           </section>
         </div>
       </div>

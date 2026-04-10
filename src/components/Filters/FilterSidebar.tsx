@@ -1,6 +1,6 @@
-import GenresDropdown from "./GenresDropdown";
-import type { Filter } from "../types/Filter";
-import YearInput from "./YearInput";
+import GenresDropdown from "./GenresDropdown.tsx";
+import type { Filter } from "../../types/Filter.ts";
+import YearInput from "./YearInput.tsx";
 import RuntimeSeasonsDropdown from "./RuntimeSeasonsDropdown.tsx";
 
 interface FilterSidebarProps {

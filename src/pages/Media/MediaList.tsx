@@ -1,11 +1,11 @@
 import { useEffect } from "react";
-import MediaCard from "../components/MediaCard";
-import { useMedia } from "../contexts/MediaContext";
+import MediaCard from "../../components/MediaCard";
+import { useMedia } from "../../contexts/MediaContext";
 import { useLocation, useSearchParams } from "react-router";
-import { getMediaType } from "../utils/getMediaType";
-import Loader from "../components/Loader";
-import { useFilters } from "../hooks/useFilters";
-import FilterSidebar from "../components/FilterSidebar";
+import { getMediaType } from "../../utils/getMediaType";
+import Loader from "../../components/Loader";
+import { useFilters } from "../../hooks/useFilters";
+import FilterSidebar from "../../components/Filters/FilterSidebar";
 
 export default function MediaList() {
   const { results, searchMedia, loading, clearResults } = useMedia();

@@ -37,7 +37,7 @@ export default function Footer() {
       </div>
 
       <div className="text-grey text-sm font-medium tracking-tight">
-        &copy; 2026, ALL RIGHTS RESERVED
+        &copy; {new Date().getFullYear()}, ALL RIGHTS RESERVED
       </div>
     </footer>
   );

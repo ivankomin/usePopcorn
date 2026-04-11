@@ -16,7 +16,7 @@ interface MediaContextType {
   loading: boolean;
   error: string | null;
   fetchMedia: (id: string) => Promise<void>;
-  searchMedia: (title: string, type: string) => Promise<void>;
+  searchMedia: (title: string, type: string, page: number) => Promise<void>;
   clearResults: () => void;
 }
 
@@ -66,7 +66,7 @@ function MediaProvider({ children }: { children: React.ReactNode }) {
 
   //this code fucking sucks lmaaaaaoo (i GOTTA use tanstack query for the next project)
   const searchMedia = useCallback(
-    async (title: string, type: string) => {
+    async (title: string, type: string, page: number) => {
       controller.current?.abort();
       controller.current = new AbortController();
 
@@ -76,7 +76,7 @@ function MediaProvider({ children }: { children: React.ReactNode }) {
         setLoading(true);
 
         const response = await fetch(
-          `https://www.omdbapi.com/?s=${title}&apikey=${apiKey}&type=${type}`,
+          `https://www.omdbapi.com/?s=${title}&apikey=${apiKey}&type=${type}&page=${page}`,
           {
             signal: controller.current.signal,
           },

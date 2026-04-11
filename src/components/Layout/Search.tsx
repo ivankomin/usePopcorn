@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { getMediaType } from "../../utils/getMediaType";
 export default function Search() {
   const [query, setQuery] = useState("");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [searchParams, setSearchParams] = useSearchParams();
 
   const { searchMedia } = useMedia();

@@ -9,7 +9,7 @@ import FilterSidebar from "../../components/Filters/FilterSidebar";
 import { MoveLeft, MoveRight } from "lucide-react";
 
 export default function MediaList() {
-  const { results, searchMedia, loading, clearResults } = useMedia();
+  const { results, searchMedia, loading, clearResults, totalResults } = useMedia();
   const location = useLocation();
   const [page, setPage] = useState(1);
 
@@ -29,9 +29,11 @@ export default function MediaList() {
     searchMedia(query || "man", type, page);
     return () => {
       clearResults();
+      // the omdb api limitations strike again, since each page only has 10 results
+      // which is why persisting filters between pages makes for very poor ux. unfortunate.
       resetFilters();
     };
-  }, [searchMedia, type, clearResults, query, resetFilters, page]);
+  }, [searchMedia, type, clearResults, query, page, resetFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -58,9 +60,12 @@ export default function MediaList() {
       <main className="ml-50 max-w-6xl flex-1">
         <div className="mb-6">
           {query ? (
-            <h1 className="mt-5 mb-5 text-4xl font-bold">
-              Results for "{query}"
-            </h1>
+           <div className="flex items-baseline gap-5">
+              <h1 className="mt-5 mb-5 text-4xl font-bold">
+                Results for "{query}"
+              </h1>
+              <span className="text-gray-500 italic text-2xl">({totalResults} found)</span>
+           </div>
           ) : (
             <h1 className="mt-5 mb-5 text-4xl font-bold">
               Search for your favorite {type === "movie" ? "movies" : "series"}{" "}

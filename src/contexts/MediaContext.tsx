@@ -18,6 +18,7 @@ interface MediaContextType {
   fetchMedia: (id: string) => Promise<void>;
   searchMedia: (title: string, type: string, page: number) => Promise<void>;
   clearResults: () => void;
+  totalResults: number;
 }
 
 const MediaContext = createContext<MediaContextType | null>(null);
@@ -27,6 +28,8 @@ function MediaProvider({ children }: { children: React.ReactNode }) {
   const [results, setResults] = useState<Media[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>("");
+  const [totalResults, setTotalResults] = useState<number>(0);
+
   const controller = useRef<AbortController | null>(null);
 
   const fetchMedia = useCallback(async (id: string) => {
@@ -100,6 +103,7 @@ function MediaProvider({ children }: { children: React.ReactNode }) {
         ).filter(Boolean) as Media[];
 
         setResults(results);
+        setTotalResults(data.totalResults);
         setLoading(false);
       } catch (error) {
         if ((error as Error).name !== "AbortError") {
@@ -126,6 +130,7 @@ function MediaProvider({ children }: { children: React.ReactNode }) {
         fetchMedia,
         searchMedia,
         clearResults,
+        totalResults,
       }}
     >
       {children}

@@ -6,10 +6,11 @@ import { getMediaType } from "../../utils/getMediaType";
 import Loader from "../../components/Loader";
 import { useFilters } from "../../hooks/useFilters";
 import FilterSidebar from "../../components/Filters/FilterSidebar";
-import { MoveLeft, MoveRight } from "lucide-react";
+import Pagination from "../../components/Layout/Pagination";
 
 export default function MediaList() {
-  const { results, searchMedia, loading, clearResults, totalResults } = useMedia();
+  const { results, searchMedia, loading, clearResults, totalResults } =
+    useMedia();
   const location = useLocation();
   const [page, setPage] = useState(1);
 
@@ -23,6 +24,8 @@ export default function MediaList() {
     resetFilters,
     hasActiveFilters,
   } = useFilters(results, type);
+
+  const totalPages = Math.ceil(totalResults / 10);
 
   //fetch some initial media on mount + reset filters and results on unmount
   useEffect(() => {
@@ -39,14 +42,6 @@ export default function MediaList() {
     setPage(1);
   }, [query, type]);
 
-  function nextPage() {
-    setPage((prev) => prev + 1);
-  }
-
-  function previousPage() {
-    setPage((prev) => Math.max(prev - 1, 1));
-  }
-
   return (
     <div className="flex w-full justify-between gap-10 p-8">
       <FilterSidebar
@@ -60,12 +55,14 @@ export default function MediaList() {
       <main className="ml-50 max-w-6xl flex-1">
         <div className="mb-6">
           {query ? (
-           <div className="flex items-baseline gap-5">
+            <div className="flex items-baseline gap-5">
               <h1 className="mt-5 mb-5 text-4xl font-bold">
                 Results for "{query}"
               </h1>
-              <span className="text-gray-500 italic text-2xl">({totalResults} found)</span>
-           </div>
+              <span className="text-2xl text-gray-500 italic">
+                ({totalResults} found)
+              </span>
+            </div>
           ) : (
             <h1 className="mt-5 mb-5 text-4xl font-bold">
               Search for your favorite {type === "movie" ? "movies" : "series"}{" "}
@@ -85,29 +82,13 @@ export default function MediaList() {
                 <MediaCard key={media.imdbID} media={media} />
               ))}
             </div>
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
           </>
         )}
-
-        {/* TODO: gotta improve pagination UX */}
-        <div className="mt-8 flex items-center justify-between">
-          {page > 1 && (
-            <button
-              onClick={() => previousPage()}
-              className="hover:text-body-text flex items-center gap-2 text-sm font-bold text-neutral-400 uppercase transition-colors hover:cursor-pointer hover:underline"
-            >
-              <MoveLeft size={16} strokeWidth={2.5} />
-              Previous page
-            </button>
-          )}
-
-          <button
-            onClick={() => nextPage()}
-            className="hover:text-body-text ml-auto flex items-center gap-2 text-sm font-bold tracking-widest text-neutral-400 uppercase transition-colors hover:cursor-pointer hover:underline"
-          >
-            Next page
-            <MoveRight size={16} strokeWidth={2.5} />
-          </button>
-        </div>
       </main>
       <div className="hidden w-72 shrink-0 xl:block" aria-hidden="true" />
     </div>

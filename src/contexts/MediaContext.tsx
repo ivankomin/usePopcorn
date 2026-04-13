@@ -16,7 +16,7 @@ interface MediaContextType {
   loading: boolean;
   error: string | null;
   fetchMedia: (id: string) => Promise<void>;
-  searchMedia: (title: string, type: string, page: number) => Promise<void>;
+  searchMedia: (title: string, type: string, page?: number) => Promise<void>;
   clearResults: () => void;
   totalResults: number;
 }
@@ -69,7 +69,7 @@ function MediaProvider({ children }: { children: React.ReactNode }) {
 
   //this code fucking sucks lmaaaaaoo (i GOTTA use tanstack query for the next project)
   const searchMedia = useCallback(
-    async (title: string, type: string, page: number) => {
+    async (title: string, type: string, page = 1) => {
       controller.current?.abort();
       controller.current = new AbortController();
 

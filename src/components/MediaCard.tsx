@@ -1,20 +1,23 @@
 import { Link } from "react-router";
 import type { Media } from "../types/Media";
 import Rating from "@mui/material/Rating";
-import { Plus } from "lucide-react";
+import { Check, Plus } from "lucide-react";
+import { useWatchlist } from "../contexts/WatchlistContext";
 
 interface MediaCardProps {
   media: Media;
 }
 
 export default function MediaCard({ media }: MediaCardProps) {
+  const { toggleWatchlist, isBookmarked } = useWatchlist();
+  const isAdded = isBookmarked(media.imdbID);
   const cleanYear = media.year.replace(/\D+$/, "");
   const runTimeString = `${Math.floor(media.runtime / 60)} hrs ${media.runtime % 60} min`;
 
   const handleAddClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log("Added to watchlist:", media.imdbID);
+    toggleWatchlist(media);
   };
 
   return (
@@ -78,10 +81,14 @@ export default function MediaCard({ media }: MediaCardProps) {
         <button
           type="button"
           onClick={handleAddClick}
-          className="hover:border-accent hover:bg-accent hover:text-light-bg flex h-12 w-12 cursor-pointer items-center justify-center rounded-full border-2 border-gray-500 text-gray-300 transition-all"
+          className={`flex h-12 w-12 cursor-pointer items-center justify-center rounded-full border-2 transition-all ${
+            isAdded
+              ? "bg-accent border-accent text-light-bg"
+              : "hover:border-accent hover:bg-accent hover:text-light-bg border-gray-500 bg-transparent text-gray-300"
+          } `}
           aria-label="Add to watchlist"
         >
-          <Plus size={28} />
+          {isAdded ? <Check size={28} /> : <Plus size={28} />}
         </button>
       </div>
     </div>

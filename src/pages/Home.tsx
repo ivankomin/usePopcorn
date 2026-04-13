@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <div className="bg-main-bg flex min-h-screen flex-1 flex-col items-center">
       <Hero />
-      <Button to="/login">GET STARTED NOW</Button>
+      <Button to="/movies">GET STARTED NOW</Button>
     </div>
   );
 }

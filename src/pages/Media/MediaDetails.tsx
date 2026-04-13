@@ -1,12 +1,25 @@
 import { useEffect } from "react";
 import { useMedia } from "../../contexts/MediaContext";
 import { useParams } from "react-router";
-import { Star, PlusCircle, Share2, Trophy } from "lucide-react";
+import {
+  Star,
+  PlusCircle,
+  Share2,
+  Trophy,
+  CheckCircle,
+  Trash2,
+} from "lucide-react";
 import Loader from "../../components/Loader";
+import { useWatchlist } from "../../contexts/WatchlistContext";
 
 export default function MediaDetails() {
   const { id, type } = useParams();
   const { media, fetchMedia } = useMedia();
+  const { toggleWatchlist, isBookmarked } = useWatchlist();
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+  };
 
   useEffect(() => {
     if (id) {
@@ -17,6 +30,8 @@ export default function MediaDetails() {
   if (!media || media.imdbID !== id) {
     return <Loader />;
   }
+
+  const isAdded = isBookmarked(media.imdbID);
 
   return (
     <div className="bg-main-bg flex min-h-screen flex-col items-center p-6 md:p-12">
@@ -30,23 +45,54 @@ export default function MediaDetails() {
                 className="w-full object-cover"
               />
 
-              <div className="flex w-full items-center justify-between border-t border-neutral-800/50 px-5 py-3">
-                <button className="group flex cursor-pointer items-center gap-3 text-neutral-200 transition-colors hover:text-white">
-                  <PlusCircle
-                    size={28}
-                    strokeWidth={1.5}
-                    className="text-neutral-100"
-                  />
+              {isAdded ? (
+                <div className="flex w-full items-center justify-between border-t border-neutral-800/50 px-5 py-3">
+                  <div className="text-accent flex items-center gap-3 text-lg font-medium tracking-wide">
+                    <CheckCircle size={24} className="text-accent" />
+                    <span>In Watchlist</span>
+                  </div>
 
-                  <span className="text-lg font-medium tracking-wide">
-                    Add to Watchlist
-                  </span>
-                </button>
+                  <div className="flex items-center gap-5 text-neutral-200">
+                    <button
+                      onClick={() => toggleWatchlist(media)}
+                      className="flex cursor-pointer items-center justify-center text-red-500 transition-colors hover:text-red-600"
+                    >
+                      <Trash2 size={24} strokeWidth={1.5} />
+                    </button>
 
-                <button className="flex cursor-pointer items-center justify-center text-neutral-200 transition-colors hover:text-white">
-                  <Share2 size={24} strokeWidth={1.5} />
-                </button>
-              </div>
+                    <button
+                      onClick={handleCopyLink}
+                      className="flex cursor-pointer items-center justify-center transition-colors hover:text-white"
+                    >
+                      <Share2 size={24} strokeWidth={1.5} />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex w-full items-center justify-between border-t border-neutral-800/50 px-5 py-3">
+                  <button
+                    className="group flex cursor-pointer items-center gap-3 text-neutral-200 transition-colors hover:text-white"
+                    onClick={() => toggleWatchlist(media)}
+                  >
+                    <PlusCircle
+                      size={28}
+                      strokeWidth={1.5}
+                      className="text-neutral-100"
+                    />
+
+                    <span className="text-lg font-medium tracking-wide">
+                      Add to Watchlist
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={handleCopyLink}
+                    className="flex cursor-pointer items-center justify-center text-neutral-200 transition-colors hover:text-white"
+                  >
+                    <Share2 size={24} strokeWidth={1.5} />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -149,10 +195,15 @@ export default function MediaDetails() {
                   {media.actors.join(", ")}
                 </p>
 
-                <div className="flex items-start gap-2 text-neutral-300">
-                  <Trophy size={28} className="mb-1 shrink-0 text-yellow-600" />
-                  <p>{media.awards}</p>
-                </div>
+                {media.awards !== "N/A" && (
+                  <div className="flex items-start gap-2 text-neutral-300">
+                    <Trophy
+                      size={28}
+                      className="mb-1 shrink-0 text-yellow-600"
+                    />
+                    <p>{media.awards}</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -21,7 +21,7 @@ const seasonOptions = [
 interface RuntimeSeasonsDropdownProps {
   min: number;
   max: number;
-  type: "" | "movie" | "series";
+  type: "" | "movie" | "series" | "watchlist";
   onChange: (min: number, max: number) => void;
 }
 

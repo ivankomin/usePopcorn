@@ -8,7 +8,7 @@ interface FilterSidebarProps {
   updateFilters: <K extends keyof Filter>(key: K, value: Filter[K]) => void;
   resetFilters: () => void;
   hasActiveFilters: boolean;
-  type: "" | "movie" | "series";
+  type: "" | "movie" | "series" | "watchlist";
 }
 export default function FilterSidebar({
   filters,

@@ -1,46 +1,24 @@
-import { useEffect, useState } from "react";
 import MediaCard from "../../components/MediaCard";
-import { useMedia } from "../../contexts/MediaContext";
-import { useLocation, useSearchParams } from "react-router";
-import { getMediaType } from "../../utils/getMediaType";
 import Loader from "../../components/Loader";
-import { useFilters } from "../../hooks/useFilters";
 import FilterSidebar from "../../components/Filters/FilterSidebar";
 import Pagination from "../../components/Layout/Pagination";
+import { useMedialist } from "../../hooks/useMedialist";
 
 export default function MediaList() {
-  const { results, searchMedia, loading, clearResults, totalResults } =
-    useMedia();
-  const location = useLocation();
-  const [page, setPage] = useState(1);
-
-  const [searchParams] = useSearchParams();
-  const type = getMediaType(location.pathname);
-  const query: string | null = searchParams.get("q");
   const {
     filters,
     filteredMedia,
     updateFilters,
     resetFilters,
     hasActiveFilters,
-  } = useFilters(results, type);
-
-  const totalPages = Math.ceil(totalResults / 10);
-
-  //fetch some initial media on mount + reset filters and results on unmount
-  useEffect(() => {
-    searchMedia(query || "man", type, page);
-    return () => {
-      clearResults();
-      // the omdb api limitations strike again, since each page only has 10 results
-      // which is why persisting filters between pages makes for very poor ux. unfortunate.
-      resetFilters();
-    };
-  }, [searchMedia, type, clearResults, query, page, resetFilters]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [query, type]);
+    type,
+    query,
+    totalResults,
+    totalPages,
+    page,
+    setPage,
+    loading,
+  } = useMedialist();
 
   return (
     <div className="flex w-full justify-between gap-10 p-8">

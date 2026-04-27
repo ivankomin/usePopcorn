@@ -8,6 +8,7 @@ import {
   Trophy,
   CheckCircle,
   Trash2,
+  Send,
 } from "lucide-react";
 import Loader from "../../components/Loader";
 import { useWatchlist } from "../../contexts/WatchlistContext";
@@ -122,11 +123,24 @@ export default function MediaDetails() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-body-text text-3xl font-bold">
-                  {media.imdbRating}
-                </span>
-                <Star size={36} fill="#fcc419" stroke="#fcc419" />
+              <div className="flex flex-col items-end gap-1">
+                {/* IMDb Rating */}
+                <div className="flex items-center gap-2">
+                  <span className="text-body-text text-3xl font-bold">
+                    {media.imdbRating}
+                  </span>
+                  <Star size={32} fill="#fcc419" stroke="#fcc419" />
+                </div>
+                {/* Your Rating - Highlighted */}
+                <div className="flex items-center gap-2 pr-1">
+                  <p className="text-[10px] font-extrabold tracking-widest text-neutral-500 uppercase">
+                    Your rating
+                  </p>
+                  <span className="text-accent text-2xl font-bold leading-none">
+                    9.2
+                  </span>
+                  <Star size={20} className="text-accent fill-accent" />
+                </div>
               </div>
             </div>
 
@@ -208,9 +222,48 @@ export default function MediaDetails() {
             </div>
           </div>
         </div>
-        <p className="mt-8 text-lg leading-relaxed text-neutral-300">
-          {media.plot}
-        </p>
+
+        <div className="mt-8">
+          <p className="text-lg leading-relaxed text-neutral-300">
+            {media.plot}
+          </p>
+
+          <div className="mt-10 rounded-2xl border border-neutral-800 bg-[#141414] p-6">
+            <div className="mb-4 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+              <h3 className="text-xs font-extrabold tracking-widest text-neutral-400 uppercase">
+                Write a review
+              </h3>
+              
+              {/* Interactive Rate this movie section */}
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] font-extrabold tracking-widest text-neutral-500 uppercase">
+                  Rate this {type === "movies" ? "movie" : "series"}
+                </span>
+                <div className="flex gap-1">
+                  {[...Array(10)].map((_, i) => (
+                    <button key={i} className="cursor-pointer group">
+                      <Star
+                        size={18}
+                        className="text-neutral-700 transition-colors group-hover:text-accent group-hover:fill-accent"
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="relative">
+              <textarea
+                placeholder="What did you think of this story?"
+                className="min-h-32 w-full resize-none rounded-xl border border-neutral-700 bg-transparent p-4 text-white transition-colors outline-none placeholder:text-neutral-600 focus:border-accent"
+              />
+              <button className="bg-accent text-light-bg absolute right-4 bottom-4 flex cursor-pointer items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all hover:brightness-110">
+                <Send size={16} strokeWidth={2.5} />
+                Post
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -3,6 +3,8 @@ import { Book, User, LogOut } from "lucide-react";
 import Search from ".//Search";
 
 export default function Header() {
+  // isAuthed is a placeholder for convenience for now
+  const isAuthed = false;
   const navLinkStyles = ({ isActive }: { isActive: boolean }) =>
     `text-lg font-semibold transition-all pb-1 border-b-4 ${
       isActive
@@ -52,7 +54,7 @@ export default function Header() {
         </NavLink>
 
         <div className="border-lighter-bg flex items-center gap-6 border-l pl-8">
-          <NavLink to="/login">
+          <NavLink to={isAuthed ? "/profile" : "/login"}>
             <button className="text-body-text hover:text-accent transition-colors hover:cursor-pointer">
               <User className="h-7 w-7" />
             </button>

@@ -10,6 +10,10 @@ import Privacy from "./pages/legal/Privacy";
 import Contact from "./pages/legal/Contact";
 import Help from "./pages/legal/Help";
 import Login from "./pages/Login";
+import Profile from "./pages/Profile";
+import Recommendations from "./pages/Media/Recommendations";
+import AddMovie from "./pages/Media/AddMovie";
+import CurateReviews from "./pages/CurateReviews";
 
 const router = createBrowserRouter([
   {
@@ -54,6 +58,22 @@ const router = createBrowserRouter([
       {
         path: "/login",
         element: <Login />,
+      },
+      {
+        path: "/profile",
+        element: <Profile />,
+      },
+      {
+        path: "/recommendations",
+        element: <Recommendations />,
+      },
+      {
+        path: "/add-movie",
+        element: <AddMovie />,
+      },
+      {
+        path: "/curate",
+        element: <CurateReviews />,
       },
     ],
   },

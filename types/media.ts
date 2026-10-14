@@ -1,0 +1,39 @@
+import type { Database } from './database.types';
+
+export type MediaItemRow = Database['public']['Tables']['media_items']['Row'];
+export type GenreRow = Database['public']['Tables']['genres']['Row'];
+export type WatchlistRow = Database['public']['Tables']['watchlists']['Row'];
+export type ReviewRow = Database['public']['Tables']['reviews']['Row'];
+export type ProfileRow = Database['public']['Tables']['profiles']['Row'];
+
+export interface MediaMetadata {
+  tagline?: string | null;
+  directors?: string[];
+  creators?: string[];
+  cast?: string[];
+  [key: string]: unknown;
+}
+
+export interface MediaItem extends Omit<MediaItemRow, 'metadata'> {
+  metadata?: MediaMetadata | null;
+  genres?: GenreRow[];
+}
+
+export type WatchlistStatus = 'plan_to_watch' | 'watched' | 'favorite';
+
+export interface WatchlistEntry extends WatchlistRow {
+  media?: MediaItem;
+}
+
+export interface ReviewWithAuthor extends ReviewRow {
+  profile?: Pick<ProfileRow, 'id' | 'username' | 'avatar_url'>;
+}
+
+export interface CatalogFilterParams {
+  search?: string;
+  genreId?: number;
+  mediaType?: 'all' | 'movie' | 'tv';
+  sortBy?: 'popularity' | 'vote_average' | 'release_year' | 'title';
+  page?: number;
+  pageSize?: number;
+}

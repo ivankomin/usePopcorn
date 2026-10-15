@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from "@/lib/supabase/server";
 import type {
   MediaItem,
   GenreRow,
@@ -8,7 +8,7 @@ import type {
   ProfileRow,
   CatalogFilterParams,
   ReviewRow,
-} from '@/types/media';
+} from "@/types/media";
 
 export interface PaginatedResult<T> {
   items: T[];
@@ -24,12 +24,12 @@ export interface PaginatedResult<T> {
 export async function getGenres(): Promise<GenreRow[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from('genres')
-    .select('*')
-    .order('name', { ascending: true });
+    .from("genres")
+    .select("*")
+    .order("name", { ascending: true });
 
   if (error) {
-    console.error('Error fetching genres:', error);
+    console.error("Error fetching genres:", error);
     throw error;
   }
 
@@ -40,7 +40,7 @@ export async function getGenres(): Promise<GenreRow[]> {
  * Fetches paginated media items with optional search, genre, and type filters.
  */
 export async function getMediaCatalog(
-  params: CatalogFilterParams = {}
+  params: CatalogFilterParams = {},
 ): Promise<PaginatedResult<MediaItem>> {
   const supabase = await createClient();
   const page = Math.max(1, params.page || 1);
@@ -50,44 +50,46 @@ export async function getMediaCatalog(
 
   // If filtering by genre, inner-join media_genres for filtering while selecting all genres
   const selectQuery = params.genreId
-    ? '*, media_genres!inner(genre_id), all_genres:media_genres(genres(*))'
-    : '*, media_genres(genres(*))';
+    ? "*, media_genres!inner(genre_id), all_genres:media_genres(genres(*))"
+    : "*, media_genres(genres(*))";
 
-  let query = supabase.from('media_items').select(selectQuery, { count: 'exact' });
+  let query = supabase
+    .from("media_items")
+    .select(selectQuery, { count: "exact" });
 
   // Filter: Media Type (movie / tv)
-  if (params.mediaType && params.mediaType !== 'all') {
-    query = query.eq('media_type', params.mediaType);
+  if (params.mediaType && params.mediaType !== "all") {
+    query = query.eq("media_type", params.mediaType);
   }
 
   // Filter: Genre
   if (params.genreId) {
-    query = query.eq('media_genres.genre_id', params.genreId);
+    query = query.eq("media_genres.genre_id", params.genreId);
   }
 
   // Filter: Title Search (case-insensitive substring)
-  if (params.search && params.search.trim() !== '') {
-    query = query.ilike('title', `%${params.search.trim()}%`);
+  if (params.search && params.search.trim() !== "") {
+    query = query.ilike("title", `%${params.search.trim()}%`);
   }
 
   // Sorting
   switch (params.sortBy) {
-    case 'vote_average':
+    case "vote_average":
       query = query
-        .order('vote_average', { ascending: false })
-        .order('vote_count', { ascending: false });
+        .order("vote_average", { ascending: false })
+        .order("vote_count", { ascending: false });
       break;
-    case 'release_year':
-      query = query.order('release_year', { ascending: false });
+    case "release_year":
+      query = query.order("release_year", { ascending: false });
       break;
-    case 'title':
-      query = query.order('title', { ascending: true });
+    case "title":
+      query = query.order("title", { ascending: true });
       break;
-    case 'popularity':
+    case "popularity":
     default:
       query = query
-        .order('vote_count', { ascending: false })
-        .order('vote_average', { ascending: false });
+        .order("vote_count", { ascending: false })
+        .order("vote_average", { ascending: false });
       break;
   }
 
@@ -97,7 +99,7 @@ export async function getMediaCatalog(
   const { data, count, error } = await query;
 
   if (error) {
-    console.error('Error fetching media catalog:', error);
+    console.error("Error fetching media catalog:", error);
     throw error;
   }
 
@@ -134,13 +136,13 @@ export async function getMediaCatalog(
 export async function getMediaById(id: string): Promise<MediaItem | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from('media_items')
-    .select('*, media_genres(genres(*))')
-    .eq('id', id)
+    .from("media_items")
+    .select("*, media_genres(genres(*))")
+    .eq("id", id)
     .single();
 
   if (error) {
-    if (error.code === 'PGRST116') {
+    if (error.code === "PGRST116") {
       return null; // Not found
     }
     console.error(`Error fetching media item ${id}:`, error);
@@ -165,14 +167,14 @@ export async function getMediaById(id: string): Promise<MediaItem | null> {
  * Fetches public reviews for a specific media item.
  */
 export async function getMediaReviews(
-  mediaId: string
+  mediaId: string,
 ): Promise<ReviewWithAuthor[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from('reviews')
-    .select('*, profile:profiles(id, username, avatar_url)')
-    .eq('media_id', mediaId)
-    .order('created_at', { ascending: false });
+    .from("reviews")
+    .select("*, profile:profiles(id, username, avatar_url)")
+    .eq("media_id", mediaId)
+    .order("created_at", { ascending: false });
 
   if (error) {
     console.error(`Error fetching reviews for media ${mediaId}:`, error);
@@ -187,7 +189,7 @@ export async function getMediaReviews(
  */
 export async function getUserReviewForMedia(
   mediaId: string,
-  userId?: string
+  userId?: string,
 ): Promise<ReviewRow | null> {
   const supabase = await createClient();
 
@@ -201,10 +203,10 @@ export async function getUserReviewForMedia(
   }
 
   const { data, error } = await supabase
-    .from('reviews')
-    .select('*')
-    .eq('media_id', mediaId)
-    .eq('user_id', targetUserId)
+    .from("reviews")
+    .select("*")
+    .eq("media_id", mediaId)
+    .eq("user_id", targetUserId)
     .maybeSingle();
 
   if (error) {
@@ -220,7 +222,7 @@ export async function getUserReviewForMedia(
  */
 export async function getUserWatchlist(
   status?: WatchlistStatus,
-  userId?: string
+  userId?: string,
 ): Promise<WatchlistEntry[]> {
   const supabase = await createClient();
 
@@ -234,19 +236,19 @@ export async function getUserWatchlist(
   }
 
   let query = supabase
-    .from('watchlists')
-    .select('*, media:media_items(*, media_genres(genres(*)))')
-    .eq('user_id', targetUserId)
-    .order('created_at', { ascending: false });
+    .from("watchlists")
+    .select("*, media:media_items(*, media_genres(genres(*)))")
+    .eq("user_id", targetUserId)
+    .order("created_at", { ascending: false });
 
   if (status) {
-    query = query.eq('status', status);
+    query = query.eq("status", status);
   }
 
   const { data, error } = await query;
 
   if (error) {
-    console.error('Error fetching watchlist:', error);
+    console.error("Error fetching watchlist:", error);
     throw error;
   }
 
@@ -282,13 +284,13 @@ export async function getCurrentUserProfile(): Promise<ProfileRow | null> {
   if (!user) return null;
 
   const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
     .maybeSingle();
 
   if (error) {
-    console.error('Error fetching user profile:', error);
+    console.error("Error fetching user profile:", error);
     throw error;
   }
 

@@ -2,13 +2,56 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { Search, LogIn, User } from "lucide-react";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+
+function NavLinks() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentMediaType = searchParams.get("mediaType") || "movie";
+
+  const navLinks = [
+    { label: "Home", href: "/" },
+    { label: "Movies", href: "/catalog?mediaType=movie" },
+    { label: "Series", href: "/catalog?mediaType=tv" },
+  ];
+
+  return (
+    <nav className="hidden md:flex items-center gap-8">
+      {navLinks.map((link) => {
+        let isActive = false;
+        if (link.href === "/") {
+          isActive = pathname === "/";
+        } else if (pathname.startsWith("/catalog")) {
+          if (link.href.includes("mediaType=tv")) {
+            isActive = currentMediaType === "tv";
+          } else if (link.href.includes("mediaType=movie")) {
+            isActive = currentMediaType === "movie";
+          }
+        }
+
+        return (
+          <div key={link.label} className="relative py-1">
+            <Link
+              href={link.href}
+              className={`text-base font-medium transition-colors ${
+                isActive ? "text-white" : "text-[#a0a0a0] hover:text-white"
+              }`}
+            >
+              {link.label}
+            </Link>
+            {isActive && (
+              <span className="absolute -bottom-2.5 left-0 right-0 h-[2.5px] bg-brand-lime rounded-full" />
+            )}
+          </div>
+        );
+      })}
+    </nav>
+  );
+}
 
 export default function Navbar() {
-  const pathname = usePathname();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -18,12 +61,6 @@ export default function Navbar() {
       router.push(`/catalog?search=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
-
-  const navLinks = [
-    { label: "Home", href: "/" },
-    { label: "Movies", href: "/catalog?mediaType=movie" },
-    { label: "Series", href: "/catalog?mediaType=tv" },
-  ];
 
   return (
     <header className="w-full bg-brand-surface z-50 shadow-md">
@@ -48,39 +85,24 @@ export default function Navbar() {
             </div>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => {
-              const isActive =
-                link.href === "/"
-                  ? pathname === "/"
-                  : pathname.startsWith("/catalog") &&
-                    link.href.includes(
-                      typeof window !== "undefined"
-                        ? new URLSearchParams(window.location.search).get(
-                            "mediaType",
-                          ) || ""
-                        : "",
-                    );
-
-              return (
-                <div key={link.label} className="relative py-1">
-                  <Link
-                    href={link.href}
-                    className={`text-base font-medium transition-colors ${
-                      isActive
-                        ? "text-white"
-                        : "text-[#a0a0a0] hover:text-white"
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
-                  {isActive && (
-                    <span className="absolute -bottom-2.5 left-0 right-0 h-[2.5px] bg-brand-lime rounded-full" />
-                  )}
+          <Suspense
+            fallback={
+              <nav className="hidden md:flex items-center gap-8">
+                <div className="relative py-1">
+                  <span className="text-base font-medium text-[#a0a0a0]">Home</span>
                 </div>
-              );
-            })}
-          </nav>
+                <div className="relative py-1">
+                  <span className="text-base font-medium text-white">Movies</span>
+                  <span className="absolute -bottom-2.5 left-0 right-0 h-[2.5px] bg-brand-lime rounded-full" />
+                </div>
+                <div className="relative py-1">
+                  <span className="text-base font-medium text-[#a0a0a0]">Series</span>
+                </div>
+              </nav>
+            }
+          >
+            <NavLinks />
+          </Suspense>
         </div>
 
         <div className="flex items-center gap-6 sm:gap-8">

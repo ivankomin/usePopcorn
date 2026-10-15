@@ -296,3 +296,4 @@ export async function getCurrentUserProfile(): Promise<ProfileRow | null> {
 
   return data;
 }
+

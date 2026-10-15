@@ -1,7 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import type {
   MediaItem,
+  MediaItemRow,
+  MediaMetadata,
   GenreRow,
+  WatchlistRow,
   WatchlistEntry,
   WatchlistStatus,
   ReviewWithAuthor,
@@ -9,6 +12,26 @@ import type {
   CatalogFilterParams,
   ReviewRow,
 } from "@/types/media";
+
+interface MediaGenreJoin {
+  genre_id?: number;
+  genres: GenreRow | null;
+}
+
+interface MediaCatalogRow extends Omit<MediaItemRow, "metadata"> {
+  metadata?: MediaMetadata | null;
+  media_genres?: MediaGenreJoin[] | null;
+  all_genres?: MediaGenreJoin[] | null;
+}
+
+interface WatchlistMediaJoinRow extends WatchlistRow {
+  media:
+    | (Omit<MediaItemRow, "metadata"> & {
+        metadata?: MediaMetadata | null;
+        media_genres?: MediaGenreJoin[] | null;
+      })
+    | null;
+}
 
 export interface PaginatedResult<T> {
   items: T[];
@@ -104,11 +127,12 @@ export async function getMediaCatalog(
   }
 
   // Format joined genres cleanly
-  const items: MediaItem[] = (data || []).map((row: any) => {
+  const rows = (data || []) as unknown as MediaCatalogRow[];
+  const items: MediaItem[] = rows.map((row) => {
     const rawGenres = params.genreId ? row.all_genres : row.media_genres;
     const genres: GenreRow[] = (rawGenres || [])
-      .map((mg: any) => mg.genres)
-      .filter((g: any): g is GenreRow => Boolean(g));
+       .map((mg) => mg.genres)
+       .filter((g): g is GenreRow => Boolean(g));
 
     const { media_genres, all_genres, ...mediaFields } = row;
 
@@ -151,11 +175,12 @@ export async function getMediaById(id: string): Promise<MediaItem | null> {
 
   if (!data) return null;
 
-  const genres: GenreRow[] = ((data as any).media_genres || [])
-    .map((mg: any) => mg.genres)
-    .filter((g: any): g is GenreRow => Boolean(g));
+  const row = data as unknown as MediaCatalogRow;
+  const genres: GenreRow[] = (row.media_genres || [])
+    .map((mg) => mg.genres)
+    .filter((g): g is GenreRow => Boolean(g));
 
-  const { media_genres, ...mediaFields } = data as any;
+  const { media_genres, all_genres, ...mediaFields } = row;
 
   return {
     ...mediaFields,
@@ -252,13 +277,14 @@ export async function getUserWatchlist(
     throw error;
   }
 
-  return (data || []).map((entry: any) => {
-    if (!entry.media) return entry;
+  const rows = (data || []) as unknown as WatchlistMediaJoinRow[];
+  return rows.map((entry) => {
+    if (!entry.media) return entry as WatchlistEntry;
 
     const rawGenres = entry.media.media_genres || [];
     const genres: GenreRow[] = rawGenres
-      .map((mg: any) => mg.genres)
-      .filter((g: any): g is GenreRow => Boolean(g));
+      .map((mg) => mg.genres)
+      .filter((g): g is GenreRow => Boolean(g));
 
     const { media_genres, ...mediaFields } = entry.media;
 

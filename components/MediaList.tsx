@@ -37,9 +37,9 @@ export default function MediaList({
   return (
     <div className="w-full flex flex-col">
       <div className="mb-6 sm:mb-8">
-        <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-baseline flex-wrap gap-2">
-            <h1 className="text-2xl sm:text-3xl md:text-[32px] font-bold text-white tracking-tight">
+            <h1 className="text-2xl sm:text-3xl md:text-[32px] font-bold text-white tracking-tight leading-tight">
               {query ? (
                 <>
                   Results for:{" "}

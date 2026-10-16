@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { getMediaCatalog } from "@/lib/api";
 import MediaList from "@/components/MediaList";
 import Loader from "@/components/Loader";
+import CatalogFilters from "@/components/CatalogFilters";
 
 interface CatalogPageProps {
   searchParams: Promise<{
@@ -70,9 +71,10 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   const suspenseKey = `${resolvedParams.search || ""}-${resolvedParams.mediaType || ""}-${resolvedParams.genreId || ""}-${resolvedParams.page || ""}`;
 
   return (
-    <div className="min-h-screen bg-black text-white px-4 sm:px-8 lg:px-12 py-8 sm:py-10">
-      <div className="max-w-360 mx-auto flex flex-col items-center">
-        <div className="w-full max-w-235">
+    <div className="min-h-screen bg-black text-white px-4 sm:px-6 lg:px-10 py-8 sm:py-10">
+      <div className="max-w-360 mx-auto flex flex-col lg:flex-row gap-8 lg:gap-10 items-start justify-center">
+        <CatalogFilters />
+        <div className="flex-1 max-w-235 min-w-0 w-full">
           <Suspense
             key={suspenseKey}
             fallback={<CatalogLoadingFallback search={resolvedParams.search} />}

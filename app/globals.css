@@ -24,7 +24,23 @@ body {
   background-color: #000000;
   color: #ffffff;
   font-family: var(--font-sans);
-  overflow-x: hidden;
+  overflow-x: clip;
+}
+
+/* Custom subtle scrollbar for dark theme containers */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #333333;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #4a4a4a;
 }
 
 /* Pure CSS Single-Element Spinner from css-loaders.com */

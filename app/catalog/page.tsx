@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { getMediaCatalog } from "@/lib/api";
 import MediaList from "@/components/MediaList";
+import Loader from "@/components/Loader";
 
 interface CatalogPageProps {
   searchParams: Promise<{
@@ -12,16 +13,13 @@ interface CatalogPageProps {
   }>;
 }
 
-function CatalogLoadingSkeleton() {
+function CatalogLoadingFallback({ search }: { search?: string }) {
   return (
-    <div className="w-full flex flex-col gap-6 animate-pulse">
-      <div className="h-8 w-64 bg-neutral-800 rounded-md mb-2" />
-      {[1, 2, 3].map((i) => (
-        <div
-          key={i}
-          className="h-48 w-full bg-[#181818] border border-neutral-800 rounded-2xl"
-        />
-      ))}
+    <div className="w-full flex flex-col items-center justify-center min-h-100 py-20">
+      <Loader
+        size="lg"
+        text={search ? `Searching for "${search}"...` : "Loading catalog..."}
+      />
     </div>
   );
 }
@@ -65,12 +63,18 @@ async function CatalogContent({
   );
 }
 
-export default function CatalogPage({ searchParams }: CatalogPageProps) {
+export default async function CatalogPage({ searchParams }: CatalogPageProps) {
+  const resolvedParams = await searchParams;
+  const suspenseKey = `${resolvedParams.search || ""}-${resolvedParams.mediaType || ""}-${resolvedParams.genreId || ""}-${resolvedParams.page || ""}`;
+
   return (
     <div className="min-h-screen bg-black text-white px-4 sm:px-8 lg:px-12 py-8 sm:py-10">
       <div className="max-w-360 mx-auto flex flex-col items-center">
         <div className="w-full max-w-235">
-          <Suspense fallback={<CatalogLoadingSkeleton />}>
+          <Suspense
+            key={suspenseKey}
+            fallback={<CatalogLoadingFallback search={resolvedParams.search} />}
+          >
             <CatalogContent searchParams={searchParams} />
           </Suspense>
         </div>

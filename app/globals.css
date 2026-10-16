@@ -26,3 +26,21 @@ body {
   font-family: var(--font-sans);
   overflow-x: hidden;
 }
+
+/* Pure CSS Single-Element Spinner from css-loaders.com */
+@keyframes css-loader-spin {
+  100% {
+    transform: rotate(1turn);
+  }
+}
+
+.css-loader {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: 
+    radial-gradient(farthest-side, #b9f84d 94%, #0000) top/var(--loader-dot, 8px) var(--loader-dot, 8px) no-repeat,
+    conic-gradient(#0000 30%, #b9f84d);
+  -webkit-mask: radial-gradient(farthest-side, #0000 calc(100% - var(--loader-dot, 8px)), #000 0);
+  mask: radial-gradient(farthest-side, #0000 calc(100% - var(--loader-dot, 8px)), #000 0);
+  animation: css-loader-spin 1s infinite linear;
+}

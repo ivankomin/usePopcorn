@@ -3,8 +3,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
-import { Search, LogIn, User } from "lucide-react";
-import { useState, Suspense } from "react";
+import { Search, LogIn, User, X } from "lucide-react";
+import { useState, useTransition, Suspense } from "react";
+import Loader from "./Loader";
 
 function NavLinks() {
   const pathname = usePathname();
@@ -51,17 +52,114 @@ function NavLinks() {
   );
 }
 
-export default function Navbar() {
-  const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState("");
+interface SearchInputProps {
+  initialQuery: string;
+  isSearching: boolean;
+  onSearch: (query: string) => void;
+  onClear: () => void;
+}
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
+function SearchInput({
+  initialQuery,
+  isSearching,
+  onSearch,
+  onClear,
+}: SearchInputProps) {
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/catalog?search=${encodeURIComponent(searchQuery.trim())}`);
+    const trimmed = searchQuery.trim();
+    if (trimmed) {
+      onSearch(trimmed);
     }
   };
 
+  const handleClearClick = () => {
+    setSearchQuery("");
+    onClear();
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="relative flex items-center">
+      {isSearching ? (
+        <div className="absolute left-3.5 pointer-events-none flex items-center justify-center">
+          <Loader size="sm" />
+        </div>
+      ) : (
+        <Search className="w-4 h-4 text-brand-muted absolute left-3.5 pointer-events-none" />
+      )}
+      <input
+        type="text"
+        placeholder="Search..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        className="bg-brand-input text-sm text-white placeholder:text-brand-muted rounded-md pl-10 pr-9 py-2 w-48 sm:w-64 md:w-72 focus:outline-none focus:ring-1 focus:ring-brand-lime focus:border-brand-lime transition-all border border-transparent"
+      />
+      {searchQuery && (
+        <button
+          type="button"
+          onClick={handleClearClick}
+          aria-label="Clear search"
+          className="absolute right-2.5 p-1 text-brand-muted hover:text-white transition-colors cursor-pointer rounded-full flex items-center justify-center"
+        >
+          <X className="w-3.5 h-3.5 stroke-[2.5]" />
+        </button>
+      )}
+    </form>
+  );
+}
+
+function SearchBar() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [isSearching, startSearching] = useTransition();
+
+  const currentSearch = searchParams.get("search") || "";
+  const currentMediaType = searchParams.get("mediaType");
+
+  // Key changes when navigating to another page, changing media type, or search param,
+  // cleanly resetting the search input state without any cascading useEffect renders.
+  const formKey = `${pathname}?type=${currentMediaType || ""}&q=${currentSearch}`;
+
+  const handleSearch = (query: string) => {
+    const params = new URLSearchParams();
+    params.set("search", query);
+    if (currentMediaType) {
+      params.set("mediaType", currentMediaType);
+    }
+    startSearching(() => {
+      router.push(`/catalog?${params.toString()}`);
+    });
+  };
+
+  const handleClear = () => {
+    if (searchParams.has("search")) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("search");
+      const newQueryString = params.toString();
+      const target = newQueryString
+        ? `${pathname}?${newQueryString}`
+        : pathname;
+      startSearching(() => {
+        router.push(target);
+      });
+    }
+  };
+
+  return (
+    <SearchInput
+      key={formKey}
+      initialQuery={currentSearch}
+      isSearching={isSearching}
+      onSearch={handleSearch}
+      onClear={handleClear}
+    />
+  );
+}
+
+export default function Navbar() {
   return (
     <header className="w-full bg-brand-surface z-50 shadow-md">
       <div className="max-w-[1600px] mx-auto px-6 sm:px-10 h-19 flex items-center justify-between">
@@ -89,14 +187,20 @@ export default function Navbar() {
             fallback={
               <nav className="hidden md:flex items-center gap-8">
                 <div className="relative py-1">
-                  <span className="text-base font-medium text-[#a0a0a0]">Home</span>
+                  <span className="text-base font-medium text-[#a0a0a0]">
+                    Home
+                  </span>
                 </div>
                 <div className="relative py-1">
-                  <span className="text-base font-medium text-white">Movies</span>
+                  <span className="text-base font-medium text-white">
+                    Movies
+                  </span>
                   <span className="absolute -bottom-2.5 left-0 right-0 h-[2.5px] bg-brand-lime rounded-full" />
                 </div>
                 <div className="relative py-1">
-                  <span className="text-base font-medium text-[#a0a0a0]">Series</span>
+                  <span className="text-base font-medium text-[#a0a0a0]">
+                    Series
+                  </span>
                 </div>
               </nav>
             }
@@ -106,19 +210,21 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-6 sm:gap-8">
-          <form
-            onSubmit={handleSearchSubmit}
-            className="relative flex items-center"
+          <Suspense
+            fallback={
+              <div className="relative flex items-center">
+                <Search className="w-4 h-4 text-brand-muted absolute left-3.5 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  disabled
+                  className="bg-brand-input text-sm text-white placeholder:text-brand-muted rounded-md pl-10 pr-9 py-2 w-48 sm:w-64 md:w-72 border border-transparent"
+                />
+              </div>
+            }
           >
-            <Search className="w-4 h-4 text-brand-muted absolute left-3.5 pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-brand-input text-sm text-white placeholder:text-brand-muted rounded-md pl-10 pr-4 py-2 w-48 sm:w-64 md:w-72 focus:outline-none focus:ring-1 focus:ring-brand-lime focus:border-brand-lime transition-all border border-transparent"
-            />
-          </form>
+            <SearchBar />
+          </Suspense>
 
           <Link
             href="/watchlist"

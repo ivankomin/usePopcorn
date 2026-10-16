@@ -7,10 +7,12 @@ import {
   FilterDropdown,
   MultiSelectDropdown,
   RatingRangeSlider,
+  YearRangeInput,
   FILTER_OPTIONS,
 } from "@/components/filters";
 
 export default function CatalogFilters() {
+  // Purely UI state — no actual filtering logic
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [runtime, setRuntime] = useState("");
   const [country, setCountry] = useState("");
@@ -18,7 +20,8 @@ export default function CatalogFilters() {
   const [ageRating, setAgeRating] = useState("");
   const [minRating, setMinRating] = useState<number>(0.0);
   const [maxRating, setMaxRating] = useState<number>(10.0);
-  const [decade, setDecade] = useState("");
+  const [minYear, setMinYear] = useState<number>(1900);
+  const [maxYear, setMaxYear] = useState<number>(2026);
 
   // Manage which dropdown is open so only one flyout is shown at a time
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -40,7 +43,8 @@ export default function CatalogFilters() {
     Boolean(country && country !== FILTER_OPTIONS.country[0]) ||
     Boolean(budget && budget !== FILTER_OPTIONS.budget[0]) ||
     Boolean(ageRating && ageRating !== FILTER_OPTIONS.ageRating[0]) ||
-    Boolean(decade && decade !== FILTER_OPTIONS.decade[0]) ||
+    minYear !== 1900 ||
+    maxYear !== 2026 ||
     minRating > 0 ||
     maxRating < 10;
 
@@ -52,12 +56,14 @@ export default function CatalogFilters() {
     setAgeRating("");
     setMinRating(0.0);
     setMaxRating(10.0);
-    setDecade("");
+    setMinYear(1900);
+    setMaxYear(2026);
     setOpenDropdown(null);
   };
 
   return (
     <aside className="w-full lg:w-64 xl:w-72 shrink-0 select-none lg:sticky lg:top-8 self-start lg:mt-18 z-30">
+      {/* Mobile Toggle Button */}
       <div className="lg:hidden mb-4">
         <button
           type="button"
@@ -74,17 +80,18 @@ export default function CatalogFilters() {
           <ChevronDown
             className={cn(
               "w-4 h-4 text-neutral-400 transition-transform",
-              isMobileOpen && "rotate-180",
+              isMobileOpen && "rotate-180"
             )}
           />
         </button>
       </div>
 
+      {/* Main Filter Sidebar Box */}
       <div
         className={cn(
           "bg-[#181818] border border-neutral-800 rounded-3xl p-5 sm:p-6 flex flex-col gap-4 shadow-lg relative overflow-visible",
           "hidden lg:flex",
-          isMobileOpen && "flex",
+          isMobileOpen && "flex"
         )}
       >
         {/* Header */}
@@ -105,6 +112,7 @@ export default function CatalogFilters() {
           )}
         </div>
 
+        {/* 1. Genre (Multi-select) */}
         <MultiSelectDropdown
           id="genre"
           label="Genre"
@@ -117,6 +125,7 @@ export default function CatalogFilters() {
           align="top"
         />
 
+        {/* 2. Runtime */}
         <FilterDropdown
           id="runtime"
           label="Runtime"
@@ -129,6 +138,7 @@ export default function CatalogFilters() {
           align="top"
         />
 
+        {/* 3. Country */}
         <FilterDropdown
           id="country"
           label="Country"
@@ -141,6 +151,7 @@ export default function CatalogFilters() {
           align="top"
         />
 
+        {/* 4. Budget */}
         <FilterDropdown
           id="budget"
           label="Budget"
@@ -153,6 +164,7 @@ export default function CatalogFilters() {
           align="bottom"
         />
 
+        {/* 5. Age Rating */}
         <FilterDropdown
           id="ageRating"
           label="Age Rating"
@@ -165,22 +177,20 @@ export default function CatalogFilters() {
           align="bottom"
         />
 
+        {/* Rating Range Sliders (Min Rating & Max Rating) */}
         <RatingRangeSlider
           minRating={minRating}
           maxRating={maxRating}
           onMinRatingChange={setMinRating}
           onMaxRatingChange={setMaxRating}
         />
-        <FilterDropdown
-          id="decade"
-          label="Decade"
-          options={FILTER_OPTIONS.decade}
-          value={decade}
-          onChange={setDecade}
-          isOpen={openDropdown === "decade"}
-          onToggle={() => toggleDropdown("decade")}
-          onClose={closeDropdown}
-          align="bottom"
+
+        {/* Year Range Inputs (Min Year & Max Year) */}
+        <YearRangeInput
+          minYear={minYear}
+          maxYear={maxYear}
+          onMinYearChange={setMinYear}
+          onMaxYearChange={setMaxYear}
         />
       </div>
     </aside>

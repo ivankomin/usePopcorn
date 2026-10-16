@@ -59,6 +59,8 @@ async function CatalogContent({
       totalFound={result.total || displayItems.length}
       queryTitle={queryTitle}
       searchQuery={search}
+      currentPage={result.page}
+      totalPages={result.totalPages}
     />
   );
 }

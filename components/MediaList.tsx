@@ -1,8 +1,7 @@
-"use client";
-
 import Link from "next/link";
 import type { MediaItem } from "@/types/media";
 import MediaCard from "./MediaCard";
+import Pagination from "./Pagination";
 
 export interface FilterChip {
   id: string;
@@ -18,6 +17,8 @@ export interface MediaListProps {
   filterChips?: FilterChip[];
   showClearButton?: boolean;
   onClear?: () => void;
+  currentPage?: number;
+  totalPages?: number;
 }
 
 export default function MediaList({
@@ -27,6 +28,8 @@ export default function MediaList({
   searchQuery,
   showClearButton = true,
   onClear,
+  currentPage = 1,
+  totalPages,
 }: MediaListProps) {
   const count = totalFound !== undefined ? totalFound : items.length;
   const query = (searchQuery || queryTitle)?.trim();
@@ -78,6 +81,10 @@ export default function MediaList({
           {items.map((item) => (
             <MediaCard key={item.id} media={item} />
           ))}
+
+          {totalPages !== undefined && totalPages > 1 && (
+            <Pagination currentPage={currentPage} totalPages={totalPages} />
+          )}
         </div>
       ) : (
         <div className="bg-[#181818] border border-neutral-800 rounded-2xl p-12 text-center flex flex-col items-center justify-center my-8">

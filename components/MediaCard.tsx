@@ -86,7 +86,7 @@ export default function MediaCard({
   };
 
   return (
-    <div className="group relative bg-[#181818] border border-neutral-800/80 rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-center sm:items-stretch gap-5 sm:gap-6 transition-all duration-200 hover:border-neutral-700 hover:shadow-xl hover:shadow-black/50">
+    <div className="group relative bg-[#181818] border-[#181818] rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-center sm:items-stretch gap-5 sm:gap-6 transition-all border duration-200 hover:border-neutral-700 hover:shadow-xl hover:shadow-black/50">
       <div className="relative w-28.75 sm:w-31 aspect-2/3 shrink-0 rounded-xl overflow-hidden bg-neutral-900 border border-white/5 shadow-md">
         {!imageError && posterSrc ? (
           <Image

@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { getMediaCatalog } from "@/lib/api";
-import MediaCardList, { FilterChip } from "@/components/MediaCardList";
+import MediaList from "@/components/MediaList";
 
 interface CatalogPageProps {
   searchParams: Promise<{
@@ -16,11 +16,6 @@ function CatalogLoadingSkeleton() {
   return (
     <div className="w-full flex flex-col gap-6 animate-pulse">
       <div className="h-8 w-64 bg-neutral-800 rounded-md mb-2" />
-      <div className="flex gap-2 mb-6">
-        <div className="h-7 w-24 bg-neutral-800 rounded-md" />
-        <div className="h-7 w-20 bg-neutral-800 rounded-md" />
-        <div className="h-7 w-20 bg-neutral-800 rounded-md" />
-      </div>
       {[1, 2, 3].map((i) => (
         <div
           key={i}
@@ -58,26 +53,14 @@ async function CatalogContent({
   const displayItems = result.items;
 
   // Title display
-  const queryTitle = search
-    ? `"${search}"`
-    : mediaType === "tv"
-      ? "Series"
-      : "Movies";
-
-  // Filter chips matching the Figma screenshot
-  const initialChips: FilterChip[] = [
-    { id: "imdb", label: "IMDb: 4–5", variant: "lime" },
-    { id: "action", label: "ACTION", variant: "blue" },
-    { id: "drama", label: "DRAMA", variant: "blue" },
-    { id: "runtime", label: "2–3 HRS", variant: "yellow" },
-  ];
+  const queryTitle = search ? `"${search}"` : undefined;
 
   return (
-    <MediaCardList
+    <MediaList
       items={displayItems}
       totalFound={result.total || displayItems.length}
       queryTitle={queryTitle}
-      filterChips={initialChips}
+      searchQuery={search}
     />
   );
 }

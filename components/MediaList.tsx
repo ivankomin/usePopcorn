@@ -26,8 +26,6 @@ export default function MediaList({
   totalFound,
   queryTitle,
   searchQuery,
-  showClearButton = true,
-  onClear,
   currentPage = 1,
   totalPages,
 }: MediaListProps) {
@@ -55,24 +53,6 @@ export default function MediaList({
               {query && `(${count} Found)`}
             </span>
           </div>
-
-          {showClearButton &&
-            (onClear ? (
-              <button
-                type="button"
-                onClick={onClear}
-                className="text-xs sm:text-sm text-neutral-300 hover:text-white underline underline-offset-4 cursor-pointer transition-colors"
-              >
-                Clear all filters
-              </button>
-            ) : (
-              <Link
-                href="/catalog"
-                className="text-xs sm:text-sm text-neutral-300 hover:text-white underline underline-offset-4 cursor-pointer transition-colors"
-              >
-                Clear all filters
-              </Link>
-            ))}
         </div>
       </div>
 

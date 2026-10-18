@@ -46,6 +46,7 @@ export interface CatalogFilterParams {
   genreId?: number;
   genres?: string[];
   runtime?: string;
+  seasons?: string;
   country?: string;
   budget?: string;
   ageRating?: string;

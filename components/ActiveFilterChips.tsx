@@ -41,7 +41,7 @@ function ActiveFilterChipsInner() {
 
   const chips: ActiveChipItem[] = [];
 
-  // 1. Genres
+  // 1. Genres (Multi-select)
   const rawGenres = searchParams.get("genres");
   if (rawGenres) {
     const genresList = rawGenres
@@ -69,7 +69,22 @@ function ActiveFilterChipsInner() {
     });
   }
 
-  // 3. Runtime
+  // 2. Seasons (TV Series)
+  const seasons = searchParams.get("seasons");
+  if (seasons && seasons !== "All Seasons") {
+    chips.push({
+      id: "seasons",
+      label: seasons.toUpperCase(),
+      variant: "yellow",
+      onRemove: () => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete("seasons");
+        updateUrl(params);
+      },
+    });
+  }
+
+  // 3. Runtime (Movies)
   const runtime = searchParams.get("runtime");
   if (runtime && runtime !== "All Runtimes") {
     chips.push({
@@ -99,7 +114,7 @@ function ActiveFilterChipsInner() {
     });
   }
 
-  // 5. Budget
+  // 5. Budget (Movies)
   const budget = searchParams.get("budget");
   if (budget && budget !== "All Budgets") {
     chips.push({
@@ -116,7 +131,7 @@ function ActiveFilterChipsInner() {
 
   // 6. Age Rating
   const ageRating = searchParams.get("ageRating");
-  if (ageRating && ageRating !== "All Ratings") {
+  if (ageRating && ageRating !== "All Age Ratings" && ageRating !== "All Ratings") {
     chips.push({
       id: "ageRating",
       label: `AGE: ${ageRating.toUpperCase()}`,
@@ -200,6 +215,7 @@ function ActiveFilterChipsInner() {
     const params = new URLSearchParams(searchParams.toString());
     params.delete("genres");
     params.delete("genreId");
+    params.delete("seasons");
     params.delete("runtime");
     params.delete("country");
     params.delete("budget");

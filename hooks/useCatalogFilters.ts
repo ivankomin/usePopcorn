@@ -6,6 +6,7 @@ import { FILTER_OPTIONS } from "@/components/filters";
 
 export interface UseCatalogFiltersOptions {
   genres?: string[];
+  mediaType?: "all" | "movie" | "tv";
 }
 
 export function useCatalogFilters(options: UseCatalogFiltersOptions = {}) {
@@ -14,10 +15,18 @@ export function useCatalogFilters(options: UseCatalogFiltersOptions = {}) {
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
 
+  const mediaType =
+    options.mediaType || searchParams.get("mediaType") || "movie";
+  const isTV = mediaType === "tv";
+
   const genreOptions =
     options.genres && options.genres.length > 0
       ? options.genres
       : FILTER_OPTIONS.genre;
+
+  const ageRatingOptions = isTV
+    ? FILTER_OPTIONS.ageRatingTV
+    : FILTER_OPTIONS.ageRatingMovie;
 
   // 1. Derive discrete filter values directly from the URL (single source of truth)
   const selectedGenres = useMemo(() => {
@@ -30,6 +39,7 @@ export function useCatalogFilters(options: UseCatalogFiltersOptions = {}) {
   }, [searchParams]);
 
   const runtime = searchParams.get("runtime") || "";
+  const seasons = searchParams.get("seasons") || "";
   const country = searchParams.get("country") || "";
   const budget = searchParams.get("budget") || "";
   const ageRating = searchParams.get("ageRating") || "";
@@ -75,6 +85,7 @@ export function useCatalogFilters(options: UseCatalogFiltersOptions = {}) {
       updates: Partial<{
         genres: string[];
         runtime: string;
+        seasons: string;
         country: string;
         budget: string;
         ageRating: string;
@@ -90,6 +101,8 @@ export function useCatalogFilters(options: UseCatalogFiltersOptions = {}) {
         updates.genres !== undefined ? updates.genres : selectedGenres;
       const nextRuntime =
         updates.runtime !== undefined ? updates.runtime : runtime;
+      const nextSeasons =
+        updates.seasons !== undefined ? updates.seasons : seasons;
       const nextCountry =
         updates.country !== undefined ? updates.country : country;
       const nextBudget =
@@ -114,11 +127,21 @@ export function useCatalogFilters(options: UseCatalogFiltersOptions = {}) {
         params.delete("genreId");
       }
 
-      // 2. Runtime
-      if (nextRuntime && nextRuntime !== FILTER_OPTIONS.runtime[0]) {
-        params.set("runtime", nextRuntime);
-      } else {
+      // 2. Runtime (Movies) vs Seasons (TV)
+      if (isTV) {
         params.delete("runtime");
+        if (nextSeasons && nextSeasons !== FILTER_OPTIONS.seasons[0]) {
+          params.set("seasons", nextSeasons);
+        } else {
+          params.delete("seasons");
+        }
+      } else {
+        params.delete("seasons");
+        if (nextRuntime && nextRuntime !== FILTER_OPTIONS.runtime[0]) {
+          params.set("runtime", nextRuntime);
+        } else {
+          params.delete("runtime");
+        }
       }
 
       // 3. Country
@@ -128,15 +151,15 @@ export function useCatalogFilters(options: UseCatalogFiltersOptions = {}) {
         params.delete("country");
       }
 
-      // 4. Budget
-      if (nextBudget && nextBudget !== FILTER_OPTIONS.budget[0]) {
+      // 4. Budget (Movies only)
+      if (!isTV && nextBudget && nextBudget !== FILTER_OPTIONS.budget[0]) {
         params.set("budget", nextBudget);
       } else {
         params.delete("budget");
       }
 
       // 5. Age Rating
-      if (nextAgeRating && nextAgeRating !== FILTER_OPTIONS.ageRating[0]) {
+      if (nextAgeRating && nextAgeRating !== ageRatingOptions[0]) {
         params.set("ageRating", nextAgeRating);
       } else {
         params.delete("ageRating");
@@ -179,6 +202,7 @@ export function useCatalogFilters(options: UseCatalogFiltersOptions = {}) {
       searchParams,
       selectedGenres,
       runtime,
+      seasons,
       country,
       budget,
       ageRating,
@@ -186,6 +210,8 @@ export function useCatalogFilters(options: UseCatalogFiltersOptions = {}) {
       sliderMaxRating,
       minYear,
       maxYear,
+      isTV,
+      ageRatingOptions,
       pathname,
       router,
     ]
@@ -223,6 +249,10 @@ export function useCatalogFilters(options: UseCatalogFiltersOptions = {}) {
     applyFilters({ runtime: val });
   };
 
+  const handleSeasonsChange = (val: string) => {
+    applyFilters({ seasons: val });
+  };
+
   const handleCountryChange = (val: string) => {
     applyFilters({ country: val });
   };
@@ -245,10 +275,12 @@ export function useCatalogFilters(options: UseCatalogFiltersOptions = {}) {
 
   const hasActiveFilters =
     selectedGenres.length > 0 ||
-    Boolean(runtime && runtime !== FILTER_OPTIONS.runtime[0]) ||
+    (isTV
+      ? Boolean(seasons && seasons !== FILTER_OPTIONS.seasons[0])
+      : Boolean(runtime && runtime !== FILTER_OPTIONS.runtime[0])) ||
     Boolean(country && country !== FILTER_OPTIONS.country[0]) ||
-    Boolean(budget && budget !== FILTER_OPTIONS.budget[0]) ||
-    Boolean(ageRating && ageRating !== FILTER_OPTIONS.ageRating[0]) ||
+    (!isTV && Boolean(budget && budget !== FILTER_OPTIONS.budget[0])) ||
+    Boolean(ageRating && ageRating !== ageRatingOptions[0]) ||
     minYear !== 1900 ||
     maxYear !== 2026 ||
     urlMinRating > 0 ||
@@ -257,12 +289,15 @@ export function useCatalogFilters(options: UseCatalogFiltersOptions = {}) {
     sliderMaxRating < 10;
 
   return {
+    isTV,
     genreOptions,
     selectedGenres,
     runtime,
+    seasons,
     country,
     budget,
     ageRating,
+    ageRatingOptions,
     minRating: sliderMinRating,
     maxRating: sliderMaxRating,
     minYear,
@@ -277,6 +312,7 @@ export function useCatalogFilters(options: UseCatalogFiltersOptions = {}) {
     closeDropdown,
     handleGenresChange,
     handleRuntimeChange,
+    handleSeasonsChange,
     handleCountryChange,
     handleBudgetChange,
     handleAgeRatingChange,

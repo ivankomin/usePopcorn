@@ -42,10 +42,40 @@ export interface PaginatedResult<T> {
 }
 
 /**
- * Fetches all normalized genre categories from Supabase.
+ * Fetches normalized genre categories from Supabase, optionally scoped to a mediaType (movie or tv).
  */
-export async function getGenres(): Promise<GenreRow[]> {
+export async function getGenres(
+  mediaType?: "movie" | "tv"
+): Promise<GenreRow[]> {
   const supabase = await createClient();
+
+  if (mediaType) {
+    const { data, error } = await supabase
+      .from("genres")
+      .select("id, name, media_genres!inner(media_items!inner(media_type))")
+      .eq("media_genres.media_items.media_type", mediaType)
+      .order("name", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching genres for mediaType:", error);
+      const { data: allData } = await supabase
+        .from("genres")
+        .select("*")
+        .order("name", { ascending: true });
+      return allData || [];
+    }
+
+    const uniqueMap = new Map<number, GenreRow>();
+    for (const item of data || []) {
+      if (!uniqueMap.has(item.id)) {
+        uniqueMap.set(item.id, { id: item.id, name: item.name });
+      }
+    }
+    return Array.from(uniqueMap.values()).sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+  }
+
   const { data, error } = await supabase
     .from("genres")
     .select("*")
@@ -101,7 +131,7 @@ export async function getMediaCatalog(
     query = query.ilike("title", `%${params.search.trim()}%`);
   }
 
-  // Filter: Runtime
+  // Filter: Runtime (primarily for movies)
   if (params.runtime && params.runtime !== "All Runtimes") {
     if (params.runtime === "Under 90 min") {
       query = query.lt("runtime", 90);
@@ -117,6 +147,25 @@ export async function getMediaCatalog(
       query = query.gte("runtime", 120).lte("runtime", 150);
     } else if (params.runtime === "Over 150 min") {
       query = query.gt("runtime", 150);
+    }
+  }
+
+  // Filter: Seasons (primarily for TV series)
+  if (params.seasons && params.seasons !== "All Seasons") {
+    if (params.seasons === "1 Season" || params.seasons.startsWith("1 Season")) {
+      query = query.eq("seasons_count", 1);
+    } else if (
+      params.seasons === "2–3 Seasons" ||
+      params.seasons === "2-3 Seasons"
+    ) {
+      query = query.gte("seasons_count", 2).lte("seasons_count", 3);
+    } else if (
+      params.seasons === "4–6 Seasons" ||
+      params.seasons === "4-6 Seasons"
+    ) {
+      query = query.gte("seasons_count", 4).lte("seasons_count", 6);
+    } else if (params.seasons === "7+ Seasons") {
+      query = query.gte("seasons_count", 7);
     }
   }
 
@@ -208,7 +257,7 @@ export async function getMediaCatalog(
        .map((mg) => mg.genres)
        .filter((g): g is GenreRow => Boolean(g));
 
-    const { media_genres, all_genres, ...mediaFields } = row;
+    const { media_genres: _mg, all_genres: _ag, ...mediaFields } = row;
 
     return {
       ...mediaFields,

@@ -14,16 +14,20 @@ import { useCatalogFilters } from "@/hooks";
 
 export interface CatalogFiltersProps {
   genres?: string[];
+  mediaType?: "all" | "movie" | "tv";
 }
 
-function CatalogFiltersInner({ genres }: CatalogFiltersProps) {
+function CatalogFiltersInner({ genres, mediaType }: CatalogFiltersProps) {
   const {
+    isTV,
     genreOptions,
     selectedGenres,
     runtime,
+    seasons,
     country,
     budget,
     ageRating,
+    ageRatingOptions,
     minRating,
     maxRating,
     minYear,
@@ -38,12 +42,13 @@ function CatalogFiltersInner({ genres }: CatalogFiltersProps) {
     closeDropdown,
     handleGenresChange,
     handleRuntimeChange,
+    handleSeasonsChange,
     handleCountryChange,
     handleBudgetChange,
     handleAgeRatingChange,
     handleMinYearChange,
     handleMaxYearChange,
-  } = useCatalogFilters({ genres });
+  } = useCatalogFilters({ genres, mediaType });
 
   return (
     <aside className="w-full lg:w-64 xl:w-72 shrink-0 select-none lg:sticky lg:top-8 self-start lg:mt-18 z-30">
@@ -98,18 +103,32 @@ function CatalogFiltersInner({ genres }: CatalogFiltersProps) {
           align="top"
         />
 
-        {/* 2. Runtime */}
-        <FilterDropdown
-          id="runtime"
-          label="Runtime"
-          options={FILTER_OPTIONS.runtime}
-          value={runtime}
-          onChange={handleRuntimeChange}
-          isOpen={openDropdown === "runtime"}
-          onToggle={() => toggleDropdown("runtime")}
-          onClose={closeDropdown}
-          align="top"
-        />
+        {/* 2. Runtime (Movies) vs Seasons (TV Series) */}
+        {isTV ? (
+          <FilterDropdown
+            id="seasons"
+            label="Seasons"
+            options={FILTER_OPTIONS.seasons}
+            value={seasons}
+            onChange={handleSeasonsChange}
+            isOpen={openDropdown === "seasons"}
+            onToggle={() => toggleDropdown("seasons")}
+            onClose={closeDropdown}
+            align="top"
+          />
+        ) : (
+          <FilterDropdown
+            id="runtime"
+            label="Runtime"
+            options={FILTER_OPTIONS.runtime}
+            value={runtime}
+            onChange={handleRuntimeChange}
+            isOpen={openDropdown === "runtime"}
+            onToggle={() => toggleDropdown("runtime")}
+            onClose={closeDropdown}
+            align="top"
+          />
+        )}
 
         {/* 3. Country */}
         <FilterDropdown
@@ -124,24 +143,26 @@ function CatalogFiltersInner({ genres }: CatalogFiltersProps) {
           align="top"
         />
 
-        {/* 4. Budget */}
-        <FilterDropdown
-          id="budget"
-          label="Budget"
-          options={FILTER_OPTIONS.budget}
-          value={budget}
-          onChange={handleBudgetChange}
-          isOpen={openDropdown === "budget"}
-          onToggle={() => toggleDropdown("budget")}
-          onClose={closeDropdown}
-          align="bottom"
-        />
+        {/* 4. Budget (Movies only - TV series do not have budgets) */}
+        {!isTV && (
+          <FilterDropdown
+            id="budget"
+            label="Budget"
+            options={FILTER_OPTIONS.budget}
+            value={budget}
+            onChange={handleBudgetChange}
+            isOpen={openDropdown === "budget"}
+            onToggle={() => toggleDropdown("budget")}
+            onClose={closeDropdown}
+            align="bottom"
+          />
+        )}
 
-        {/* 5. Age Rating */}
+        {/* 5. Age Rating (TV Parental Guidelines for TV, Movie Ratings for Movies) */}
         <FilterDropdown
           id="ageRating"
           label="Age Rating"
-          options={FILTER_OPTIONS.ageRating}
+          options={ageRatingOptions}
           value={ageRating}
           onChange={handleAgeRatingChange}
           isOpen={openDropdown === "ageRating"}

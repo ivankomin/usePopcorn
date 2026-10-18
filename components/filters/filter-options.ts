@@ -27,6 +27,13 @@ export const FILTER_OPTIONS = {
     "120–150 min",
     "Over 150 min",
   ],
+  seasons: [
+    "All Seasons",
+    "1 Season",
+    "2–3 Seasons",
+    "4–6 Seasons",
+    "7+ Seasons",
+  ],
   country: [
     "All Countries",
     "United States",
@@ -39,6 +46,9 @@ export const FILTER_OPTIONS = {
     "Spain",
     "Italy",
     "Australia",
+    "Mexico",
+    "Brazil",
+    "India",
   ],
   budget: [
     "All Budgets",
@@ -46,6 +56,24 @@ export const FILTER_OPTIONS = {
     "Medium ($15M–$60M)",
     "High ($60M–$120M)",
     "Blockbuster (> $120M)",
+  ],
+  ageRatingMovie: [
+    "All Age Ratings",
+    "G",
+    "PG",
+    "PG-13",
+    "R",
+    "NC-17",
+    "NR",
+  ],
+  ageRatingTV: [
+    "All Age Ratings",
+    "TV-Y / TV-Y7",
+    "TV-G",
+    "TV-PG",
+    "TV-14",
+    "TV-MA",
+    "NR",
   ],
   ageRating: [
     "All Age Ratings",

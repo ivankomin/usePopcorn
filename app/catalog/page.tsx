@@ -12,6 +12,7 @@ interface CatalogPageProps {
     genreId?: string;
     genres?: string;
     runtime?: string;
+    seasons?: string;
     country?: string;
     budget?: string;
     ageRating?: string;
@@ -53,6 +54,7 @@ async function CatalogContent({
         .filter(Boolean)
     : undefined;
   const runtime = resolvedParams.runtime;
+  const seasons = resolvedParams.seasons;
   const country = resolvedParams.country;
   const budget = resolvedParams.budget;
   const ageRating = resolvedParams.ageRating;
@@ -77,9 +79,10 @@ async function CatalogContent({
     mediaType: mediaType === "all" ? undefined : mediaType,
     genreId,
     genres,
-    runtime,
+    runtime: mediaType === "tv" ? undefined : runtime,
+    seasons: mediaType === "tv" ? seasons : undefined,
     country,
-    budget,
+    budget: mediaType === "tv" ? undefined : budget,
     ageRating,
     minRating,
     maxRating,
@@ -111,14 +114,20 @@ async function CatalogContent({
 export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   const resolvedParams = await searchParams;
   const suspenseKey = JSON.stringify(resolvedParams);
+  const mediaType = resolvedParams.mediaType || "movie";
 
-  const genresData = await getGenres();
+  const genresData = await getGenres(
+    mediaType === "all" ? undefined : (mediaType as "movie" | "tv")
+  );
   const availableGenres = genresData.map((g) => g.name);
 
   return (
     <div className="min-h-screen bg-black text-white px-4 sm:px-6 lg:px-10 py-8 sm:py-10">
       <div className="max-w-360 mx-auto flex flex-col lg:flex-row gap-8 lg:gap-10 items-start justify-center">
-        <CatalogFilters genres={availableGenres} />
+        <CatalogFilters
+          genres={availableGenres}
+          mediaType={mediaType as "movie" | "tv"}
+        />
         <div className="flex-1 max-w-235 min-w-0 w-full">
           <Suspense
             key={suspenseKey}

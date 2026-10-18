@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef } from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useOutsideClick } from "@/hooks/useOutsideClick";
 
 export interface FilterDropdownProps {
   id: string;
@@ -29,31 +30,7 @@ export function FilterDropdown({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown on outside click or Escape key
-  useEffect(() => {
-    if (!isOpen) return;
-
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        onClose();
-      }
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isOpen, onClose]);
+  useOutsideClick(dropdownRef, onClose, isOpen);
 
   const hasSelected = value && value !== options[0];
 

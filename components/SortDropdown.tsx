@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef, useEffect, useTransition } from "react";
+import { useState, useRef, useTransition } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { ChevronDown, Check } from "lucide-react";
 import Loader from "@/components/Loader";
 import { cn } from "@/lib/utils";
+import { useOutsideClick } from "@/hooks/useOutsideClick";
 import type { SortOption } from "@/types/media";
 
 export interface SortOptionItem {
@@ -52,31 +53,7 @@ export default function SortDropdown({
     SORT_OPTIONS.find((opt) => opt.value === normalizedSort) || SORT_OPTIONS[0];
 
   // Close on outside click or Escape key
-  useEffect(() => {
-    if (!isOpen) return;
-
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setIsOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isOpen]);
+  useOutsideClick(dropdownRef, () => setIsOpen(false), isOpen);
 
   const handleSelect = (optionValue: SortOption) => {
     setIsOpen(false);
@@ -101,7 +78,6 @@ export default function SortDropdown({
 
   return (
     <div ref={dropdownRef} className={cn("relative select-none", className)}>
-      {/* Trigger Button */}
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
@@ -136,7 +112,6 @@ export default function SortDropdown({
         )}
       </button>
 
-      {/* Flyout Dropdown Menu */}
       {isOpen && (
         <div
           role="listbox"

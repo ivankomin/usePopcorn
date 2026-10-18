@@ -1,0 +1,312 @@
+"use client";
+
+import { useState, useTransition, useCallback, useMemo, useEffect } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { FILTER_OPTIONS } from "@/components/filters";
+
+export interface UseCatalogFiltersOptions {
+  genres?: string[];
+}
+
+export function useCatalogFilters(options: UseCatalogFiltersOptions = {}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [, startTransition] = useTransition();
+
+  const genreOptions =
+    options.genres && options.genres.length > 0
+      ? options.genres
+      : FILTER_OPTIONS.genre;
+
+  // 1. Derive discrete filter values directly from the URL (single source of truth)
+  const selectedGenres = useMemo(() => {
+    const raw = searchParams.get("genres");
+    if (!raw) return [];
+    return raw
+      .split(",")
+      .map((g) => decodeURIComponent(g).trim())
+      .filter(Boolean);
+  }, [searchParams]);
+
+  const runtime = searchParams.get("runtime") || "";
+  const country = searchParams.get("country") || "";
+  const budget = searchParams.get("budget") || "";
+  const ageRating = searchParams.get("ageRating") || "";
+
+  const minYear = searchParams.has("minYear")
+    ? parseInt(searchParams.get("minYear")!, 10)
+    : 1900;
+  const maxYear = searchParams.has("maxYear")
+    ? parseInt(searchParams.get("maxYear")!, 10)
+    : 2026;
+
+  const urlMinRating = searchParams.has("minRating")
+    ? parseFloat(searchParams.get("minRating")!)
+    : 0.0;
+  const urlMaxRating = searchParams.has("maxRating")
+    ? parseFloat(searchParams.get("maxRating")!)
+    : 10.0;
+
+  // 2. Local state for smooth real-time slider dragging
+  const [prevUrlRating, setPrevUrlRating] = useState({
+    min: urlMinRating,
+    max: urlMaxRating,
+  });
+  const [sliderMinRating, setSliderMinRating] = useState(urlMinRating);
+  const [sliderMaxRating, setSliderMaxRating] = useState(urlMaxRating);
+
+  // Sync slider state during render when URL params change externally (e.g. Back/Forward/Reset)
+  if (
+    prevUrlRating.min !== urlMinRating ||
+    prevUrlRating.max !== urlMaxRating
+  ) {
+    setPrevUrlRating({ min: urlMinRating, max: urlMaxRating });
+    setSliderMinRating(urlMinRating);
+    setSliderMaxRating(urlMaxRating);
+  }
+
+  // 3. Dropdown popup & mobile accordion state
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  const applyFilters = useCallback(
+    (
+      updates: Partial<{
+        genres: string[];
+        runtime: string;
+        country: string;
+        budget: string;
+        ageRating: string;
+        minRating: number;
+        maxRating: number;
+        minYear: number;
+        maxYear: number;
+      }>
+    ) => {
+      const params = new URLSearchParams(searchParams.toString());
+
+      const nextGenres =
+        updates.genres !== undefined ? updates.genres : selectedGenres;
+      const nextRuntime =
+        updates.runtime !== undefined ? updates.runtime : runtime;
+      const nextCountry =
+        updates.country !== undefined ? updates.country : country;
+      const nextBudget =
+        updates.budget !== undefined ? updates.budget : budget;
+      const nextAgeRating =
+        updates.ageRating !== undefined ? updates.ageRating : ageRating;
+      const nextMinRating =
+        updates.minRating !== undefined ? updates.minRating : sliderMinRating;
+      const nextMaxRating =
+        updates.maxRating !== undefined ? updates.maxRating : sliderMaxRating;
+      const nextMinYear =
+        updates.minYear !== undefined ? updates.minYear : minYear;
+      const nextMaxYear =
+        updates.maxYear !== undefined ? updates.maxYear : maxYear;
+
+      // 1. Genres
+      if (nextGenres.length > 0) {
+        params.set("genres", nextGenres.join(","));
+        params.delete("genreId");
+      } else {
+        params.delete("genres");
+        params.delete("genreId");
+      }
+
+      // 2. Runtime
+      if (nextRuntime && nextRuntime !== FILTER_OPTIONS.runtime[0]) {
+        params.set("runtime", nextRuntime);
+      } else {
+        params.delete("runtime");
+      }
+
+      // 3. Country
+      if (nextCountry && nextCountry !== FILTER_OPTIONS.country[0]) {
+        params.set("country", nextCountry);
+      } else {
+        params.delete("country");
+      }
+
+      // 4. Budget
+      if (nextBudget && nextBudget !== FILTER_OPTIONS.budget[0]) {
+        params.set("budget", nextBudget);
+      } else {
+        params.delete("budget");
+      }
+
+      // 5. Age Rating
+      if (nextAgeRating && nextAgeRating !== FILTER_OPTIONS.ageRating[0]) {
+        params.set("ageRating", nextAgeRating);
+      } else {
+        params.delete("ageRating");
+      }
+
+      // 6. Rating Range
+      if (nextMinRating > 0) {
+        params.set("minRating", nextMinRating.toFixed(1));
+      } else {
+        params.delete("minRating");
+      }
+      if (nextMaxRating < 10) {
+        params.set("maxRating", nextMaxRating.toFixed(1));
+      } else {
+        params.delete("maxRating");
+      }
+
+      // 7. Year Range
+      if (nextMinYear > 1900) {
+        params.set("minYear", nextMinYear.toString());
+      } else {
+        params.delete("minYear");
+      }
+      if (nextMaxYear < 2026) {
+        params.set("maxYear", nextMaxYear.toString());
+      } else {
+        params.delete("maxYear");
+      }
+
+      // Reset to page 1 upon changing filters
+      params.delete("page");
+
+      const queryString = params.toString();
+      const target = queryString ? `${pathname}?${queryString}` : pathname;
+      startTransition(() => {
+        router.push(target);
+      });
+    },
+    [
+      searchParams,
+      selectedGenres,
+      runtime,
+      country,
+      budget,
+      ageRating,
+      sliderMinRating,
+      sliderMaxRating,
+      minYear,
+      maxYear,
+      pathname,
+      router,
+    ]
+  );
+
+  // Debounced sync for rating range sliders
+  useEffect(() => {
+    if (
+      Math.abs(urlMinRating - sliderMinRating) < 0.05 &&
+      Math.abs(urlMaxRating - sliderMaxRating) < 0.05
+    ) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      applyFilters({ minRating: sliderMinRating, maxRating: sliderMaxRating });
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [sliderMinRating, sliderMaxRating, applyFilters, urlMinRating, urlMaxRating]);
+
+  const toggleDropdown = (id: string) => {
+    setOpenDropdown((prev) => (prev === id ? null : id));
+  };
+
+  const closeDropdown = () => {
+    setOpenDropdown(null);
+  };
+
+  const handleGenresChange = (genres: string[]) => {
+    applyFilters({ genres });
+  };
+
+  const handleRuntimeChange = (val: string) => {
+    applyFilters({ runtime: val });
+  };
+
+  const handleCountryChange = (val: string) => {
+    applyFilters({ country: val });
+  };
+
+  const handleBudgetChange = (val: string) => {
+    applyFilters({ budget: val });
+  };
+
+  const handleAgeRatingChange = (val: string) => {
+    applyFilters({ ageRating: val });
+  };
+
+  const handleMinYearChange = (val: number) => {
+    applyFilters({ minYear: val });
+  };
+
+  const handleMaxYearChange = (val: number) => {
+    applyFilters({ maxYear: val });
+  };
+
+  const hasActiveFilters =
+    selectedGenres.length > 0 ||
+    Boolean(runtime && runtime !== FILTER_OPTIONS.runtime[0]) ||
+    Boolean(country && country !== FILTER_OPTIONS.country[0]) ||
+    Boolean(budget && budget !== FILTER_OPTIONS.budget[0]) ||
+    Boolean(ageRating && ageRating !== FILTER_OPTIONS.ageRating[0]) ||
+    minYear !== 1900 ||
+    maxYear !== 2026 ||
+    urlMinRating > 0 ||
+    urlMaxRating < 10 ||
+    sliderMinRating > 0 ||
+    sliderMaxRating < 10;
+
+  const handleResetFilters = () => {
+    setOpenDropdown(null);
+    setSliderMinRating(0.0);
+    setSliderMaxRating(10.0);
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("genres");
+    params.delete("genreId");
+    params.delete("runtime");
+    params.delete("country");
+    params.delete("budget");
+    params.delete("ageRating");
+    params.delete("minRating");
+    params.delete("maxRating");
+    params.delete("minYear");
+    params.delete("maxYear");
+    params.delete("page");
+
+    const queryString = params.toString();
+    const target = queryString ? `${pathname}?${queryString}` : pathname;
+    startTransition(() => {
+      router.push(target);
+    });
+  };
+
+  return {
+    genreOptions,
+    selectedGenres,
+    runtime,
+    country,
+    budget,
+    ageRating,
+    minRating: sliderMinRating,
+    maxRating: sliderMaxRating,
+    minYear,
+    maxYear,
+    openDropdown,
+    isMobileOpen,
+    setIsMobileOpen,
+    hasActiveFilters,
+    setMinRating: setSliderMinRating,
+    setMaxRating: setSliderMaxRating,
+    toggleDropdown,
+    closeDropdown,
+    handleGenresChange,
+    handleRuntimeChange,
+    handleCountryChange,
+    handleBudgetChange,
+    handleAgeRatingChange,
+    handleMinYearChange,
+    handleMaxYearChange,
+    handleResetFilters,
+  };
+}

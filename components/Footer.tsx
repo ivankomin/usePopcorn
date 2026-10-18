@@ -15,25 +15,25 @@ export default function Footer() {
         <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-8">
           <Link
             href="/about"
-            className="text-xs uppercase tracking-wider text-brand-muted hover:text-brand-lime transition-colors"
+            className="text-xs uppercase tracking-wider text-brand-muted hover:text-white transition-colors"
           >
             About
           </Link>
           <Link
             href="/help"
-            className="text-xs uppercase tracking-wider text-brand-muted hover:text-brand-lime transition-colors"
+            className="text-xs uppercase tracking-wider text-brand-muted hover:text-white transition-colors"
           >
             Help
           </Link>
           <Link
             href="/privacy"
-            className="text-xs uppercase tracking-wider text-brand-muted hover:text-brand-lime transition-colors"
+            className="text-xs uppercase tracking-wider text-brand-muted hover:text-white transition-colors"
           >
             Privacy
           </Link>
           <Link
             href="/contact"
-            className="text-xs uppercase tracking-wider text-brand-muted hover:text-brand-lime transition-colors"
+            className="text-xs uppercase tracking-wider text-brand-muted hover:text-white transition-colors"
           >
             Contact Us
           </Link>

@@ -71,9 +71,13 @@ export async function getMediaCatalog(
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
+  const isFilteringGenre = Boolean(
+    params.genreId || (params.genres && params.genres.length > 0)
+  );
+
   // If filtering by genre, inner-join media_genres for filtering while selecting all genres
-  const selectQuery = params.genreId
-    ? "*, media_genres!inner(genre_id), all_genres:media_genres(genres(*))"
+  const selectQuery = isFilteringGenre
+    ? "*, media_genres!inner(genre_id, genres!inner(name)), all_genres:media_genres(genres(*))"
     : "*, media_genres(genres(*))";
 
   let query = supabase
@@ -88,11 +92,63 @@ export async function getMediaCatalog(
   // Filter: Genre
   if (params.genreId) {
     query = query.eq("media_genres.genre_id", params.genreId);
+  } else if (params.genres && params.genres.length > 0) {
+    query = query.in("media_genres.genres.name", params.genres);
   }
 
   // Filter: Title Search (case-insensitive substring)
   if (params.search && params.search.trim() !== "") {
     query = query.ilike("title", `%${params.search.trim()}%`);
+  }
+
+  // Filter: Runtime
+  if (params.runtime && params.runtime !== "All Runtimes") {
+    if (params.runtime === "Under 90 min") {
+      query = query.lt("runtime", 90);
+    } else if (
+      params.runtime === "90–120 min" ||
+      params.runtime === "90-120 min"
+    ) {
+      query = query.gte("runtime", 90).lte("runtime", 120);
+    } else if (
+      params.runtime === "120–150 min" ||
+      params.runtime === "120-150 min"
+    ) {
+      query = query.gte("runtime", 120).lte("runtime", 150);
+    } else if (params.runtime === "Over 150 min") {
+      query = query.gt("runtime", 150);
+    }
+  }
+
+  // Filter: Rating Range
+  if (params.minRating !== undefined && params.minRating > 0) {
+    query = query.gte("vote_average", params.minRating);
+  }
+  if (params.maxRating !== undefined && params.maxRating < 10) {
+    query = query.lte("vote_average", params.maxRating);
+  }
+
+  // Filter: Year Range
+  if (params.minYear !== undefined && params.minYear > 1900) {
+    query = query.gte("release_year", params.minYear);
+  }
+  if (params.maxYear !== undefined && params.maxYear < 2026) {
+    query = query.lte("release_year", params.maxYear);
+  }
+
+  // Filter: Country (direct column)
+  if (params.country && params.country !== "All Countries") {
+    query = query.contains("countries", [params.country]);
+  }
+
+  // Filter: Budget (direct column)
+  if (params.budget && params.budget !== "All Budgets") {
+    query = query.eq("budget_category", params.budget);
+  }
+
+  // Filter: Age Rating (direct column)
+  if (params.ageRating && params.ageRating !== "All Age Ratings") {
+    query = query.eq("age_rating", params.ageRating);
   }
 
   // Sorting
@@ -147,7 +203,7 @@ export async function getMediaCatalog(
   // Format joined genres cleanly
   const rows = (data || []) as unknown as MediaCatalogRow[];
   const items: MediaItem[] = rows.map((row) => {
-    const rawGenres = params.genreId ? row.all_genres : row.media_genres;
+    const rawGenres = isFilteringGenre ? row.all_genres : row.media_genres;
     const genres: GenreRow[] = (rawGenres || [])
        .map((mg) => mg.genres)
        .filter((g): g is GenreRow => Boolean(g));

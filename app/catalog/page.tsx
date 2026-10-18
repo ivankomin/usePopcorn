@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { getMediaCatalog } from "@/lib/api";
+import { getMediaCatalog, getGenres } from "@/lib/api";
 import MediaList from "@/components/MediaList";
 import Loader from "@/components/Loader";
 import CatalogFilters from "@/components/CatalogFilters";
@@ -10,6 +10,15 @@ interface CatalogPageProps {
     search?: string;
     mediaType?: "all" | "movie" | "tv";
     genreId?: string;
+    genres?: string;
+    runtime?: string;
+    country?: string;
+    budget?: string;
+    ageRating?: string;
+    minRating?: string;
+    maxRating?: string;
+    minYear?: string;
+    maxYear?: string;
     sortBy?: SortOption;
     page?: string;
   }>;
@@ -37,6 +46,28 @@ async function CatalogContent({
   const genreId = resolvedParams.genreId
     ? parseInt(resolvedParams.genreId, 10)
     : undefined;
+  const genres = resolvedParams.genres
+    ? resolvedParams.genres
+        .split(",")
+        .map((g) => decodeURIComponent(g).trim())
+        .filter(Boolean)
+    : undefined;
+  const runtime = resolvedParams.runtime;
+  const country = resolvedParams.country;
+  const budget = resolvedParams.budget;
+  const ageRating = resolvedParams.ageRating;
+  const minRating = resolvedParams.minRating
+    ? parseFloat(resolvedParams.minRating)
+    : undefined;
+  const maxRating = resolvedParams.maxRating
+    ? parseFloat(resolvedParams.maxRating)
+    : undefined;
+  const minYear = resolvedParams.minYear
+    ? parseInt(resolvedParams.minYear, 10)
+    : undefined;
+  const maxYear = resolvedParams.maxYear
+    ? parseInt(resolvedParams.maxYear, 10)
+    : undefined;
   const sortBy = resolvedParams.sortBy || "popularity";
   const page = resolvedParams.page ? parseInt(resolvedParams.page, 10) : 1;
 
@@ -45,6 +76,15 @@ async function CatalogContent({
     search,
     mediaType: mediaType === "all" ? undefined : mediaType,
     genreId,
+    genres,
+    runtime,
+    country,
+    budget,
+    ageRating,
+    minRating,
+    maxRating,
+    minYear,
+    maxYear,
     sortBy,
     page,
     pageSize: 20,
@@ -70,12 +110,15 @@ async function CatalogContent({
 
 export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   const resolvedParams = await searchParams;
-  const suspenseKey = `${resolvedParams.search || ""}-${resolvedParams.mediaType || ""}-${resolvedParams.genreId || ""}-${resolvedParams.sortBy || ""}-${resolvedParams.page || ""}`;
+  const suspenseKey = JSON.stringify(resolvedParams);
+
+  const genresData = await getGenres();
+  const availableGenres = genresData.map((g) => g.name);
 
   return (
     <div className="min-h-screen bg-black text-white px-4 sm:px-6 lg:px-10 py-8 sm:py-10">
       <div className="max-w-360 mx-auto flex flex-col lg:flex-row gap-8 lg:gap-10 items-start justify-center">
-        <CatalogFilters />
+        <CatalogFilters genres={availableGenres} />
         <div className="flex-1 max-w-235 min-w-0 w-full">
           <Suspense
             key={suspenseKey}

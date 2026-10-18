@@ -69,6 +69,11 @@ Central catalog for movies and TV shows.
 * `runtime` (`INTEGER`, nullable) — Running time in minutes (primarily for movies).
 * `seasons_count` (`INTEGER`, nullable) — Total season count (for TV series).
 * `poster_path` (`TEXT`, nullable) — Relative TMDB image path or storage bucket key.
+* `budget` (`BIGINT`, nullable) — Budget in USD (primarily for movies).
+* `budget_category` (`TEXT`, nullable) — Categorized budget band (e.g., `'Blockbuster (> $120M)'`).
+* `country` (`TEXT`, nullable) — Primary production country.
+* `countries` (`TEXT[]`, nullable, DEFAULT `'{}'::text[]`) — List of all production countries.
+* `age_rating` (`TEXT`, nullable) — Content rating / certification (e.g., `'PG-13'`, `'R'`, `'TV-MA'`).
 * `vote_average` (`NUMERIC(3, 1)`, NOT NULL, DEFAULT `0.0`, CHECK `vote_average >= 0.0 AND vote_average <= 10.0`)
 * `vote_count` (`INTEGER`, NOT NULL, DEFAULT `0`)
 * `metadata` (`JSONB`, nullable) — Flexible store for extra attributes (directors, cast, taglines).
@@ -139,5 +144,9 @@ To satisfy the sub-300ms interface latency and rapid search requirements:
 * `CREATE INDEX idx_media_items_title_trgm ON media_items USING gin (title gin_trgm_ops);` (requires `pg_trgm`)
 * `CREATE INDEX idx_media_items_release_year ON media_items (release_year DESC);`
 * `CREATE INDEX idx_media_items_vote_avg ON media_items (vote_average DESC);`
+* `CREATE INDEX idx_media_items_budget_category ON media_items (budget_category);`
+* `CREATE INDEX idx_media_items_country ON media_items (country);`
+* `CREATE INDEX idx_media_items_countries ON media_items USING gin (countries);`
+* `CREATE INDEX idx_media_items_age_rating ON media_items (age_rating);`
 * `CREATE INDEX idx_watchlists_user_id ON watchlists (user_id);`
 * `CREATE INDEX idx_reviews_media_id ON reviews (media_id);`

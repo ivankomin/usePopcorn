@@ -72,12 +72,20 @@ interface TMDBMovieDetails {
   overview?: string;
   release_date?: string;
   runtime?: number | null;
+  budget?: number;
+  production_countries?: Array<{ iso_3166_1: string; name: string }>;
   poster_path?: string | null;
   vote_average?: number;
   vote_count?: number;
   tagline?: string | null;
   genres?: TMDBGenre[];
   credits?: TMDBCredits;
+  release_dates?: {
+    results?: Array<{
+      iso_3166_1: string;
+      release_dates?: Array<{ certification?: string }>;
+    }>;
+  };
 }
 
 interface TMDBTVDetails {
@@ -88,6 +96,7 @@ interface TMDBTVDetails {
   first_air_date?: string;
   episode_run_time?: number[];
   number_of_seasons?: number;
+  production_countries?: Array<{ iso_3166_1: string; name: string }>;
   poster_path?: string | null;
   vote_average?: number;
   vote_count?: number;
@@ -95,6 +104,12 @@ interface TMDBTVDetails {
   genres?: TMDBGenre[];
   created_by?: Array<{ id: number; name: string }>;
   credits?: TMDBCredits;
+  content_ratings?: {
+    results?: Array<{
+      iso_3166_1: string;
+      rating?: string;
+    }>;
+  };
 }
 
 // Helpers for API requests
@@ -211,6 +226,22 @@ async function seedGenres(): Promise<Map<number, string>> {
   return genreMap;
 }
 
+function normalizeCountry(name?: string): string | null {
+  if (!name) return null;
+  const trimmed = name.trim();
+  if (trimmed === 'United States of America') return 'United States';
+  if (trimmed.includes('Korea')) return 'South Korea';
+  return trimmed;
+}
+
+function getBudgetCategory(budget?: number | null): string | null {
+  if (!budget || budget <= 0) return null;
+  if (budget < 15_000_000) return 'Low (< $15M)';
+  if (budget <= 60_000_000) return 'Medium ($15M–$60M)';
+  if (budget <= 120_000_000) return 'High ($60M–$120M)';
+  return 'Blockbuster (> $120M)';
+}
+
 interface MediaSeedData {
   item: TablesInsert<'media_items'>;
   genreIds: number[];
@@ -237,7 +268,7 @@ async function fetchMoviesToSeed(): Promise<MediaSeedData[]> {
   const movies = await mapConcurrent(candidateIds, 5, async (tmdbId) => {
     try {
       const details = await tmdbFetch<TMDBMovieDetails>(
-        `/movie/${tmdbId}?append_to_response=credits&language=en`
+        `/movie/${tmdbId}?append_to_response=credits,release_dates&language=en`
       );
 
       const releaseDate = details.release_date || null;
@@ -264,6 +295,21 @@ async function fetchMoviesToSeed(): Promise<MediaSeedData[]> {
         Math.max(0, Math.round((details.vote_average || 0) * 10) / 10)
       );
 
+      const countries = (details.production_countries || [])
+        .map((c) => normalizeCountry(c.name))
+        .filter((c): c is string => Boolean(c));
+      const primaryCountry = countries[0] || null;
+
+      const usRelease = details.release_dates?.results?.find(
+        (r) => r.iso_3166_1 === 'US'
+      );
+      const ageRating =
+        usRelease?.release_dates?.find((x) => x.certification)?.certification ||
+        null;
+
+      const budget = details.budget && details.budget > 0 ? details.budget : null;
+      const budgetCategory = getBudgetCategory(budget);
+
       const item: TablesInsert<'media_items'> = {
         tmdb_id: details.id,
         media_type: 'movie',
@@ -277,6 +323,11 @@ async function fetchMoviesToSeed(): Promise<MediaSeedData[]> {
         poster_path: details.poster_path || null,
         vote_average: voteAvg,
         vote_count: details.vote_count || 0,
+        country: primaryCountry,
+        countries: countries,
+        budget: budget,
+        budget_category: budgetCategory,
+        age_rating: ageRating,
         metadata: {
           tagline: details.tagline || null,
           directors,
@@ -315,7 +366,7 @@ async function fetchTVToSeed(): Promise<MediaSeedData[]> {
   const tvSeries = await mapConcurrent(candidateIds, 5, async (tmdbId) => {
     try {
       const details = await tmdbFetch<TMDBTVDetails>(
-        `/tv/${tmdbId}?append_to_response=credits&language=en`
+        `/tv/${tmdbId}?append_to_response=credits,content_ratings&language=en`
       );
 
       const airDate = details.first_air_date || null;
@@ -337,6 +388,15 @@ async function fetchTVToSeed(): Promise<MediaSeedData[]> {
         Math.max(0, Math.round((details.vote_average || 0) * 10) / 10)
       );
 
+      const countries = (details.production_countries || [])
+        .map((c) => normalizeCountry(c.name))
+        .filter((c): c is string => Boolean(c));
+      const primaryCountry = countries[0] || null;
+
+      const usRating =
+        details.content_ratings?.results?.find((r) => r.iso_3166_1 === 'US')
+          ?.rating || null;
+
       const item: TablesInsert<'media_items'> = {
         tmdb_id: details.id,
         media_type: 'tv',
@@ -350,6 +410,11 @@ async function fetchTVToSeed(): Promise<MediaSeedData[]> {
         poster_path: details.poster_path || null,
         vote_average: voteAvg,
         vote_count: details.vote_count || 0,
+        country: primaryCountry,
+        countries: countries,
+        budget: null,
+        budget_category: null,
+        age_rating: usRating,
         metadata: {
           tagline: details.tagline || null,
           creators,

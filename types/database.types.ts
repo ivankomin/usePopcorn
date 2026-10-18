@@ -61,6 +61,11 @@ export type Database = {
       }
       media_items: {
         Row: {
+          age_rating: string | null
+          budget: number | null
+          budget_category: string | null
+          countries: string[] | null
+          country: string | null
           created_at: string
           id: string
           media_type: string
@@ -78,6 +83,11 @@ export type Database = {
           vote_count: number
         }
         Insert: {
+          age_rating?: string | null
+          budget?: number | null
+          budget_category?: string | null
+          countries?: string[] | null
+          country?: string | null
           created_at?: string
           id?: string
           media_type: string
@@ -95,6 +105,11 @@ export type Database = {
           vote_count?: number
         }
         Update: {
+          age_rating?: string | null
+          budget?: number | null
+          budget_category?: string | null
+          countries?: string[] | null
+          country?: string | null
           created_at?: string
           id?: string
           media_type?: string

@@ -44,6 +44,15 @@ export type SortOption =
 export interface CatalogFilterParams {
   search?: string;
   genreId?: number;
+  genres?: string[];
+  runtime?: string;
+  country?: string;
+  budget?: string;
+  ageRating?: string;
+  minRating?: number;
+  maxRating?: number;
+  minYear?: number;
+  maxYear?: number;
   mediaType?: 'all' | 'movie' | 'tv';
   sortBy?: SortOption;
   page?: number;

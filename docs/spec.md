@@ -68,8 +68,11 @@ Central catalog for movies and TV shows.
 * `release_date` (`DATE`, nullable)
 * `runtime` (`INTEGER`, nullable) — Running time in minutes (primarily for movies).
 * `seasons_count` (`INTEGER`, nullable) — Total season count (for TV series).
+* `episodes_count` (`INTEGER`, nullable) — Total episode count (primarily for TV series).
+* `status` (`TEXT`, nullable) — Production / release status (e.g., `'Released'`, `'Returning Series'`, `'Ended'`).
 * `poster_path` (`TEXT`, nullable) — Relative TMDB image path or storage bucket key.
 * `budget` (`BIGINT`, nullable) — Budget in USD (primarily for movies).
+* `revenue` (`BIGINT`, nullable) — Worldwide gross box office revenue in USD (primarily for movies).
 * `budget_category` (`TEXT`, nullable) — Categorized budget band (e.g., `'Blockbuster (> $120M)'`).
 * `country` (`TEXT`, nullable) — Primary production country.
 * `countries` (`TEXT[]`, nullable, DEFAULT `'{}'::text[]`) — List of all production countries.

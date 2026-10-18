@@ -67,6 +67,7 @@ export type Database = {
           countries: string[] | null
           country: string | null
           created_at: string
+          episodes_count: number | null
           id: string
           media_type: string
           metadata: Json | null
@@ -75,8 +76,10 @@ export type Database = {
           poster_path: string | null
           release_date: string | null
           release_year: number
+          revenue: number | null
           runtime: number | null
           seasons_count: number | null
+          status: string | null
           title: string
           tmdb_id: number | null
           vote_average: number
@@ -89,6 +92,7 @@ export type Database = {
           countries?: string[] | null
           country?: string | null
           created_at?: string
+          episodes_count?: number | null
           id?: string
           media_type: string
           metadata?: Json | null
@@ -97,8 +101,10 @@ export type Database = {
           poster_path?: string | null
           release_date?: string | null
           release_year: number
+          revenue?: number | null
           runtime?: number | null
           seasons_count?: number | null
+          status?: string | null
           title: string
           tmdb_id?: number | null
           vote_average?: number
@@ -111,6 +117,7 @@ export type Database = {
           countries?: string[] | null
           country?: string | null
           created_at?: string
+          episodes_count?: number | null
           id?: string
           media_type?: string
           metadata?: Json | null
@@ -119,8 +126,10 @@ export type Database = {
           poster_path?: string | null
           release_date?: string | null
           release_year?: number
+          revenue?: number | null
           runtime?: number | null
           seasons_count?: number | null
+          status?: string | null
           title?: string
           tmdb_id?: number | null
           vote_average?: number

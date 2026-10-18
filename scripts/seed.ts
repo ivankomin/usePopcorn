@@ -73,6 +73,8 @@ interface TMDBMovieDetails {
   release_date?: string;
   runtime?: number | null;
   budget?: number;
+  revenue?: number;
+  status?: string;
   production_countries?: Array<{ iso_3166_1: string; name: string }>;
   poster_path?: string | null;
   vote_average?: number;
@@ -96,6 +98,8 @@ interface TMDBTVDetails {
   first_air_date?: string;
   episode_run_time?: number[];
   number_of_seasons?: number;
+  number_of_episodes?: number;
+  status?: string;
   production_countries?: Array<{ iso_3166_1: string; name: string }>;
   poster_path?: string | null;
   vote_average?: number;
@@ -309,6 +313,8 @@ async function fetchMoviesToSeed(): Promise<MediaSeedData[]> {
 
       const budget = details.budget && details.budget > 0 ? details.budget : null;
       const budgetCategory = getBudgetCategory(budget);
+      const revenue = details.revenue && details.revenue > 0 ? details.revenue : null;
+      const status = details.status || null;
 
       const item: TablesInsert<'media_items'> = {
         tmdb_id: details.id,
@@ -320,6 +326,7 @@ async function fetchMoviesToSeed(): Promise<MediaSeedData[]> {
         release_date: releaseDate,
         runtime: details.runtime || null,
         seasons_count: null,
+        episodes_count: null,
         poster_path: details.poster_path || null,
         vote_average: voteAvg,
         vote_count: details.vote_count || 0,
@@ -327,6 +334,8 @@ async function fetchMoviesToSeed(): Promise<MediaSeedData[]> {
         countries: countries,
         budget: budget,
         budget_category: budgetCategory,
+        revenue: revenue,
+        status: status,
         age_rating: ageRating,
         metadata: {
           tagline: details.tagline || null,
@@ -407,6 +416,7 @@ async function fetchTVToSeed(): Promise<MediaSeedData[]> {
         release_date: airDate,
         runtime: details.episode_run_time?.[0] || null,
         seasons_count: details.number_of_seasons || 1,
+        episodes_count: details.number_of_episodes || null,
         poster_path: details.poster_path || null,
         vote_average: voteAvg,
         vote_count: details.vote_count || 0,
@@ -414,6 +424,8 @@ async function fetchTVToSeed(): Promise<MediaSeedData[]> {
         countries: countries,
         budget: null,
         budget_category: null,
+        revenue: null,
+        status: details.status || null,
         age_rating: usRating,
         metadata: {
           tagline: details.tagline || null,

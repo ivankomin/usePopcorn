@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 
 // MUI Rating component is dynamically imported to avoid SSR issues
@@ -39,6 +41,7 @@ export default function MediaCard({
   onWatchlistToggle,
   onRate,
 }: MediaCardProps) {
+  const router = useRouter();
   const [inWatchlist, setInWatchlist] = useState<boolean>(initialInWatchlist);
   const [userRating, setUserRating] = useState<number | null>(
     initialUserRating,
@@ -66,7 +69,15 @@ export default function MediaCard({
 
   const posterSrc = getPosterUrl(media.poster_path, "w500");
 
-  const handleToggleWatchlist = () => {
+  const handleCardClick = () => {
+    if (typeof window !== "undefined" && window.getSelection()?.toString()) {
+      return;
+    }
+    router.push(`/movie/${media.id}`);
+  };
+
+  const handleToggleWatchlist = (e: React.MouseEvent) => {
+    e.stopPropagation();
     const nextState = !inWatchlist;
     setInWatchlist(nextState);
     if (onWatchlistToggle) {
@@ -86,8 +97,14 @@ export default function MediaCard({
   };
 
   return (
-    <div className="group relative bg-[#181818] border-[#181818] rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-center sm:items-stretch gap-5 sm:gap-6 transition-all border duration-200 hover:border-neutral-700 hover:shadow-xl hover:shadow-black/50">
-      <div className="relative w-28.75 sm:w-31 aspect-2/3 shrink-0 rounded-xl overflow-hidden bg-neutral-900 border border-white/5 shadow-md">
+    <div
+      onClick={handleCardClick}
+      className="group relative bg-[#181818] border-[#181818] rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-center sm:items-stretch gap-5 sm:gap-6 transition-all border duration-200 hover:border-neutral-700 hover:shadow-xl hover:shadow-black/50 cursor-pointer"
+    >
+      <Link
+        href={`/movie/${media.id}`}
+        className="relative w-28.75 sm:w-31 aspect-2/3 shrink-0 rounded-xl overflow-hidden bg-neutral-900 border border-white/5 shadow-md block cursor-pointer"
+      >
         {!imageError && posterSrc ? (
           <Image
             src={posterSrc}
@@ -105,13 +122,18 @@ export default function MediaCard({
             </span>
           </div>
         )}
-      </div>
+      </Link>
 
       <div className="flex-1 min-w-0 flex flex-col justify-between self-stretch py-0.5">
         <div>
           <div className="flex items-baseline flex-wrap gap-x-2.5 leading-snug">
             <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight leading-tight">
-              {media.title}
+              <Link
+                href={`/movie/${media.id}`}
+                className="hover:text-brand-lime transition-colors"
+              >
+                {media.title}
+              </Link>
             </h3>
             {media.release_year && (
               <span className="text-base sm:text-lg font-normal text-neutral-400">
@@ -135,7 +157,10 @@ export default function MediaCard({
             </p>
           )}
         </div>
-        <div className="flex items-center flex-wrap gap-y-2 text-xs sm:text-sm mt-auto pt-1">
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="flex items-center flex-wrap gap-y-2 text-xs sm:text-sm mt-auto pt-1 relative z-10"
+        >
           <div className="flex items-center gap-1.5 mr-2">
             <span className="font-semibold text-white">IMDb:</span>
             <Rating
@@ -222,7 +247,10 @@ export default function MediaCard({
         </div>
       </div>
 
-      <div className="shrink-0 flex items-center justify-center pl-2 sm:pl-4 self-center">
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="shrink-0 flex items-center justify-center pl-2 sm:pl-4 self-center relative z-10"
+      >
         <button
           type="button"
           onClick={handleToggleWatchlist}

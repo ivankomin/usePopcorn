@@ -133,10 +133,15 @@ async function runEnrichment() {
       let budget: number | null = null;
       let budgetCategory: string | null = null;
       let ageRating: string | null = null;
+      let revenue: number | null = null;
+      let status: string | null = null;
+      let episodesCount: number | null = null;
 
       if (item.media_type === 'movie') {
         const details = await tmdbFetch<{
           budget?: number;
+          revenue?: number;
+          status?: string;
           production_countries?: Array<{ iso_3166_1: string; name: string }>;
           release_dates?: {
             results?: Array<{
@@ -161,9 +166,13 @@ async function runEnrichment() {
 
           budget = details.budget && details.budget > 0 ? details.budget : null;
           budgetCategory = getBudgetCategory(budget);
+          revenue = details.revenue && details.revenue > 0 ? details.revenue : null;
+          status = details.status || null;
         }
       } else {
         const details = await tmdbFetch<{
+          number_of_episodes?: number;
+          status?: string;
           production_countries?: Array<{ iso_3166_1: string; name: string }>;
           content_ratings?: {
             results?: Array<{
@@ -182,6 +191,8 @@ async function runEnrichment() {
           ageRating =
             details.content_ratings?.results?.find((r) => r.iso_3166_1 === 'US')
               ?.rating || null;
+          status = details.status || null;
+          episodesCount = details.number_of_episodes || null;
         }
       }
 
@@ -203,6 +214,9 @@ async function runEnrichment() {
           budget,
           budget_category: budgetCategory,
           age_rating: ageRating,
+          revenue,
+          status,
+          episodes_count: episodesCount,
           metadata: cleanMetadata,
         })
         .eq('id', item.id);

@@ -29,11 +29,23 @@ export interface ReviewWithAuthor extends ReviewRow {
   profile?: Pick<ProfileRow, 'id' | 'username' | 'avatar_url'>;
 }
 
+export type SortOption =
+  | 'popularity'
+  | 'vote_average_desc'
+  | 'vote_average_asc'
+  | 'release_year_desc'
+  | 'release_year_asc'
+  | 'title_asc'
+  | 'title_desc'
+  | 'vote_average'
+  | 'release_year'
+  | 'title';
+
 export interface CatalogFilterParams {
   search?: string;
   genreId?: number;
   mediaType?: 'all' | 'movie' | 'tv';
-  sortBy?: 'popularity' | 'vote_average' | 'release_year' | 'title';
+  sortBy?: SortOption;
   page?: number;
   pageSize?: number;
 }

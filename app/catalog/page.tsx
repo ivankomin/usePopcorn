@@ -3,13 +3,14 @@ import { getMediaCatalog } from "@/lib/api";
 import MediaList from "@/components/MediaList";
 import Loader from "@/components/Loader";
 import CatalogFilters from "@/components/CatalogFilters";
+import type { SortOption } from "@/types/media";
 
 interface CatalogPageProps {
   searchParams: Promise<{
     search?: string;
     mediaType?: "all" | "movie" | "tv";
     genreId?: string;
-    sortBy?: "popularity" | "vote_average" | "release_year" | "title";
+    sortBy?: SortOption;
     page?: string;
   }>;
 }
@@ -62,13 +63,14 @@ async function CatalogContent({
       searchQuery={search}
       currentPage={result.page}
       totalPages={result.totalPages}
+      currentSort={sortBy}
     />
   );
 }
 
 export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   const resolvedParams = await searchParams;
-  const suspenseKey = `${resolvedParams.search || ""}-${resolvedParams.mediaType || ""}-${resolvedParams.genreId || ""}-${resolvedParams.page || ""}`;
+  const suspenseKey = `${resolvedParams.search || ""}-${resolvedParams.mediaType || ""}-${resolvedParams.genreId || ""}-${resolvedParams.sortBy || ""}-${resolvedParams.page || ""}`;
 
   return (
     <div className="min-h-screen bg-black text-white px-4 sm:px-6 lg:px-10 py-8 sm:py-10">

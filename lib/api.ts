@@ -97,16 +97,34 @@ export async function getMediaCatalog(
 
   // Sorting
   switch (params.sortBy) {
+    case "vote_average_desc":
     case "vote_average":
       query = query
         .order("vote_average", { ascending: false })
         .order("vote_count", { ascending: false });
       break;
-    case "release_year":
-      query = query.order("release_year", { ascending: false });
+    case "vote_average_asc":
+      query = query
+        .order("vote_average", { ascending: true })
+        .order("vote_count", { ascending: false });
       break;
+    case "release_year_desc":
+    case "release_year":
+      query = query
+        .order("release_year", { ascending: false })
+        .order("vote_average", { ascending: false });
+      break;
+    case "release_year_asc":
+      query = query
+        .order("release_year", { ascending: true })
+        .order("vote_average", { ascending: false });
+      break;
+    case "title_asc":
     case "title":
       query = query.order("title", { ascending: true });
+      break;
+    case "title_desc":
+      query = query.order("title", { ascending: false });
       break;
     case "popularity":
     default:

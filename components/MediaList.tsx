@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { MediaItem } from "@/types/media";
 import MediaCard from "./MediaCard";
 import Pagination from "./Pagination";
+import SortDropdown from "./SortDropdown";
 
 export interface FilterChip {
   id: string;
@@ -19,6 +20,7 @@ export interface MediaListProps {
   onClear?: () => void;
   currentPage?: number;
   totalPages?: number;
+  currentSort?: string;
 }
 
 export default function MediaList({
@@ -28,6 +30,7 @@ export default function MediaList({
   searchQuery,
   currentPage = 1,
   totalPages,
+  currentSort,
 }: MediaListProps) {
   const count = totalFound !== undefined ? totalFound : items.length;
   const query = (searchQuery || queryTitle)?.trim();
@@ -53,6 +56,8 @@ export default function MediaList({
               {query && `(${count} Found)`}
             </span>
           </div>
+
+          <SortDropdown currentSort={currentSort} />
         </div>
       </div>
 

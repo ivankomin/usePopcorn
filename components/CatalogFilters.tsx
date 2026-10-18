@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense } from "react";
-import { ChevronDown, SlidersHorizontal, RotateCcw } from "lucide-react";
+import { ChevronDown, SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   FilterDropdown,
@@ -43,7 +43,6 @@ function CatalogFiltersInner({ genres }: CatalogFiltersProps) {
     handleAgeRatingChange,
     handleMinYearChange,
     handleMaxYearChange,
-    handleResetFilters,
   } = useCatalogFilters({ genres });
 
   return (
@@ -65,7 +64,7 @@ function CatalogFiltersInner({ genres }: CatalogFiltersProps) {
           <ChevronDown
             className={cn(
               "w-4 h-4 text-neutral-400 transition-transform",
-              isMobileOpen && "rotate-180"
+              isMobileOpen && "rotate-180",
             )}
           />
         </button>
@@ -76,7 +75,7 @@ function CatalogFiltersInner({ genres }: CatalogFiltersProps) {
         className={cn(
           "bg-[#181818] border border-neutral-800 rounded-3xl p-5 sm:p-6 flex flex-col gap-4 shadow-lg relative overflow-visible",
           "hidden lg:flex",
-          isMobileOpen && "flex"
+          isMobileOpen && "flex",
         )}
       >
         {/* Header */}
@@ -84,17 +83,6 @@ function CatalogFiltersInner({ genres }: CatalogFiltersProps) {
           <h2 className="text-xl font-semibold text-white tracking-tight">
             Filters
           </h2>
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={handleResetFilters}
-              className="absolute right-0 flex items-center gap-1 text-xs text-neutral-400 hover:text-brand-lime transition-colors cursor-pointer"
-              title="Reset all filters"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset</span>
-            </button>
-          )}
         </div>
 
         {/* 1. Genre (Multi-select) */}

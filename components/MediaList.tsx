@@ -3,21 +3,13 @@ import type { MediaItem } from "@/types/media";
 import MediaCard from "./MediaCard";
 import Pagination from "./Pagination";
 import SortDropdown from "./SortDropdown";
-
-export interface FilterChip {
-  id: string;
-  label: string;
-  variant: "lime" | "blue" | "yellow";
-}
+import ActiveFilterChips from "./ActiveFilterChips";
 
 export interface MediaListProps {
   items: MediaItem[];
   totalFound?: number;
   queryTitle?: string;
   searchQuery?: string;
-  filterChips?: FilterChip[];
-  showClearButton?: boolean;
-  onClear?: () => void;
   currentPage?: number;
   totalPages?: number;
   currentSort?: string;
@@ -37,7 +29,7 @@ export default function MediaList({
 
   return (
     <div className="w-full flex flex-col">
-      <div className="mb-6 sm:mb-8">
+      <div className="mb-6 sm:mb-8 flex flex-col gap-2">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-baseline flex-wrap gap-2">
             <h1 className="text-2xl sm:text-3xl md:text-[32px] font-bold text-white tracking-tight leading-tight">
@@ -59,6 +51,8 @@ export default function MediaList({
 
           <SortDropdown currentSort={currentSort} />
         </div>
+
+        <ActiveFilterChips />
       </div>
 
       {items.length > 0 ? (

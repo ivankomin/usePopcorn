@@ -256,31 +256,6 @@ export function useCatalogFilters(options: UseCatalogFiltersOptions = {}) {
     sliderMinRating > 0 ||
     sliderMaxRating < 10;
 
-  const handleResetFilters = () => {
-    setOpenDropdown(null);
-    setSliderMinRating(0.0);
-    setSliderMaxRating(10.0);
-
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete("genres");
-    params.delete("genreId");
-    params.delete("runtime");
-    params.delete("country");
-    params.delete("budget");
-    params.delete("ageRating");
-    params.delete("minRating");
-    params.delete("maxRating");
-    params.delete("minYear");
-    params.delete("maxYear");
-    params.delete("page");
-
-    const queryString = params.toString();
-    const target = queryString ? `${pathname}?${queryString}` : pathname;
-    startTransition(() => {
-      router.push(target);
-    });
-  };
-
   return {
     genreOptions,
     selectedGenres,
@@ -307,6 +282,5 @@ export function useCatalogFilters(options: UseCatalogFiltersOptions = {}) {
     handleAgeRatingChange,
     handleMinYearChange,
     handleMaxYearChange,
-    handleResetFilters,
   };
 }

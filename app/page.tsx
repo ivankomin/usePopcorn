@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import Button from "@/components/Button";
 
 export default function HomePage() {
   return (
@@ -32,7 +32,7 @@ export default function HomePage() {
             </h1>
 
             <p className="mt-2 text-lg sm:text-xl md:text-[24px] font-bold text-neutral-300 tracking-normal leading-snug drop-shadow-md max-w-xl">
-              All your favorite movies in
+              All your favorite movies & series in
               <br />
               one place!
             </p>
@@ -40,12 +40,9 @@ export default function HomePage() {
         </div>
 
         <div className="mt-8 sm:mt-10 flex justify-center z-10">
-          <Link
-            href="/catalog"
-            className="inline-flex items-center justify-center px-7 py-3 rounded-md border-2 border-brand-lime text-brand-lime hover:text-black font-semibold text-xs sm:text-sm uppercase tracking-wider bg-black/50 hover:bg-brand-lime active:scale-95 transition-all duration-200 cursor-pointer shadow-sm select-none"
-          >
+          <Button href="/catalog" size="lg">
             GET STARTED NOW
-          </Link>
+          </Button>
         </div>
       </div>
     </div>

@@ -47,14 +47,14 @@ export function FilterDropdown({
             ? "border-brand-lime ring-1 ring-brand-lime/30 text-white"
             : hasSelected
               ? "border-neutral-600 text-white font-medium"
-              : "border-neutral-700/60 text-neutral-400"
+              : "border-neutral-700/60 text-neutral-400",
         )}
       >
         <span className="truncate">{hasSelected ? value : label}</span>
         <ChevronDown
           className={cn(
             "w-4 h-4 transition-transform duration-200 shrink-0 ml-2",
-            isOpen ? "rotate-180 text-white" : "text-neutral-400"
+            isOpen ? "rotate-180 text-white" : "text-neutral-400",
           )}
         />
       </button>
@@ -67,7 +67,7 @@ export function FilterDropdown({
             "lg:left-[calc(100%+12px)] lg:right-auto lg:mt-0 lg:w-60 xl:w-64",
             align === "bottom"
               ? "lg:top-auto lg:bottom-0"
-              : "lg:top-0 lg:bottom-auto"
+              : "lg:top-0 lg:bottom-auto",
           )}
         >
           <div className="px-3.5 py-1.5 mb-1 border-b border-neutral-800 text-[11px] font-bold uppercase tracking-wider text-neutral-400 select-none">
@@ -86,8 +86,8 @@ export function FilterDropdown({
                 className={cn(
                   "w-full px-3.5 py-2 text-left text-sm transition-colors flex items-center justify-between cursor-pointer rounded-lg mx-auto max-w-[calc(100%-8px)]",
                   isSelected
-                    ? "bg-brand-lime/10 text-brand-lime font-semibold"
-                    : "text-neutral-300 hover:bg-neutral-800 hover:text-white"
+                    ? "bg-brand-lime/10 font-semibold"
+                    : "text-neutral-300 hover:bg-neutral-800 hover:text-white",
                 )}
               >
                 <span className="truncate">{opt}</span>

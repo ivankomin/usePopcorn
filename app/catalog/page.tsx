@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { getMediaCatalog, getGenres } from "@/lib/api";
 import MediaList from "@/components/MediaList";
 import Loader from "@/components/Loader";
@@ -112,6 +113,7 @@ async function CatalogContent({
 }
 
 export default async function CatalogPage({ searchParams }: CatalogPageProps) {
+  await connection();
   const resolvedParams = await searchParams;
   const suspenseKey = JSON.stringify(resolvedParams);
   const mediaType = resolvedParams.mediaType || "movie";

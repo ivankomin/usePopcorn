@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import type { Metadata } from "next";
 import { getMediaById } from "@/lib/api";
 import MovieDetailsCard from "@/components/MovieDetailsCard";
@@ -30,6 +31,7 @@ export async function generateMetadata({
 }
 
 export default async function MoviePage({ params }: MoviePageProps) {
+  await connection();
   const { id } = await params;
   const media = await getMediaById(id);
 

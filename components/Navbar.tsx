@@ -3,9 +3,12 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
-import { Search, LogIn, User, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { useState, useTransition, Suspense } from "react";
 import Loader from "./Loader";
+import UserMenu from "./UserMenu";
+import Button from "./Button";
+import { useAuth } from "@/hooks/useAuth";
 
 function NavLinks() {
   const pathname = usePathname();
@@ -160,6 +163,8 @@ function SearchBar() {
 }
 
 export default function Navbar() {
+  const { user } = useAuth();
+
   return (
     <header className="w-full bg-brand-surface z-50 shadow-md">
       <div className="max-w-[1600px] mx-auto px-6 sm:px-10 h-19 flex items-center justify-between">
@@ -246,25 +251,14 @@ export default function Navbar() {
               Watchlist
             </span>
           </Link>
-          <Link
-            href="/profile"
-            aria-label="User Profile"
-            className="text-white hover:text-brand-lime transition-colors"
-          >
-            <div className="w-8 h-8 rounded-full border border-white/60 flex items-center justify-center hover:border-brand-lime transition-colors">
-              <User className="w-4 h-4 text-white hover:text-brand-lime" />
-            </div>
-          </Link>
 
-          <Link
-            href="/login"
-            aria-label="Sign In"
-            className="text-white hover:text-brand-lime transition-colors"
-          >
-            <div className="w-8 h-8 rounded-md border border-white/60 flex items-center justify-center hover:border-brand-lime transition-colors">
-              <LogIn className="w-4 h-4 text-white hover:text-brand-lime" />
-            </div>
-          </Link>
+          {user ? (
+            <UserMenu />
+          ) : (
+            <Button href="/login" size="sm">
+              Sign In
+            </Button>
+          )}
         </div>
       </div>
     </header>

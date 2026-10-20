@@ -1,4 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
+import {
+  applyCatalogQueryFilters,
+  applyCatalogQuerySorting,
+  matchesMediaFilters,
+  compareMediaItems,
+} from "@/lib/filters";
 import type {
   MediaItem,
   MediaItemRow,
@@ -11,6 +17,9 @@ import type {
   ProfileRow,
   CatalogFilterParams,
   ReviewRow,
+  WatchlistFilterParams,
+  WatchlistQueryResult,
+  WatchlistStatusCounts,
 } from "@/types/media";
 
 interface MediaGenreJoin {
@@ -114,132 +123,9 @@ export async function getMediaCatalog(
     .from("media_items")
     .select(selectQuery, { count: "exact" });
 
-  // Filter: Media Type (movie / tv)
-  if (params.mediaType && params.mediaType !== "all") {
-    query = query.eq("media_type", params.mediaType);
-  }
-
-  // Filter: Genre
-  if (params.genreId) {
-    query = query.eq("media_genres.genre_id", params.genreId);
-  } else if (params.genres && params.genres.length > 0) {
-    query = query.in("media_genres.genres.name", params.genres);
-  }
-
-  // Filter: Title Search (case-insensitive substring)
-  if (params.search && params.search.trim() !== "") {
-    query = query.ilike("title", `%${params.search.trim()}%`);
-  }
-
-  // Filter: Runtime (primarily for movies)
-  if (params.runtime && params.runtime !== "All Runtimes") {
-    if (params.runtime === "Under 90 min") {
-      query = query.lt("runtime", 90);
-    } else if (
-      params.runtime === "90–120 min" ||
-      params.runtime === "90-120 min"
-    ) {
-      query = query.gte("runtime", 90).lte("runtime", 120);
-    } else if (
-      params.runtime === "120–150 min" ||
-      params.runtime === "120-150 min"
-    ) {
-      query = query.gte("runtime", 120).lte("runtime", 150);
-    } else if (params.runtime === "Over 150 min") {
-      query = query.gt("runtime", 150);
-    }
-  }
-
-  // Filter: Seasons (primarily for TV series)
-  if (params.seasons && params.seasons !== "All Seasons") {
-    if (params.seasons === "1 Season" || params.seasons.startsWith("1 Season")) {
-      query = query.eq("seasons_count", 1);
-    } else if (
-      params.seasons === "2–3 Seasons" ||
-      params.seasons === "2-3 Seasons"
-    ) {
-      query = query.gte("seasons_count", 2).lte("seasons_count", 3);
-    } else if (
-      params.seasons === "4–6 Seasons" ||
-      params.seasons === "4-6 Seasons"
-    ) {
-      query = query.gte("seasons_count", 4).lte("seasons_count", 6);
-    } else if (params.seasons === "7+ Seasons") {
-      query = query.gte("seasons_count", 7);
-    }
-  }
-
-  // Filter: Rating Range
-  if (params.minRating !== undefined && params.minRating > 0) {
-    query = query.gte("vote_average", params.minRating);
-  }
-  if (params.maxRating !== undefined && params.maxRating < 10) {
-    query = query.lte("vote_average", params.maxRating);
-  }
-
-  // Filter: Year Range
-  if (params.minYear !== undefined && params.minYear > 1900) {
-    query = query.gte("release_year", params.minYear);
-  }
-  if (params.maxYear !== undefined && params.maxYear < 2026) {
-    query = query.lte("release_year", params.maxYear);
-  }
-
-  // Filter: Country (direct column)
-  if (params.country && params.country !== "All Countries") {
-    query = query.contains("countries", [params.country]);
-  }
-
-  // Filter: Budget (direct column)
-  if (params.budget && params.budget !== "All Budgets") {
-    query = query.eq("budget_category", params.budget);
-  }
-
-  // Filter: Age Rating (direct column)
-  if (params.ageRating && params.ageRating !== "All Age Ratings") {
-    query = query.eq("age_rating", params.ageRating);
-  }
-
-  // Sorting
-  switch (params.sortBy) {
-    case "vote_average_desc":
-    case "vote_average":
-      query = query
-        .order("vote_average", { ascending: false })
-        .order("vote_count", { ascending: false });
-      break;
-    case "vote_average_asc":
-      query = query
-        .order("vote_average", { ascending: true })
-        .order("vote_count", { ascending: false });
-      break;
-    case "release_year_desc":
-    case "release_year":
-      query = query
-        .order("release_year", { ascending: false })
-        .order("vote_average", { ascending: false });
-      break;
-    case "release_year_asc":
-      query = query
-        .order("release_year", { ascending: true })
-        .order("vote_average", { ascending: false });
-      break;
-    case "title_asc":
-    case "title":
-      query = query.order("title", { ascending: true });
-      break;
-    case "title_desc":
-      query = query.order("title", { ascending: false });
-      break;
-    case "popularity":
-    default:
-      query = query
-        .order("vote_count", { ascending: false })
-        .order("vote_average", { ascending: false });
-      break;
-  }
-
-  // Pagination
+  // Apply encapsulated filters, sorting, and pagination
+  query = applyCatalogQueryFilters(query, params);
+  query = applyCatalogQuerySorting(query, params.sortBy);
   query = query.range(from, to);
 
   const { data, count, error } = await query;
@@ -419,6 +305,133 @@ export async function getUserWatchlist(
       },
     };
   });
+}
+
+/**
+ * Queries user watchlist entries with full filtering, sorting, pagination, and status counts.
+ */
+export async function getWatchlistWithFilters(
+  params: WatchlistFilterParams = {},
+  userId?: string,
+): Promise<WatchlistQueryResult> {
+  const supabase = await createClient();
+
+  let targetUserId = userId;
+  if (!targetUserId) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      return {
+        items: [],
+        total: 0,
+        page: 1,
+        pageSize: params.pageSize || 20,
+        totalPages: 0,
+        statusCounts: {
+          all: 0,
+          plan_to_watch: 0,
+          watched: 0,
+          favorite: 0,
+        },
+      };
+    }
+    targetUserId = user.id;
+  }
+
+  // Fetch all user watchlist rows with joined media items and genres
+  const { data, error } = await supabase
+    .from("watchlists")
+    .select("*, media:media_items(*, media_genres(genres(*)))")
+    .eq("user_id", targetUserId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching watchlist with filters:", error);
+    throw error;
+  }
+
+  const rawRows = (data || []) as unknown as WatchlistMediaJoinRow[];
+
+  // Calculate overall status counts across all user watchlist entries
+  const statusCounts: WatchlistStatusCounts = {
+    all: rawRows.length,
+    plan_to_watch: 0,
+    watched: 0,
+    favorite: 0,
+  };
+
+  for (const row of rawRows) {
+    if (row.status === "plan_to_watch") statusCounts.plan_to_watch += 1;
+    else if (row.status === "watched") statusCounts.watched += 1;
+    else if (row.status === "favorite") statusCounts.favorite += 1;
+  }
+
+  // Map to domain WatchlistEntry objects
+  const allEntries: WatchlistEntry[] = rawRows.map((entry) => {
+    if (!entry.media) return entry as WatchlistEntry;
+
+    const rawGenres = entry.media.media_genres || [];
+    const genres: GenreRow[] = rawGenres
+      .map((mg) => mg.genres)
+      .filter((g): g is GenreRow => Boolean(g));
+
+    const { media_genres: _mg, ...mediaFields } = entry.media;
+
+    return {
+      ...entry,
+      media: {
+        ...mediaFields,
+        genres,
+      },
+    };
+  });
+
+  // Apply filters in-memory
+  let filtered = allEntries;
+
+  // 1. Status (all | plan_to_watch | watched | favorite)
+  if (params.status && params.status !== "all") {
+    filtered = filtered.filter((entry) => entry.status === params.status);
+  }
+
+  // 2. Media metadata filters (genres, runtime, seasons, rating, year, country, etc.)
+  filtered = filtered.filter((entry) =>
+    matchesMediaFilters(entry.media, params),
+  );
+
+  // 3. Sorting
+  const sortBy = params.sortBy || "added_desc";
+  filtered.sort((a, b) => {
+    if (sortBy === "added_desc") {
+      return (
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    }
+    if (sortBy === "added_asc") {
+      return (
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+    }
+    return compareMediaItems(a.media, b.media, sortBy);
+  });
+
+  // Pagination
+  const total = filtered.length;
+  const page = Math.max(1, params.page || 1);
+  const pageSize = Math.max(1, Math.min(100, params.pageSize || 20));
+  const totalPages = Math.ceil(total / pageSize);
+  const from = (page - 1) * pageSize;
+  const paginatedItems = filtered.slice(from, from + pageSize);
+
+  return {
+    items: paginatedItems,
+    total,
+    page,
+    pageSize,
+    totalPages,
+    statusCounts,
+  };
 }
 
 /**

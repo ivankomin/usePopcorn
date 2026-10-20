@@ -59,3 +59,49 @@ export interface CatalogFilterParams {
   page?: number;
   pageSize?: number;
 }
+
+export type WatchlistSortOption =
+  | 'added_desc'
+  | 'added_asc'
+  | 'vote_average_desc'
+  | 'vote_average_asc'
+  | 'release_year_desc'
+  | 'release_year_asc'
+  | 'title_asc'
+  | 'title_desc';
+
+export interface WatchlistFilterParams {
+  status?: WatchlistStatus | 'all';
+  search?: string;
+  genreId?: number;
+  genres?: string[];
+  runtime?: string;
+  seasons?: string;
+  country?: string;
+  budget?: string;
+  ageRating?: string;
+  minRating?: number;
+  maxRating?: number;
+  minYear?: number;
+  maxYear?: number;
+  mediaType?: 'all' | 'movie' | 'tv';
+  sortBy?: WatchlistSortOption;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface WatchlistStatusCounts {
+  all: number;
+  plan_to_watch: number;
+  watched: number;
+  favorite: number;
+}
+
+export interface WatchlistQueryResult {
+  items: WatchlistEntry[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  statusCounts: WatchlistStatusCounts;
+}

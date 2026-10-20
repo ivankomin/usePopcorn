@@ -25,6 +25,7 @@ const Rating = dynamic(() => import("@mui/material/Rating"), {
 import { Plus, Check, Star } from "lucide-react";
 import type { MediaItem } from "@/types/media";
 import { formatRuntime, getPosterUrl } from "@/lib/utils";
+import { useWatchlist } from "@/hooks/useWatchlist";
 
 export interface MediaCardProps {
   media: MediaItem;
@@ -42,7 +43,13 @@ export default function MediaCard({
   onRate,
 }: MediaCardProps) {
   const router = useRouter();
-  const [inWatchlist, setInWatchlist] = useState<boolean>(initialInWatchlist);
+  const { isInWatchlist, toggleWatchlist, isLoading: isWatchlistLoading } =
+    useWatchlist();
+
+  // If watchlist is still loading on mount and initialInWatchlist was provided by SSR, trust it
+  const isSaved = isInWatchlist(media.id);
+  const inWatchlist = isWatchlistLoading && initialInWatchlist ? true : isSaved;
+
   const [userRating, setUserRating] = useState<number | null>(
     initialUserRating,
   );
@@ -76,11 +83,11 @@ export default function MediaCard({
     router.push(`/movie/${media.id}`);
   };
 
-  const handleToggleWatchlist = (e: React.MouseEvent) => {
+  const handleToggleWatchlist = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const nextState = !inWatchlist;
-    setInWatchlist(nextState);
-    if (onWatchlistToggle) {
+    const success = await toggleWatchlist(media.id);
+    if (success && onWatchlistToggle) {
       onWatchlistToggle(media.id, nextState);
     }
   };

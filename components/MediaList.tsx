@@ -67,7 +67,6 @@ export default function MediaList({
         </div>
       ) : (
         <div className="bg-[#181818] border border-neutral-800 rounded-2xl p-12 text-center flex flex-col items-center justify-center my-8">
-          <span className="text-4xl mb-3">🍿</span>
           <h2 className="text-xl font-bold text-white mb-2">No media found</h2>
           <p className="text-sm text-neutral-400 max-w-md mb-6">
             We couldn&apos;t find any movies or TV series matching your query.

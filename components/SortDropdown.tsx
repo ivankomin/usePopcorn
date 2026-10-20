@@ -23,14 +23,26 @@ export const SORT_OPTIONS: SortOptionItem[] = [
   { value: "title_desc", label: "Title: Z to A" },
 ];
 
+export const WATCHLIST_SORT_OPTIONS: SortOptionItem[] = [
+  { value: "added_desc" as SortOption, label: "Recently Added" },
+  { value: "added_asc" as SortOption, label: "Oldest Added" },
+  { value: "vote_average_desc", label: "Highest Rating" },
+  { value: "release_year_desc", label: "Release Year: Newest" },
+  { value: "title_asc", label: "Title: A to Z" },
+];
+
 export interface SortDropdownProps {
   currentSort?: string;
   className?: string;
+  options?: SortOptionItem[];
+  defaultSort?: string;
 }
 
 export default function SortDropdown({
-  currentSort = "popularity",
+  currentSort,
   className,
+  options = SORT_OPTIONS,
+  defaultSort,
 }: SortDropdownProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -39,18 +51,21 @@ export default function SortDropdown({
   const [isPending, startTransition] = useTransition();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const fallbackDefault = defaultSort || options[0]?.value || "popularity";
+  const activeSort = currentSort || fallbackDefault;
+
   // Normalize currentSort to handle legacy values
   const normalizedSort =
-    currentSort === "vote_average"
+    activeSort === "vote_average"
       ? "vote_average_desc"
-      : currentSort === "release_year"
+      : activeSort === "release_year"
         ? "release_year_desc"
-        : currentSort === "title"
+        : activeSort === "title"
           ? "title_asc"
-          : currentSort;
+          : activeSort;
 
   const currentOption =
-    SORT_OPTIONS.find((opt) => opt.value === normalizedSort) || SORT_OPTIONS[0];
+    options.find((opt) => opt.value === normalizedSort) || options[0];
 
   // Close on outside click or Escape key
   useOutsideClick(dropdownRef, () => setIsOpen(false), isOpen);
@@ -60,7 +75,7 @@ export default function SortDropdown({
     if (optionValue === normalizedSort) return;
 
     const params = new URLSearchParams(searchParams.toString());
-    if (optionValue === "popularity") {
+    if (optionValue === fallbackDefault) {
       params.delete("sortBy");
     } else {
       params.set("sortBy", optionValue);
@@ -123,7 +138,7 @@ export default function SortDropdown({
           <div className="px-3.5 py-1.5 mb-1 border-b border-neutral-800 text-[11px] font-bold uppercase tracking-wider text-neutral-400 select-none">
             Sort By
           </div>
-          {SORT_OPTIONS.map((opt) => {
+          {options.map((opt) => {
             const isSelected = opt.value === normalizedSort;
             return (
               <button

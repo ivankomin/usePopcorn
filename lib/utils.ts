@@ -68,6 +68,19 @@ export function formatDate(dateStr: string | null | undefined): string | null {
 }
 
 /**
+ * Formats an ISO date string into dot-notated date (e.g. "2025-12-25" -> "12.25.2025").
+ */
+export function formatAddedAtDate(dateStr: string | null | undefined): string | null {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return null;
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${mm}.${dd}.${yyyy}`;
+}
+
+/**
  * Checks if an age rating denotes restricted / mature content.
  * e.g. R, NC-17, TV-MA, 18+, Adult.
  */

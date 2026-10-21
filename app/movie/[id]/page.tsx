@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import type { Metadata } from "next";
-import { getMediaById } from "@/lib/api";
+import { getMediaById, getUserWatchlistEntryForMedia } from "@/lib/api";
 import MovieDetailsCard from "@/components/MovieDetailsCard";
 
 interface MoviePageProps {
@@ -34,7 +34,10 @@ export async function generateMetadata({
 export default async function MoviePage({ params }: MoviePageProps) {
   await connection();
   const { id } = await params;
-  const media = await getMediaById(id);
+  const [media, watchlistEntry] = await Promise.all([
+    getMediaById(id),
+    getUserWatchlistEntryForMedia(id),
+  ]);
 
   if (!media) {
     notFound();
@@ -42,7 +45,11 @@ export default async function MoviePage({ params }: MoviePageProps) {
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col justify-start py-4 sm:py-8">
-      <MovieDetailsCard media={media} />
+      <MovieDetailsCard
+        media={media}
+        initialInWatchlist={Boolean(watchlistEntry)}
+        initialAddedAt={watchlistEntry?.created_at || null}
+      />
     </div>
   );
 }

@@ -11,6 +11,8 @@ export interface MediaMetadata {
   directors?: string[];
   creators?: string[];
   cast?: string[];
+  awards?: string | string[];
+  end_year?: number | string;
   [key: string]: unknown;
 }
 

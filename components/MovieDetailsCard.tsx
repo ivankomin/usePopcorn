@@ -1,16 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { PlusCircle, Check, Share2, Star, ChevronLeft } from "lucide-react";
+import {
+  PlusCircle,
+  Check,
+  Trash2,
+  Share2,
+  Star,
+  ChevronLeft,
+} from "lucide-react";
 import type { MediaItem } from "@/types/media";
+import { useWatchlist } from "@/components/WatchlistProvider";
 import {
   getPosterUrl,
   formatRuntime,
   formatCurrency,
   formatDate,
   formatVoteCount,
+  formatAddedAtDate,
   isMatureRating,
   cn,
 } from "@/lib/utils";
@@ -18,17 +27,39 @@ import {
 export interface MovieDetailsCardProps {
   media: MediaItem;
   initialInWatchlist?: boolean;
+  initialAddedAt?: string | null;
   onWatchlistToggle?: (mediaId: string, inWatchlist: boolean) => void;
 }
 
 export default function MovieDetailsCard({
   media,
   initialInWatchlist = false,
+  initialAddedAt = null,
   onWatchlistToggle,
 }: MovieDetailsCardProps) {
+  const {
+    isInWatchlist,
+    addToWatchlist,
+    removeFromWatchlist,
+    isLoading: isWatchlistLoading,
+  } = useWatchlist();
+
+  const [isPending, setIsPending] = useState(false);
   const [inWatchlist, setInWatchlist] = useState(initialInWatchlist);
+  const [addedAt, setAddedAt] = useState<string | null>(initialAddedAt || null);
   const [imageError, setImageError] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Sync state with watchlist context once hydrated
+  useEffect(() => {
+    if (!isWatchlistLoading) {
+      const inList = isInWatchlist(media.id);
+      setInWatchlist(inList);
+      if (!inList) {
+        setAddedAt(null);
+      }
+    }
+  }, [isWatchlistLoading, isInWatchlist, media.id]);
 
   const isTV = media.media_type === "tv";
   const posterSrc = getPosterUrl(media.poster_path, "w780");
@@ -45,6 +76,7 @@ export default function MovieDetailsCard({
   const formattedBudget = formatCurrency(media.budget);
   const formattedRevenue = formatCurrency(media.revenue);
   const formattedDate = formatDate(media.release_date);
+  const formattedAddedAt = formatAddedAtDate(addedAt);
   const isMature = isMatureRating(media.age_rating);
 
   const metadata = media.metadata as {
@@ -68,11 +100,42 @@ export default function MovieDetailsCard({
   // Check if media qualifies for Top-500 badge (rating >= 8.0 or high popularity)
   const isTopRated = (media.vote_average || 0) >= 8.0;
 
-  const handleToggleWatchlist = () => {
-    const next = !inWatchlist;
-    setInWatchlist(next);
-    if (onWatchlistToggle) {
-      onWatchlistToggle(media.id, next);
+  const handleAddToWatchlist = async () => {
+    if (isPending) return;
+    setIsPending(true);
+    const nowIso = new Date().toISOString();
+    setInWatchlist(true);
+    setAddedAt(nowIso);
+
+    try {
+      const success = await addToWatchlist(media.id);
+      if (!success) {
+        setInWatchlist(false);
+        setAddedAt(null);
+      } else if (onWatchlistToggle) {
+        onWatchlistToggle(media.id, true);
+      }
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  const handleRemoveWatchlist = async () => {
+    if (isPending) return;
+    setIsPending(true);
+    setInWatchlist(false);
+    setAddedAt(null);
+
+    try {
+      const success = await removeFromWatchlist(media.id);
+      if (!success) {
+        setInWatchlist(true);
+        setAddedAt(initialAddedAt || null);
+      } else if (onWatchlistToggle) {
+        onWatchlistToggle(media.id, false);
+      }
+    } finally {
+      setIsPending(false);
     }
   };
 
@@ -133,40 +196,73 @@ export default function MovieDetailsCard({
             </div>
 
             {/* Actions Row */}
-            <div className="flex items-center gap-2.5 w-full mt-1">
-              <button
-                type="button"
-                onClick={handleToggleWatchlist}
-                className="flex-1 h-11 px-4 rounded-xl bg-transparent border border-neutral-700/80 hover:border-neutral-500 hover:bg-neutral-800/60 text-white font-medium text-sm flex items-center justify-center gap-2 transition-all cursor-pointer select-none"
-              >
-                {inWatchlist ? (
-                  <>
-                    <Check className="w-4 h-4 text-brand-lime stroke-[2.5]" />
-                    <span>In Watchlist</span>
-                  </>
-                ) : (
-                  <>
-                    <PlusCircle className="w-4 h-4 text-neutral-300" />
-                    <span>Add to Watchlist</span>
-                  </>
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleShare}
-                title={copied ? "Link copied to clipboard!" : "Share link"}
-                aria-label="Share"
-                className="relative w-11 h-11 shrink-0 rounded-xl bg-transparent border border-neutral-700/80 hover:border-neutral-500 hover:bg-neutral-800/60 text-neutral-300 hover:text-white flex items-center justify-center transition-all cursor-pointer select-none"
-              >
-                <Share2 className="w-4 h-4" />
-                {copied && (
-                  <span className="absolute -top-8 px-2 py-1 rounded bg-neutral-900 border border-neutral-700 text-[10px] text-white font-bold shadow-lg animate-in fade-in">
-                    Copied!
+            {inWatchlist ? (
+              <div className="flex items-center justify-between w-full px-1 py-1 mt-1">
+                <div className="flex items-center gap-2 select-none">
+                  <span className="w-5 h-5 rounded-full bg-[#8ce648] flex items-center justify-center shrink-0">
+                    <Check className="w-3.5 h-3.5 text-black stroke-3" />
                   </span>
-                )}
-              </button>
-            </div>
+                  <span className="text-[#8ce648] font-medium text-sm">
+                    In Watchlist
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleRemoveWatchlist}
+                    disabled={isPending}
+                    title="Remove from Watchlist"
+                    aria-label="Remove from Watchlist"
+                    className="p-1 text-red-500 hover:text-red-400 hover:scale-110 active:scale-95 transition-all cursor-pointer select-none"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleShare}
+                    title={copied ? "Link copied to clipboard!" : "Share link"}
+                    aria-label="Share"
+                    className="relative p-1 text-white hover:text-neutral-300 hover:scale-110 active:scale-95 transition-all cursor-pointer select-none"
+                  >
+                    <Share2 className="w-5 h-5" />
+                    {copied && (
+                      <span className="absolute -top-8 -right-2 px-2 py-1 rounded bg-neutral-900 border border-neutral-700 text-[10px] text-white font-bold shadow-lg animate-in fade-in">
+                        Copied!
+                      </span>
+                    )}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2.5 w-full mt-1">
+                <button
+                  type="button"
+                  onClick={handleAddToWatchlist}
+                  disabled={isPending}
+                  className="flex-1 h-11 px-4 rounded-xl bg-transparent border border-neutral-700/80 hover:border-neutral-500 hover:bg-neutral-800/60 text-white font-medium text-sm flex items-center justify-center gap-2 transition-all cursor-pointer select-none"
+                >
+                  <PlusCircle className="w-4 h-4 text-neutral-300" />
+                  <span>Add to Watchlist</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  title={copied ? "Link copied to clipboard!" : "Share link"}
+                  aria-label="Share"
+                  className="relative w-11 h-11 shrink-0 rounded-xl bg-transparent border border-neutral-700/80 hover:border-neutral-500 hover:bg-neutral-800/60 text-neutral-300 hover:text-white flex items-center justify-center transition-all cursor-pointer select-none"
+                >
+                  <Share2 className="w-4 h-4" />
+                  {copied && (
+                    <span className="absolute -top-8 px-2 py-1 rounded bg-neutral-900 border border-neutral-700 text-[10px] text-white font-bold shadow-lg animate-in fade-in">
+                      Copied!
+                    </span>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Right Column: Title, Rating, Badges, and Metadata Box */}
@@ -188,7 +284,7 @@ export default function MovieDetailsCard({
                       "inline-flex items-center justify-center px-1.5 min-w-6 h-6 rounded-full text-[11px] font-bold tracking-tight border",
                       isMature
                         ? "border-red-500 text-red-500"
-                        : "border-neutral-500 text-neutral-300"
+                        : "border-neutral-500 text-neutral-300",
                     )}
                   >
                     {media.age_rating}
@@ -226,7 +322,7 @@ export default function MovieDetailsCard({
                   <Link
                     key={genre.id}
                     href={`/catalog?genres=${encodeURIComponent(genre.name)}`}
-                    className="px-3 py-1 bg-[#8ce648] hover:bg-[#9ded5b] text-black font-bold text-xs rounded-lg uppercase tracking-wide shadow-sm transition-all hover:scale-102 cursor-pointer"
+                    className="px-3 py-1 bg-[#85c355] hover:bg-[#9ded5b] text-black font-bold text-xs rounded-lg uppercase tracking-wide shadow-sm transition-all hover:scale-102 cursor-pointer"
                     title={`Browse all ${genre.name} movies`}
                   >
                     {genre.name}
@@ -258,13 +354,17 @@ export default function MovieDetailsCard({
               {formattedBudget && !isTV && (
                 <div className="flex items-baseline gap-2">
                   <span className="text-neutral-400 font-medium">Budget:</span>
-                  <span className="text-white font-medium">{formattedBudget}</span>
+                  <span className="text-white font-medium">
+                    {formattedBudget}
+                  </span>
                 </div>
               )}
 
               {formattedRevenue && !isTV && (
                 <div className="flex items-baseline gap-2">
-                  <span className="text-neutral-400 font-medium">Box Office:</span>
+                  <span className="text-neutral-400 font-medium">
+                    Box Office:
+                  </span>
                   <span className="text-[#8ce648] font-semibold">
                     {formattedRevenue}
                   </span>
@@ -273,7 +373,9 @@ export default function MovieDetailsCard({
 
               {isTV && media.episodes_count && (
                 <div className="flex items-baseline gap-2">
-                  <span className="text-neutral-400 font-medium">Episodes:</span>
+                  <span className="text-neutral-400 font-medium">
+                    Episodes:
+                  </span>
                   <span className="text-white font-medium">
                     {media.episodes_count}{" "}
                     {media.episodes_count === 1 ? "episode" : "episodes"}
@@ -290,11 +392,13 @@ export default function MovieDetailsCard({
 
               {media.age_rating && (
                 <div className="flex items-baseline gap-2">
-                  <span className="text-neutral-400 font-medium">Age rating:</span>
+                  <span className="text-neutral-400 font-medium">
+                    Age rating:
+                  </span>
                   <span
                     className={cn(
                       "font-semibold",
-                      isMature ? "text-red-400" : "text-white"
+                      isMature ? "text-red-400" : "text-white",
                     )}
                   >
                     {media.age_rating}
@@ -304,7 +408,9 @@ export default function MovieDetailsCard({
 
               {formattedDate && (
                 <div className="flex items-baseline gap-2">
-                  <span className="text-neutral-400 font-medium">Premiered on:</span>
+                  <span className="text-neutral-400 font-medium">
+                    Premiered on:
+                  </span>
                   <span className="text-white font-medium">
                     {formattedDate}
                     {countryDisplay ? ` (${countryDisplay})` : ""}
@@ -331,12 +437,20 @@ export default function MovieDetailsCard({
           </div>
         </div>
 
-        {/* Bottom Section: Overview Paragraph */}
+        {/* Bottom Section: Overview Paragraph & Added At */}
         {media.overview && (
-          <div className="mt-8 pt-6 border-t border-neutral-800">
+          <div className="mt-8 pt-6 border-t border-neutral-800 flex flex-col gap-4">
             <p className="text-sm sm:text-base text-neutral-300 leading-relaxed font-normal">
               {media.overview}
             </p>
+
+            {inWatchlist && formattedAddedAt && (
+              <div className="pt-2">
+                <span className="text-neutral-400 text-sm font-normal">
+                  Added on: {formattedAddedAt}
+                </span>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -6,10 +6,14 @@ import { getWatchlistWithFilters, getGenres } from "@/lib/api";
 import Loader from "@/components/Loader";
 import CatalogFilters from "@/components/CatalogFilters";
 import WatchlistMediaList from "@/components/WatchlistMediaList";
-import type {
-  WatchlistSortOption,
-  WatchlistStatus,
-} from "@/types/media";
+import type { WatchlistSortOption, WatchlistStatus } from "@/types/media";
+
+export async function generateMetadata() {
+  return {
+    title: "My Watchlist - usePopcorn",
+    description: "View and manage your watchlist on usePopcorn.",
+  };
+}
 
 export const instant = false;
 

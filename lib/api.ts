@@ -252,6 +252,42 @@ export async function getUserReviewForMedia(
 }
 
 /**
+ * Fetches the user's watchlist entry for a given media item (if any).
+ */
+export async function getUserWatchlistEntryForMedia(
+  mediaId: string,
+  userId?: string,
+): Promise<WatchlistRow | null> {
+  const supabase = await createClient();
+
+  let targetUserId = userId;
+  if (!targetUserId) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return null;
+    targetUserId = user.id;
+  }
+
+  const { data, error } = await supabase
+    .from("watchlists")
+    .select("*")
+    .eq("media_id", mediaId)
+    .eq("user_id", targetUserId)
+    .maybeSingle();
+
+  if (error) {
+    console.error(
+      `Error fetching user watchlist entry for media ${mediaId}:`,
+      error,
+    );
+    throw error;
+  }
+
+  return data;
+}
+
+/**
  * Fetches the authenticated user's curated watchlist entries.
  */
 export async function getUserWatchlist(

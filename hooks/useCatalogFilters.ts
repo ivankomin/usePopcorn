@@ -15,9 +15,17 @@ export function useCatalogFilters(options: UseCatalogFiltersOptions = {}) {
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
 
-  const mediaType =
-    options.mediaType || searchParams.get("mediaType") || "movie";
+  const urlMediaType = searchParams.get("mediaType") as
+    | "all"
+    | "movie"
+    | "tv"
+    | null;
+  const defaultMediaType = pathname.startsWith("/catalog") ? "movie" : "all";
+  const mediaType = urlMediaType || options.mediaType || defaultMediaType;
+
   const isTV = mediaType === "tv";
+  const isMovie = mediaType === "movie";
+  const isAll = mediaType === "all";
 
   const genreOptions =
     options.genres && options.genres.length > 0
@@ -26,7 +34,9 @@ export function useCatalogFilters(options: UseCatalogFiltersOptions = {}) {
 
   const ageRatingOptions = isTV
     ? FILTER_OPTIONS.ageRatingTV
-    : FILTER_OPTIONS.ageRatingMovie;
+    : isMovie
+      ? FILTER_OPTIONS.ageRatingMovie
+      : FILTER_OPTIONS.ageRatingAll;
 
   // 1. Derive discrete filter values directly from the URL (single source of truth)
   const selectedGenres = useMemo(() => {
@@ -273,13 +283,43 @@ export function useCatalogFilters(options: UseCatalogFiltersOptions = {}) {
     applyFilters({ maxYear: val });
   };
 
+  const handleMediaTypeChange = useCallback(
+    (newType: "all" | "movie" | "tv") => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (newType === "all") {
+        if (pathname.startsWith("/watchlist")) {
+          params.delete("mediaType");
+        } else {
+          params.set("mediaType", "all");
+        }
+      } else {
+        params.set("mediaType", newType);
+      }
+
+      // Clear incompatible filters when switching specific types
+      if (newType === "tv") {
+        params.delete("runtime");
+        params.delete("budget");
+      } else if (newType === "movie") {
+        params.delete("seasons");
+      }
+
+      params.delete("page");
+      const query = params.toString();
+      const target = query ? `${pathname}?${query}` : pathname;
+      startTransition(() => {
+        router.push(target);
+      });
+    },
+    [searchParams, pathname, router],
+  );
+
   const hasActiveFilters =
     selectedGenres.length > 0 ||
-    (isTV
-      ? Boolean(seasons && seasons !== FILTER_OPTIONS.seasons[0])
-      : Boolean(runtime && runtime !== FILTER_OPTIONS.runtime[0])) ||
+    Boolean(seasons && seasons !== FILTER_OPTIONS.seasons[0]) ||
+    Boolean(runtime && runtime !== FILTER_OPTIONS.runtime[0]) ||
     Boolean(country && country !== FILTER_OPTIONS.country[0]) ||
-    (!isTV && Boolean(budget && budget !== FILTER_OPTIONS.budget[0])) ||
+    Boolean(budget && budget !== FILTER_OPTIONS.budget[0]) ||
     Boolean(ageRating && ageRating !== ageRatingOptions[0]) ||
     minYear !== 1900 ||
     maxYear !== 2026 ||
@@ -290,6 +330,10 @@ export function useCatalogFilters(options: UseCatalogFiltersOptions = {}) {
 
   return {
     isTV,
+    isMovie,
+    isAll,
+    currentMediaType: mediaType,
+    handleMediaTypeChange,
     genreOptions,
     selectedGenres,
     runtime,

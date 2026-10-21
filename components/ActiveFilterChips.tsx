@@ -41,6 +41,36 @@ function ActiveFilterChipsInner() {
 
   const chips: ActiveChipItem[] = [];
 
+  // 0. Search Query
+  const searchQuery = searchParams.get("search");
+  if (searchQuery && searchQuery.trim()) {
+    chips.push({
+      id: "search",
+      label: `SEARCH: "${searchQuery.trim()}"`,
+      variant: "lime",
+      onRemove: () => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete("search");
+        updateUrl(params);
+      },
+    });
+  }
+
+  // 0.5 Media Type (when on watchlist and specific type is chosen)
+  const mediaType = searchParams.get("mediaType");
+  if (pathname.startsWith("/watchlist") && mediaType && mediaType !== "all") {
+    chips.push({
+      id: "mediaType",
+      label: `TYPE: ${mediaType === "tv" ? "SERIES" : "MOVIES"}`,
+      variant: "yellow",
+      onRemove: () => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete("mediaType");
+        updateUrl(params);
+      },
+    });
+  }
+
   // 1. Genres (Multi-select)
   const rawGenres = searchParams.get("genres");
   if (rawGenres) {
@@ -213,6 +243,10 @@ function ActiveFilterChipsInner() {
 
   const handleClearAll = () => {
     const params = new URLSearchParams(searchParams.toString());
+    params.delete("search");
+    if (pathname.startsWith("/watchlist")) {
+      params.delete("mediaType");
+    }
     params.delete("genres");
     params.delete("genreId");
     params.delete("seasons");

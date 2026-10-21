@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/server";
 import { getWatchlistWithFilters, getGenres } from "@/lib/api";
 import Loader from "@/components/Loader";
 import CatalogFilters from "@/components/CatalogFilters";
-import WatchlistStatusTabs from "@/components/WatchlistStatusTabs";
 import WatchlistMediaList from "@/components/WatchlistMediaList";
 import type {
   WatchlistSortOption,
@@ -116,15 +115,10 @@ async function WatchlistContent({
 
   return (
     <div className="flex flex-col gap-6 w-full">
-      {/* Top Status Tabs */}
-      <WatchlistStatusTabs
-        statusCounts={result.statusCounts}
-        currentStatus={status}
-      />
-
       <WatchlistMediaList
         items={result.items}
         totalFound={result.total}
+        statusCounts={result.statusCounts}
         currentStatus={status}
         currentPage={result.page}
         totalPages={result.totalPages}
@@ -155,7 +149,8 @@ export default async function WatchlistPage({
         {/* Filters Sidebar */}
         <CatalogFilters
           genres={availableGenres}
-          mediaType={mediaType as "movie" | "tv"}
+          mediaType={mediaType as "all" | "movie" | "tv"}
+          showMediaTypeFilter={true}
         />
 
         {/* Main List Area */}

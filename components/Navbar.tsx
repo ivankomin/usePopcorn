@@ -127,13 +127,22 @@ function SearchBar() {
   const formKey = `${pathname}?type=${currentMediaType || ""}&q=${currentSearch}`;
 
   const handleSearch = (query: string) => {
-    const params = new URLSearchParams();
+    // If currently on /watchlist, stay on /watchlist and preserve other params (like status/mediaType)
+    const isWatchlist = pathname.startsWith("/watchlist");
+    const targetPath = isWatchlist ? "/watchlist" : "/catalog";
+
+    const params = new URLSearchParams(
+      isWatchlist ? searchParams.toString() : ""
+    );
     params.set("search", query);
-    if (currentMediaType) {
+    params.delete("page");
+
+    if (!isWatchlist && currentMediaType) {
       params.set("mediaType", currentMediaType);
     }
+
     startSearching(() => {
-      router.push(`/catalog?${params.toString()}`);
+      router.push(`${targetPath}?${params.toString()}`);
     });
   };
 
@@ -141,6 +150,7 @@ function SearchBar() {
     if (searchParams.has("search")) {
       const params = new URLSearchParams(searchParams.toString());
       params.delete("search");
+      params.delete("page");
       const newQueryString = params.toString();
       const target = newQueryString
         ? `${pathname}?${newQueryString}`

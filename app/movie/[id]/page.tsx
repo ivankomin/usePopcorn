@@ -13,6 +13,7 @@ interface MoviePageProps {
 export async function generateMetadata({
   params,
 }: MoviePageProps): Promise<Metadata> {
+  await connection();
   const { id } = await params;
   const media = await getMediaById(id);
 

@@ -15,11 +15,19 @@ import { useCatalogFilters } from "@/hooks";
 export interface CatalogFiltersProps {
   genres?: string[];
   mediaType?: "all" | "movie" | "tv";
+  showMediaTypeFilter?: boolean;
 }
 
-function CatalogFiltersInner({ genres, mediaType }: CatalogFiltersProps) {
+function CatalogFiltersInner({
+  genres,
+  mediaType,
+  showMediaTypeFilter = false,
+}: CatalogFiltersProps) {
   const {
     isTV,
+    isAll,
+    currentMediaType,
+    handleMediaTypeChange,
     genreOptions,
     selectedGenres,
     runtime,
@@ -90,6 +98,48 @@ function CatalogFiltersInner({ genres, mediaType }: CatalogFiltersProps) {
           </h2>
         </div>
 
+        {/* Media Type Switcher (shown when showMediaTypeFilter is true or if in All mode) */}
+        {(showMediaTypeFilter || isAll) && (
+          <div className="flex items-center p-1 bg-black/40 border border-neutral-800 rounded-xl mb-1">
+            <button
+              type="button"
+              onClick={() => handleMediaTypeChange("all")}
+              className={cn(
+                "flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all text-center cursor-pointer",
+                currentMediaType === "all"
+                  ? "bg-brand-lime text-black shadow-sm"
+                  : "text-neutral-400 hover:text-white hover:bg-neutral-800/40",
+              )}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              onClick={() => handleMediaTypeChange("movie")}
+              className={cn(
+                "flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all text-center cursor-pointer",
+                currentMediaType === "movie"
+                  ? "bg-brand-lime text-black shadow-sm"
+                  : "text-neutral-400 hover:text-white hover:bg-neutral-800/40",
+              )}
+            >
+              Movies
+            </button>
+            <button
+              type="button"
+              onClick={() => handleMediaTypeChange("tv")}
+              className={cn(
+                "flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all text-center cursor-pointer",
+                currentMediaType === "tv"
+                  ? "bg-brand-lime text-black shadow-sm"
+                  : "text-neutral-400 hover:text-white hover:bg-neutral-800/40",
+              )}
+            >
+              Series
+            </button>
+          </div>
+        )}
+
         {/* 1. Genre (Multi-select) */}
         <MultiSelectDropdown
           id="genre"
@@ -104,7 +154,32 @@ function CatalogFiltersInner({ genres, mediaType }: CatalogFiltersProps) {
         />
 
         {/* 2. Runtime (Movies) vs Seasons (TV Series) */}
-        {isTV ? (
+        {isAll ? (
+          <>
+            <FilterDropdown
+              id="runtime"
+              label="Runtime"
+              options={FILTER_OPTIONS.runtime}
+              value={runtime}
+              onChange={handleRuntimeChange}
+              isOpen={openDropdown === "runtime"}
+              onToggle={() => toggleDropdown("runtime")}
+              onClose={closeDropdown}
+              align="top"
+            />
+            <FilterDropdown
+              id="seasons"
+              label="Seasons"
+              options={FILTER_OPTIONS.seasons}
+              value={seasons}
+              onChange={handleSeasonsChange}
+              isOpen={openDropdown === "seasons"}
+              onToggle={() => toggleDropdown("seasons")}
+              onClose={closeDropdown}
+              align="top"
+            />
+          </>
+        ) : isTV ? (
           <FilterDropdown
             id="seasons"
             label="Seasons"

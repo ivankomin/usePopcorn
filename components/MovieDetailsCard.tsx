@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -10,9 +10,14 @@ import {
   Share2,
   Star,
   ChevronLeft,
+  ChevronDown,
+  Clock,
+  CheckCircle2,
+  Heart,
 } from "lucide-react";
-import type { MediaItem } from "@/types/media";
+import type { MediaItem, MediaMetadata, WatchlistStatus } from "@/types/media";
 import { useWatchlist } from "@/components/WatchlistProvider";
+import { useOutsideClick } from "@/hooks/useOutsideClick";
 import {
   getPosterUrl,
   formatRuntime,
@@ -28,27 +33,70 @@ export interface MovieDetailsCardProps {
   media: MediaItem;
   initialInWatchlist?: boolean;
   initialAddedAt?: string | null;
+  initialWatchlistStatus?: WatchlistStatus;
   onWatchlistToggle?: (mediaId: string, inWatchlist: boolean) => void;
+  onStatusChange?: (mediaId: string, status: WatchlistStatus) => void;
 }
+
+const STATUS_OPTIONS: {
+  value: WatchlistStatus;
+  label: string;
+  icon: typeof Clock;
+  iconColor: string;
+}[] = [
+  {
+    value: "plan_to_watch",
+    label: "Plan to Watch",
+    icon: Clock,
+    iconColor: "text-neutral-400",
+  },
+  {
+    value: "watched",
+    label: "Watched",
+    icon: CheckCircle2,
+    iconColor: "text-[#8ce648]",
+  },
+  {
+    value: "favorite",
+    label: "Favorite",
+    icon: Heart,
+    iconColor: "text-red-400",
+  },
+];
 
 export default function MovieDetailsCard({
   media,
   initialInWatchlist = false,
   initialAddedAt = null,
+  initialWatchlistStatus = "plan_to_watch",
   onWatchlistToggle,
+  onStatusChange,
 }: MovieDetailsCardProps) {
   const {
     isInWatchlist,
+    getWatchlistStatus,
     addToWatchlist,
+    updateWatchlistStatus,
     removeFromWatchlist,
     isLoading: isWatchlistLoading,
   } = useWatchlist();
 
   const [isPending, setIsPending] = useState(false);
   const [inWatchlist, setInWatchlist] = useState(initialInWatchlist);
+  const [status, setStatus] = useState<WatchlistStatus>(
+    initialWatchlistStatus || "plan_to_watch",
+  );
+  const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
   const [addedAt, setAddedAt] = useState<string | null>(initialAddedAt || null);
   const [imageError, setImageError] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  const statusMenuRef = useRef<HTMLDivElement>(null);
+  useOutsideClick(
+    statusMenuRef,
+    () => setIsStatusMenuOpen(false),
+    isStatusMenuOpen,
+  );
 
   // Sync state with watchlist context once hydrated
   useEffect(() => {
@@ -57,9 +105,14 @@ export default function MovieDetailsCard({
       setInWatchlist(inList);
       if (!inList) {
         setAddedAt(null);
+      } else {
+        const liveStatus = getWatchlistStatus(media.id);
+        if (liveStatus) {
+          setStatus(liveStatus);
+        }
       }
     }
-  }, [isWatchlistLoading, isInWatchlist, media.id]);
+  }, [isWatchlistLoading, isInWatchlist, getWatchlistStatus, media.id]);
 
   const isTV = media.media_type === "tv";
   const posterSrc = getPosterUrl(media.poster_path, "w780");
@@ -108,7 +161,7 @@ export default function MovieDetailsCard({
     setAddedAt(nowIso);
 
     try {
-      const success = await addToWatchlist(media.id);
+      const success = await addToWatchlist(media.id, status);
       if (!success) {
         setInWatchlist(false);
         setAddedAt(null);
@@ -120,10 +173,30 @@ export default function MovieDetailsCard({
     }
   };
 
+  const handleStatusSelect = async (newStatus: WatchlistStatus) => {
+    setIsStatusMenuOpen(false);
+    if (newStatus === status) return;
+
+    const previousStatus = status;
+    setStatus(newStatus);
+
+    try {
+      const success = await updateWatchlistStatus(media.id, newStatus);
+      if (!success) {
+        setStatus(previousStatus);
+      } else if (onStatusChange) {
+        onStatusChange(media.id, newStatus);
+      }
+    } catch {
+      setStatus(previousStatus);
+    }
+  };
+
   const handleRemoveWatchlist = async () => {
     if (isPending) return;
     setIsPending(true);
     setInWatchlist(false);
+    setIsStatusMenuOpen(false);
     setAddedAt(null);
 
     try {
@@ -150,6 +223,9 @@ export default function MovieDetailsCard({
       // Fallback
     }
   };
+
+  const currentStatusLabel =
+    STATUS_OPTIONS.find((s) => s.value === status)?.label || "Plan to Watch";
 
   return (
     <div className="relative w-full max-w-5xl lg:max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
@@ -198,13 +274,63 @@ export default function MovieDetailsCard({
             {/* Actions Row */}
             {inWatchlist ? (
               <div className="flex items-center justify-between w-full px-1 py-1 mt-1">
-                <div className="flex items-center gap-2 select-none">
-                  <span className="w-5 h-5 rounded-full bg-[#8ce648] flex items-center justify-center shrink-0">
-                    <Check className="w-3.5 h-3.5 text-black stroke-3" />
-                  </span>
-                  <span className="text-[#8ce648] font-medium text-sm">
-                    In Watchlist
-                  </span>
+                {/* Watchlist Status Toggle Trigger & Popover */}
+                <div className="relative" ref={statusMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsStatusMenuOpen((prev) => !prev)}
+                    className="flex items-center gap-1.5 hover:opacity-85 transition-opacity cursor-pointer select-none group"
+                    title={`Current status: ${currentStatusLabel}. Click to toggle status.`}
+                    aria-expanded={isStatusMenuOpen}
+                    aria-haspopup="true"
+                  >
+                    <span className="w-5 h-5 rounded-full bg-[#8ce648] flex items-center justify-center shrink-0">
+                      <Check className="w-3.5 h-3.5 text-black stroke-[3]" />
+                    </span>
+                    <span className="text-[#8ce648] font-medium text-sm">
+                      In Watchlist
+                    </span>
+                    <ChevronDown
+                      className={cn(
+                        "w-3.5 h-3.5 text-[#8ce648] transition-transform duration-200",
+                        isStatusMenuOpen && "rotate-180",
+                      )}
+                    />
+                  </button>
+
+                  {/* Status Selection Popover */}
+                  {isStatusMenuOpen && (
+                    <div className="absolute top-full left-0 mt-2 w-48 rounded-xl bg-[#1c1c1c] border border-neutral-700/80 shadow-2xl p-1.5 z-30 flex flex-col gap-1 backdrop-blur-md">
+                      <div className="px-2.5 py-1 text-[10px] font-semibold text-neutral-400 uppercase tracking-wider border-b border-neutral-800 pb-1.5">
+                        Watchlist Status
+                      </div>
+                      {STATUS_OPTIONS.map((opt) => {
+                        const Icon = opt.icon;
+                        const isSelected = status === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => handleStatusSelect(opt.value)}
+                            className={cn(
+                              "flex items-center justify-between w-full px-2.5 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none",
+                              isSelected
+                                ? "bg-[#8ce648]/15 text-[#8ce648] font-semibold"
+                                : "text-neutral-300 hover:bg-neutral-800 hover:text-white",
+                            )}
+                          >
+                            <div className="flex items-center gap-2">
+                              <Icon className={cn("w-4 h-4", opt.iconColor)} />
+                              <span>{opt.label}</span>
+                            </div>
+                            {isSelected && (
+                              <Check className="w-3.5 h-3.5 text-[#8ce648]" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -322,7 +448,7 @@ export default function MovieDetailsCard({
                   <Link
                     key={genre.id}
                     href={`/catalog?genres=${encodeURIComponent(genre.name)}`}
-                    className="px-3 py-1 bg-[#85c355] hover:bg-[#9ded5b] text-black font-bold text-xs rounded-lg uppercase tracking-wide shadow-sm transition-all hover:scale-102 cursor-pointer"
+                    className="px-3 py-1 bg-[#8ce648] hover:bg-[#9ded5b] text-black font-bold text-xs rounded-lg uppercase tracking-wide shadow-sm transition-all hover:scale-102 cursor-pointer"
                     title={`Browse all ${genre.name} movies`}
                   >
                     {genre.name}
@@ -354,17 +480,13 @@ export default function MovieDetailsCard({
               {formattedBudget && !isTV && (
                 <div className="flex items-baseline gap-2">
                   <span className="text-neutral-400 font-medium">Budget:</span>
-                  <span className="text-white font-medium">
-                    {formattedBudget}
-                  </span>
+                  <span className="text-white font-medium">{formattedBudget}</span>
                 </div>
               )}
 
               {formattedRevenue && !isTV && (
                 <div className="flex items-baseline gap-2">
-                  <span className="text-neutral-400 font-medium">
-                    Box Office:
-                  </span>
+                  <span className="text-neutral-400 font-medium">Box Office:</span>
                   <span className="text-[#8ce648] font-semibold">
                     {formattedRevenue}
                   </span>
@@ -373,9 +495,7 @@ export default function MovieDetailsCard({
 
               {isTV && media.episodes_count && (
                 <div className="flex items-baseline gap-2">
-                  <span className="text-neutral-400 font-medium">
-                    Episodes:
-                  </span>
+                  <span className="text-neutral-400 font-medium">Episodes:</span>
                   <span className="text-white font-medium">
                     {media.episodes_count}{" "}
                     {media.episodes_count === 1 ? "episode" : "episodes"}
@@ -392,9 +512,7 @@ export default function MovieDetailsCard({
 
               {media.age_rating && (
                 <div className="flex items-baseline gap-2">
-                  <span className="text-neutral-400 font-medium">
-                    Age rating:
-                  </span>
+                  <span className="text-neutral-400 font-medium">Age rating:</span>
                   <span
                     className={cn(
                       "font-semibold",
@@ -408,9 +526,7 @@ export default function MovieDetailsCard({
 
               {formattedDate && (
                 <div className="flex items-baseline gap-2">
-                  <span className="text-neutral-400 font-medium">
-                    Premiered on:
-                  </span>
+                  <span className="text-neutral-400 font-medium">Premiered on:</span>
                   <span className="text-white font-medium">
                     {formattedDate}
                     {countryDisplay ? ` (${countryDisplay})` : ""}
@@ -447,7 +563,7 @@ export default function MovieDetailsCard({
             {inWatchlist && formattedAddedAt && (
               <div className="pt-2">
                 <span className="text-neutral-400 text-sm font-normal">
-                  Added on: {formattedAddedAt}
+                  Added at: {formattedAddedAt}
                 </span>
               </div>
             )}

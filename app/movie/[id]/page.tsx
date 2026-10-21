@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import type { Metadata } from "next";
 import { getMediaById, getUserWatchlistEntryForMedia } from "@/lib/api";
 import MovieDetailsCard from "@/components/MovieDetailsCard";
+import type { WatchlistStatus } from "@/types/media";
 
 interface MoviePageProps {
   params: Promise<{
@@ -49,6 +50,9 @@ export default async function MoviePage({ params }: MoviePageProps) {
         media={media}
         initialInWatchlist={Boolean(watchlistEntry)}
         initialAddedAt={watchlistEntry?.created_at || null}
+        initialWatchlistStatus={
+          (watchlistEntry?.status as WatchlistStatus) || "plan_to_watch"
+        }
       />
     </div>
   );

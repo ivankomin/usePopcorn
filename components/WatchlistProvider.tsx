@@ -16,8 +16,14 @@ import type { WatchlistStatus } from "@/types/media";
 
 export interface WatchlistContextType {
   watchlistIds: Set<string>;
+  watchlistStatuses: Map<string, WatchlistStatus>;
   isLoading: boolean;
   isInWatchlist: (mediaId: string) => boolean;
+  getWatchlistStatus: (mediaId: string) => WatchlistStatus | undefined;
+  updateWatchlistStatus: (
+    mediaId: string,
+    status: WatchlistStatus,
+  ) => Promise<boolean>;
   toggleWatchlist: (
     mediaId: string,
     status?: WatchlistStatus,
@@ -45,12 +51,16 @@ export function WatchlistProvider({ children }: WatchlistProviderProps) {
 
   const [prevUserId, setPrevUserId] = useState(userId);
   const [watchlistIds, setWatchlistIds] = useState<Set<string>>(new Set());
+  const [watchlistStatuses, setWatchlistStatuses] = useState<
+    Map<string, WatchlistStatus>
+  >(new Map());
   const [isLoading, setIsLoading] = useState<boolean>(Boolean(userId));
 
   if (prevUserId !== userId) {
     setPrevUserId(userId);
     if (!userId) {
       setWatchlistIds(new Set());
+      setWatchlistStatuses(new Map());
       setIsLoading(false);
     } else {
       setIsLoading(true);
@@ -64,11 +74,20 @@ export function WatchlistProvider({ children }: WatchlistProviderProps) {
       try {
         const { data, error } = await supabase
           .from("watchlists")
-          .select("media_id")
+          .select("media_id, status")
           .eq("user_id", currentUserId);
 
         if (!error && data) {
-          setWatchlistIds(new Set(data.map((r) => r.media_id)));
+          const ids = new Set<string>();
+          const statuses = new Map<string, WatchlistStatus>();
+          for (const r of data) {
+            ids.add(r.media_id);
+            if (r.status) {
+              statuses.set(r.media_id, r.status as WatchlistStatus);
+            }
+          }
+          setWatchlistIds(ids);
+          setWatchlistStatuses(statuses);
         }
       } catch (err) {
         console.error("Failed to load user watchlist IDs:", err);
@@ -84,6 +103,7 @@ export function WatchlistProvider({ children }: WatchlistProviderProps) {
       await fetchWatchlistIds(userId);
     } else {
       setWatchlistIds(new Set());
+      setWatchlistStatuses(new Map());
     }
   }, [userId, fetchWatchlistIds]);
 
@@ -93,12 +113,21 @@ export function WatchlistProvider({ children }: WatchlistProviderProps) {
     let isMounted = true;
     supabase
       .from("watchlists")
-      .select("media_id")
+      .select("media_id, status")
       .eq("user_id", userId)
       .then(({ data, error }) => {
         if (!isMounted) return;
         if (!error && data) {
-          setWatchlistIds(new Set(data.map((r) => r.media_id)));
+          const ids = new Set<string>();
+          const statuses = new Map<string, WatchlistStatus>();
+          for (const r of data) {
+            ids.add(r.media_id);
+            if (r.status) {
+              statuses.set(r.media_id, r.status as WatchlistStatus);
+            }
+          }
+          setWatchlistIds(ids);
+          setWatchlistStatuses(statuses);
         }
         setIsLoading(false);
       });
@@ -113,6 +142,13 @@ export function WatchlistProvider({ children }: WatchlistProviderProps) {
       return watchlistIds.has(mediaId);
     },
     [watchlistIds],
+  );
+
+  const getWatchlistStatus = useCallback(
+    (mediaId: string): WatchlistStatus | undefined => {
+      return watchlistStatuses.get(mediaId);
+    },
+    [watchlistStatuses],
   );
 
   const addToWatchlist = useCallback(
@@ -132,6 +168,7 @@ export function WatchlistProvider({ children }: WatchlistProviderProps) {
 
       // Optimistic update
       setWatchlistIds((prev) => new Set(prev).add(mediaId));
+      setWatchlistStatuses((prev) => new Map(prev).set(mediaId, status));
 
       try {
         const { error } = await supabase.from("watchlists").upsert(
@@ -150,6 +187,11 @@ export function WatchlistProvider({ children }: WatchlistProviderProps) {
             next.delete(mediaId);
             return next;
           });
+          setWatchlistStatuses((prev) => {
+            const next = new Map(prev);
+            next.delete(mediaId);
+            return next;
+          });
           console.error("Error adding to watchlist:", error);
           return false;
         }
@@ -161,6 +203,11 @@ export function WatchlistProvider({ children }: WatchlistProviderProps) {
           next.delete(mediaId);
           return next;
         });
+        setWatchlistStatuses((prev) => {
+          const next = new Map(prev);
+          next.delete(mediaId);
+          return next;
+        });
         console.error("Failed to add to watchlist:", err);
         return false;
       }
@@ -168,13 +215,72 @@ export function WatchlistProvider({ children }: WatchlistProviderProps) {
     [userId, router, supabase],
   );
 
+  const updateWatchlistStatus = useCallback(
+    async (
+      mediaId: string,
+      status: WatchlistStatus,
+    ): Promise<boolean> => {
+      if (!userId) return false;
+
+      const previousStatus = watchlistStatuses.get(mediaId);
+
+      // Optimistic update
+      setWatchlistStatuses((prev) => new Map(prev).set(mediaId, status));
+      setWatchlistIds((prev) => new Set(prev).add(mediaId));
+
+      try {
+        const { error } = await supabase
+          .from("watchlists")
+          .update({ status })
+          .eq("user_id", userId)
+          .eq("media_id", mediaId);
+
+        if (error) {
+          setWatchlistStatuses((prev) => {
+            const next = new Map(prev);
+            if (previousStatus) {
+              next.set(mediaId, previousStatus);
+            } else {
+              next.delete(mediaId);
+            }
+            return next;
+          });
+          console.error("Error updating watchlist status:", error);
+          return false;
+        }
+
+        return true;
+      } catch (err) {
+        setWatchlistStatuses((prev) => {
+          const next = new Map(prev);
+          if (previousStatus) {
+            next.set(mediaId, previousStatus);
+          } else {
+            next.delete(mediaId);
+          }
+          return next;
+        });
+        console.error("Failed to update watchlist status:", err);
+        return false;
+      }
+    },
+    [userId, supabase, watchlistStatuses],
+  );
+
   const removeFromWatchlist = useCallback(
     async (mediaId: string): Promise<boolean> => {
       if (!userId) return false;
 
+      const previousStatus = watchlistStatuses.get(mediaId);
+
       // Optimistic update
       setWatchlistIds((prev) => {
         const next = new Set(prev);
+        next.delete(mediaId);
+        return next;
+      });
+      setWatchlistStatuses((prev) => {
+        const next = new Map(prev);
         next.delete(mediaId);
         return next;
       });
@@ -189,6 +295,13 @@ export function WatchlistProvider({ children }: WatchlistProviderProps) {
         if (error) {
           // Revert optimistic update
           setWatchlistIds((prev) => new Set(prev).add(mediaId));
+          setWatchlistStatuses((prev) => {
+            const next = new Map(prev);
+            if (previousStatus) {
+              next.set(mediaId, previousStatus);
+            }
+            return next;
+          });
           console.error("Error removing from watchlist:", error);
           return false;
         }
@@ -196,11 +309,18 @@ export function WatchlistProvider({ children }: WatchlistProviderProps) {
         return true;
       } catch (err) {
         setWatchlistIds((prev) => new Set(prev).add(mediaId));
+        setWatchlistStatuses((prev) => {
+          const next = new Map(prev);
+          if (previousStatus) {
+            next.set(mediaId, previousStatus);
+          }
+          return next;
+        });
         console.error("Failed to remove from watchlist:", err);
         return false;
       }
     },
-    [userId, supabase],
+    [userId, supabase, watchlistStatuses],
   );
 
   const toggleWatchlist = useCallback(
@@ -232,8 +352,11 @@ export function WatchlistProvider({ children }: WatchlistProviderProps) {
     <WatchlistContext.Provider
       value={{
         watchlistIds,
+        watchlistStatuses,
         isLoading,
         isInWatchlist,
+        getWatchlistStatus,
+        updateWatchlistStatus,
         toggleWatchlist,
         addToWatchlist,
         removeFromWatchlist,

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 
 // MUI Rating component is dynamically imported to avoid SSR issues
@@ -47,6 +47,7 @@ export default function MediaCard({
   onRate,
 }: MediaCardProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const { isInWatchlist, toggleWatchlist, isLoading: isWatchlistLoading } =
     useWatchlist();
@@ -85,9 +86,12 @@ export default function MediaCard({
       : formatRuntime(media.runtime);
 
   const posterSrc = getPosterUrl(media.poster_path, "w500");
+  const currentQuery = searchParams ? searchParams.toString() : "";
   const movieHref = fromWatchlist
     ? `/movie/${media.id}?from=watchlist`
-    : `/movie/${media.id}`;
+    : currentQuery
+      ? `/movie/${media.id}?${currentQuery}`
+      : `/movie/${media.id}`;
 
   const recordNavigation = () => {
     if (typeof window !== "undefined") {
@@ -97,7 +101,9 @@ export default function MediaCard({
           fromWatchlist ? "watchlist" : "catalog"
         );
         if (!fromWatchlist) {
-          const currentUrl = window.location.pathname + window.location.search;
+          const currentUrl = currentQuery
+            ? `/catalog?${currentQuery}`
+            : "/catalog";
           sessionStorage.setItem("last_catalog_url", currentUrl);
           if (media.media_type === "tv") {
             sessionStorage.setItem("last_tv_catalog_url", currentUrl);

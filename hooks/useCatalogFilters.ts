@@ -332,7 +332,8 @@ export function useCatalogFilters(options: UseCatalogFiltersOptions = {}) {
   useEffect(() => {
     if (typeof window !== "undefined" && pathname.startsWith("/catalog")) {
       try {
-        const currentUrl = window.location.pathname + window.location.search;
+        const query = searchParams.toString();
+        const currentUrl = query ? `${pathname}?${query}` : pathname;
         sessionStorage.setItem("last_catalog_url", currentUrl);
         if (isTV) {
           sessionStorage.setItem("last_tv_catalog_url", currentUrl);

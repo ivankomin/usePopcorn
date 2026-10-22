@@ -22,17 +22,23 @@ const Rating = dynamic(() => import("@mui/material/Rating"), {
 export interface ReviewFormProps {
   mediaId: string;
   initialRating?: number | null;
+  initialContent?: string | null;
+  isEditing?: boolean;
   onSuccess?: () => void;
+  onCancel?: () => void;
 }
 
 export function ReviewForm({
   mediaId,
   initialRating = null,
+  initialContent = "",
+  isEditing = false,
   onSuccess,
+  onCancel,
 }: ReviewFormProps) {
   const { submitReview } = useRatings();
   const [rating, setRating] = useState<number | null>(initialRating);
-  const [content, setContent] = useState("");
+  const [content, setContent] = useState(initialContent || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -83,11 +89,13 @@ export function ReviewForm({
       <div className="flex items-center justify-between flex-wrap gap-2 border-b border-neutral-800/80 pb-4">
         <div className="flex items-center gap-2">
           <h3 className="text-lg font-bold text-white tracking-tight">
-            Add Your Rating & Review
+            {isEditing ? "Edit Your Rating & Review" : "Add Your Rating & Review"}
           </h3>
         </div>
         <span className="text-xs text-neutral-400">
-          Rating & review can be submitted together or independently
+          {isEditing
+            ? "Update your score or critique"
+            : "Rating & review can be submitted together or independently"}
         </span>
       </div>
 
@@ -170,28 +178,37 @@ export function ReviewForm({
         </div>
       )}
 
-      {/* Submit Button */}
+      {/* Submit & Cancel Buttons */}
       <div className="flex items-center justify-between flex-wrap gap-3 pt-1">
-        <button
-          type="submit"
-          disabled={!canSubmit || isSubmitting}
-          className={cn(
-            "h-10 px-5 rounded-xl font-semibold text-xs uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer select-none",
-            canSubmit && !isSubmitting
-              ? "bg-[#8ce648] hover:bg-[#9ded5b] text-black shadow-md hover:scale-102 active:scale-98"
-              : "bg-neutral-800 text-neutral-500 cursor-not-allowed",
-          )}
-        >
-          {isSubmitting ? (
-            <>
+        <div className="flex items-center gap-3">
+          <button
+            type="submit"
+            disabled={!canSubmit || isSubmitting}
+            className={cn(
+              "h-10 px-5 rounded-xl font-semibold text-xs uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer select-none",
+              canSubmit && !isSubmitting
+                ? "bg-[#8ce648] hover:bg-[#9ded5b] text-black shadow-md hover:scale-102 active:scale-98"
+                : "bg-neutral-800 text-neutral-500 cursor-not-allowed",
+            )}
+          >
+            {isSubmitting ? (
               <span>Saving...</span>
-            </>
-          ) : (
-            <>
-              <span>Submit Review</span>
-            </>
+            ) : (
+              <span>{isEditing ? "Update Review" : "Submit Review"}</span>
+            )}
+          </button>
+
+          {isEditing && onCancel && (
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={onCancel}
+              className="h-10 px-4 rounded-xl font-semibold text-xs text-neutral-400 hover:text-white hover:bg-neutral-800/80 border border-neutral-700/80 transition-all cursor-pointer"
+            >
+              Cancel
+            </button>
           )}
-        </button>
+        </div>
       </div>
     </form>
   );

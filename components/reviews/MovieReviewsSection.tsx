@@ -22,24 +22,47 @@ export function MovieReviewsSection({
   initialReviews = [],
 }: MovieReviewsSectionProps) {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const { getUserReview, getUserRating } = useRatings();
+  const {
+    getUserReview,
+    getUserRating,
+    deleteReview,
+    isLoading: isRatingsLoading,
+  } = useRatings();
 
-  const [showFormOverride, setShowFormOverride] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const liveUserReview = getUserReview(mediaId);
   const liveUserRating = getUserRating(mediaId);
 
-  // Active user review (from live context or initial SSR prop)
-  const userReview = liveUserReview ?? initialUserReview ?? null;
-  const userRating = liveUserRating ?? (userReview?.rating ?? null);
+  // Active user review: Trust SSR initial on initial mount, but switch to live context once loaded
+  const userReview = isRatingsLoading
+    ? (initialUserReview ?? liveUserReview)
+    : liveUserReview;
+  const userRating = isRatingsLoading
+    ? (initialUserReview?.rating ?? liveUserRating)
+    : liveUserRating;
 
   // Does the user have a written text review?
   const hasWrittenReview = Boolean(
     userReview?.content && userReview.content.trim().length > 0,
   );
 
+  const handleDeleteReview = async () => {
+    setIsDeleting(true);
+    try {
+      const success = await deleteReview(mediaId);
+      if (success) {
+        setIsEditing(false);
+      }
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const totalReviewsCount =
-    initialReviews.length + (userReview && !initialReviews.some((r) => r.id === userReview.id) ? 1 : 0);
+    initialReviews.length +
+    (userReview && !initialReviews.some((r) => r.id === userReview.id) ? 1 : 0);
 
   return (
     <section
@@ -62,22 +85,24 @@ export function MovieReviewsSection({
 
       {/* User Review or Action Section */}
       {!isAuthLoading && user ? (
-        userReview && hasWrittenReview && !showFormOverride ? (
-          <UserReviewCard review={userReview} />
+        userReview && !isEditing ? (
+          <UserReviewCard
+            review={userReview}
+            onEdit={() => setIsEditing(true)}
+            onDelete={handleDeleteReview}
+            isDeleting={isDeleting}
+            onAddTextReview={!hasWrittenReview ? () => setIsEditing(true) : undefined}
+          />
         ) : (
           <div className="flex flex-col gap-3">
-            {userReview && !hasWrittenReview && !showFormOverride ? (
-              <UserReviewCard
-                review={userReview}
-                onAddTextReview={() => setShowFormOverride(true)}
-              />
-            ) : (
-              <ReviewForm
-                mediaId={mediaId}
-                initialRating={userRating}
-                onSuccess={() => setShowFormOverride(false)}
-              />
-            )}
+            <ReviewForm
+              mediaId={mediaId}
+              initialRating={userRating}
+              initialContent={userReview?.content}
+              isEditing={Boolean(userReview)}
+              onSuccess={() => setIsEditing(false)}
+              onCancel={userReview ? () => setIsEditing(false) : undefined}
+            />
           </div>
         )
       ) : !isAuthLoading && !user ? (

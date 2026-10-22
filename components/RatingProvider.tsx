@@ -25,6 +25,7 @@ export interface RatingContextType {
     mediaId: string,
     data: { rating?: number | null; content?: string | null },
   ) => Promise<boolean>;
+  deleteReview: (mediaId: string) => Promise<boolean>;
   refreshRatings: () => Promise<void>;
 }
 
@@ -321,6 +322,7 @@ export function RatingProvider({ children }: RatingProviderProps) {
             new Map(prev).set(mediaId, savedReview as ReviewRow),
           );
         }
+        router.refresh();
         return true;
       } catch (err) {
         setUserRatings((prev) => {
@@ -348,6 +350,70 @@ export function RatingProvider({ children }: RatingProviderProps) {
     [userId, userReviews, userRatings, router, supabase],
   );
 
+  const deleteReview = useCallback(
+    async (mediaId: string): Promise<boolean> => {
+      if (!userId) {
+        return false;
+      }
+
+      const existingReview = userReviews.get(mediaId);
+      const previousRating = userRatings.get(mediaId);
+
+      // Optimistic delete
+      setUserRatings((prev) => {
+        const next = new Map(prev);
+        next.delete(mediaId);
+        return next;
+      });
+      setUserReviews((prev) => {
+        const next = new Map(prev);
+        next.delete(mediaId);
+        return next;
+      });
+
+      try {
+        const { error } = await supabase
+          .from("reviews")
+          .delete()
+          .eq("user_id", userId)
+          .eq("media_id", mediaId);
+
+        if (error) {
+          // Revert optimistic delete
+          setUserRatings((prev) => {
+            const next = new Map(prev);
+            if (previousRating !== undefined) {
+              next.set(mediaId, previousRating);
+            }
+            return next;
+          });
+          if (existingReview) {
+            setUserReviews((prev) => new Map(prev).set(mediaId, existingReview));
+          }
+          console.error("Failed to delete review:", error);
+          return false;
+        }
+
+        router.refresh();
+        return true;
+      } catch (err) {
+        setUserRatings((prev) => {
+          const next = new Map(prev);
+          if (previousRating !== undefined) {
+            next.set(mediaId, previousRating);
+          }
+          return next;
+        });
+        if (existingReview) {
+          setUserReviews((prev) => new Map(prev).set(mediaId, existingReview));
+        }
+        console.error("Failed to delete review:", err);
+        return false;
+      }
+    },
+    [userId, userReviews, userRatings, router, supabase],
+  );
+
   const value = useMemo(
     () => ({
       userRatings,
@@ -357,6 +423,7 @@ export function RatingProvider({ children }: RatingProviderProps) {
       getUserReview,
       rateMedia,
       submitReview,
+      deleteReview,
       refreshRatings,
     }),
     [
@@ -367,6 +434,7 @@ export function RatingProvider({ children }: RatingProviderProps) {
       getUserReview,
       rateMedia,
       submitReview,
+      deleteReview,
       refreshRatings,
     ],
   );

@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
-import { Star, User, MessageSquare } from "lucide-react";
+import { Star, User, MessageSquare, Pencil, Trash2, AlertCircle } from "lucide-react";
 import type { ReviewRow } from "@/types/media";
 import { formatDate } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,10 +10,21 @@ import { useAuth } from "@/hooks/useAuth";
 export interface UserReviewCardProps {
   review: ReviewRow;
   onAddTextReview?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => Promise<void> | void;
+  isDeleting?: boolean;
 }
 
-export function UserReviewCard({ review, onAddTextReview }: UserReviewCardProps) {
+export function UserReviewCard({
+  review,
+  onAddTextReview,
+  onEdit,
+  onDelete,
+  isDeleting = false,
+}: UserReviewCardProps) {
   const { user } = useAuth();
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+
   const username =
     user?.user_metadata?.username ||
     user?.email?.split("@")[0] ||
@@ -23,9 +35,16 @@ export function UserReviewCard({ review, onAddTextReview }: UserReviewCardProps)
   const hasContent = Boolean(review.content && review.content.trim().length > 0);
   const formattedDate = formatDate(review.created_at);
 
+  const handleConfirmDelete = async () => {
+    if (onDelete) {
+      await onDelete();
+    }
+    setIsConfirmingDelete(false);
+  };
+
   return (
     <div className="bg-[#1c1c1c] border border-neutral-800 rounded-2xl p-6 sm:p-7 flex flex-col gap-4 shadow-xl">
-      {/* Header: User Info + "Your Review" Tag + Star Rating */}
+      {/* Header: User Info + "Your Review" Tag + Star Rating & Actions */}
       <div className="flex items-start justify-between gap-4 flex-wrap border-b border-neutral-800/80 pb-4">
         <div className="flex items-center gap-3">
           <div className="relative w-10 h-10 rounded-full overflow-hidden bg-neutral-800 border border-neutral-700 flex items-center justify-center shrink-0">
@@ -58,16 +77,70 @@ export function UserReviewCard({ review, onAddTextReview }: UserReviewCardProps)
           </div>
         </div>
 
-        {hasRating && (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-900 border border-neutral-800">
-            <span className="text-xs text-neutral-400">Rating:</span>
-            <span className="text-sm sm:text-base font-extrabold text-white">
-              {Number(review.rating).toFixed(1)}
-            </span>
-            <Star className="w-4 h-4 fill-[#8ce648] text-[#8ce648]" />
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {hasRating && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-900 border border-neutral-800">
+              <span className="text-xs text-neutral-400">Rating:</span>
+              <span className="text-sm sm:text-base font-extrabold text-white">
+                {Number(review.rating).toFixed(1)}
+              </span>
+              <Star className="w-4 h-4 fill-[#8ce648] text-[#8ce648]" />
+            </div>
+          )}
+
+          {onEdit && (
+            <button
+              type="button"
+              onClick={onEdit}
+              className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-800/80 rounded-xl transition-colors cursor-pointer border border-transparent hover:border-neutral-700"
+              title="Edit review"
+              aria-label="Edit review"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+          )}
+
+          {onDelete && (
+            <button
+              type="button"
+              onClick={() => setIsConfirmingDelete(true)}
+              className="p-2 text-neutral-400 hover:text-red-400 hover:bg-red-950/30 rounded-xl transition-colors cursor-pointer border border-transparent hover:border-red-900/50"
+              title="Delete review"
+              aria-label="Delete review"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Inline Delete Confirmation */}
+      {isConfirmingDelete && (
+        <div className="bg-red-950/20 border border-red-900/40 rounded-xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs sm:text-sm">
+          <div className="flex items-center gap-2 text-neutral-300">
+            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+            <span>Are you sure you want to delete your review?</span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              disabled={isDeleting}
+              onClick={() => setIsConfirmingDelete(false)}
+              className="px-3 py-1.5 rounded-lg border border-neutral-700 hover:bg-neutral-800 text-neutral-300 transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={isDeleting}
+              onClick={handleConfirmDelete}
+              className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium transition-colors cursor-pointer"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       {hasContent ? (

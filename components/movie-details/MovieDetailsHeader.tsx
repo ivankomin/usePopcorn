@@ -16,10 +16,12 @@ export function MovieDetailsHeader({
   media,
   initialUserRating = null,
 }: MovieDetailsHeaderProps) {
-  const { getUserRating } = useRatings();
+  const { getUserRating, isLoading: isRatingsLoading } = useRatings();
 
   const liveRating = getUserRating(media.id);
-  const userRating = liveRating !== null ? liveRating : initialUserRating;
+  const userRating = isRatingsLoading
+    ? (initialUserRating ?? liveRating)
+    : liveRating;
 
   const hasUserReviews = (media.vote_count || 0) > 0 && (media.vote_average || 0) > 0;
   const ratingStr = hasUserReviews

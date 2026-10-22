@@ -89,10 +89,33 @@ export default function MediaCard({
     ? `/movie/${media.id}?from=watchlist`
     : `/movie/${media.id}`;
 
+  const recordNavigation = () => {
+    if (typeof window !== "undefined") {
+      try {
+        sessionStorage.setItem(
+          "internal_nav_from",
+          fromWatchlist ? "watchlist" : "catalog"
+        );
+        if (!fromWatchlist) {
+          const currentUrl = window.location.pathname + window.location.search;
+          sessionStorage.setItem("last_catalog_url", currentUrl);
+          if (media.media_type === "tv") {
+            sessionStorage.setItem("last_tv_catalog_url", currentUrl);
+          } else {
+            sessionStorage.setItem("last_movie_catalog_url", currentUrl);
+          }
+        }
+      } catch {
+        // Ignore storage restrictions
+      }
+    }
+  };
+
   const handleCardClick = () => {
     if (typeof window !== "undefined" && window.getSelection()?.toString()) {
       return;
     }
+    recordNavigation();
     router.push(movieHref);
   };
 
@@ -123,6 +146,7 @@ export default function MediaCard({
     >
       <Link
         href={movieHref}
+        onClick={recordNavigation}
         className="relative w-28.75 sm:w-31 aspect-2/3 shrink-0 rounded-xl overflow-hidden bg-neutral-900 border border-white/5 shadow-md block cursor-pointer"
       >
         {!imageError && posterSrc ? (
@@ -150,6 +174,7 @@ export default function MediaCard({
             <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight leading-tight">
               <Link
                 href={movieHref}
+                onClick={recordNavigation}
                 className="hover:text-brand-lime transition-colors"
               >
                 {media.title}

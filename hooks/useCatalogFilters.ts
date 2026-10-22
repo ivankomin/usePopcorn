@@ -328,6 +328,23 @@ export function useCatalogFilters(options: UseCatalogFiltersOptions = {}) {
     sliderMinRating > 0 ||
     sliderMaxRating < 10;
 
+  // Sync the current catalog URL and filters to sessionStorage so navigating back from media details restores filters
+  useEffect(() => {
+    if (typeof window !== "undefined" && pathname.startsWith("/catalog")) {
+      try {
+        const currentUrl = window.location.pathname + window.location.search;
+        sessionStorage.setItem("last_catalog_url", currentUrl);
+        if (isTV) {
+          sessionStorage.setItem("last_tv_catalog_url", currentUrl);
+        } else if (isMovie) {
+          sessionStorage.setItem("last_movie_catalog_url", currentUrl);
+        }
+      } catch {
+        // Ignore sessionStorage errors
+      }
+    }
+  }, [pathname, searchParams, isTV, isMovie]);
+
   return {
     isTV,
     isMovie,

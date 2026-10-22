@@ -66,7 +66,10 @@ export default function MovieDetailsCard({
       )}
 
       {/* Back Link (Watchlist if navigated from watchlist, otherwise Catalog) */}
-      <MovieDetailsBackLink initialFrom={initialFrom} />
+      <MovieDetailsBackLink
+        initialFrom={initialFrom}
+        mediaType={media.media_type}
+      />
 
       {/* Main Details Card Box */}
       <div className="relative bg-[#222222] border border-neutral-800 rounded-3xl p-6 sm:p-8 md:p-10 shadow-2xl shadow-black/80 flex flex-col">

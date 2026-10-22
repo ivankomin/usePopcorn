@@ -62,8 +62,12 @@ export default function MediaCard({
   const [isRatingOpen, setIsRatingOpen] = useState<boolean>(false);
   const [imageError, setImageError] = useState<boolean>(false);
 
-  // Format IMDb 10-point scale into a 5-point scale for MUI Rating
-  const imdbStars = Math.min(5, Math.max(0, (media.vote_average || 0) / 2));
+  // User reviews rating 10-point scale into a 5-point scale for MUI Rating
+  const hasUserReviews =
+    (media.vote_count || 0) > 0 && (media.vote_average || 0) > 0;
+  const ratingStars = hasUserReviews
+    ? Math.min(5, Math.max(0, (media.vote_average || 0) / 2))
+    : 0;
 
   // User rating 10-point scale into a 5-point scale (or 0 if unrated)
   const userStars = userRating ? userRating / 2 : 0;
@@ -177,28 +181,32 @@ export default function MediaCard({
           onClick={(e) => e.stopPropagation()}
           className="flex items-center flex-wrap gap-y-2 text-xs sm:text-sm mt-auto pt-1 relative z-10"
         >
-          <div className="flex items-center gap-1.5 mr-2">
-            <span className="font-semibold text-white">IMDb:</span>
-            <Rating
-              value={imdbStars}
-              precision={0.1}
-              readOnly
-              size="small"
-              sx={{
-                color: "#f5c518",
-                "& .MuiRating-iconEmpty": {
-                  color: "#383838",
-                },
-                "& .MuiRating-icon": {
-                  fontSize: { xs: "1.1rem", sm: "1.25rem" },
-                },
-              }}
-            />
-          </div>
+          {hasUserReviews && (
+            <div className="flex items-center gap-1.5 mr-2">
+              <span className="font-semibold text-white">Rating:</span>
+              <Rating
+                value={ratingStars}
+                precision={0.1}
+                readOnly
+                size="small"
+                sx={{
+                  color: "#f5c518",
+                  "& .MuiRating-iconEmpty": {
+                    color: "#383838",
+                  },
+                  "& .MuiRating-icon": {
+                    fontSize: { xs: "1.1rem", sm: "1.25rem" },
+                  },
+                }}
+              />
+            </div>
+          )}
 
           {userStars > 0 ? (
             <>
-              <div className="h-3.5 w-px bg-neutral-700 mx-3 sm:mx-4 hidden xs:block" />
+              {hasUserReviews && (
+                <div className="h-3.5 w-px bg-neutral-700 mx-3 sm:mx-4 hidden xs:block" />
+              )}
               <div className="flex items-center gap-1.5">
                 <span className="font-semibold text-white">Your rating:</span>
                 <Rating
@@ -226,7 +234,9 @@ export default function MediaCard({
             </>
           ) : user && isRatingOpen ? (
             <>
-              <div className="h-3.5 w-px bg-neutral-700 mx-3 sm:mx-4 hidden xs:block" />
+              {hasUserReviews && (
+                <div className="h-3.5 w-px bg-neutral-700 mx-3 sm:mx-4 hidden xs:block" />
+              )}
               <div className="flex items-center gap-1.5 animate-fadeIn">
                 <span className="font-semibold text-white">Rate:</span>
                 <Rating
@@ -250,15 +260,20 @@ export default function MediaCard({
               </div>
             </>
           ) : user ? (
-            <button
-              type="button"
-              onClick={() => setIsRatingOpen(true)}
-              className="ml-3 text-xs text-neutral-400 hover:text-brand-lime flex items-center gap-1 transition-colors cursor-pointer py-0.5 px-1.5 rounded hover:bg-white/5"
-              title="Add your rating"
-            >
-              <Star className="w-3.5 h-3.5 text-neutral-500 hover:text-brand-lime" />
-              <span>Rate</span>
-            </button>
+            <>
+              {hasUserReviews && (
+                <div className="h-3.5 w-px bg-neutral-700 mx-3 sm:mx-4 hidden xs:block" />
+              )}
+              <button
+                type="button"
+                onClick={() => setIsRatingOpen(true)}
+                className="text-xs text-neutral-400 hover:text-brand-lime flex items-center gap-1 transition-colors cursor-pointer py-0.5 px-1.5 rounded hover:bg-white/5"
+                title="Add your rating"
+              >
+                <Star className="w-3.5 h-3.5 text-neutral-500 hover:text-brand-lime" />
+                <span>Rate</span>
+              </button>
+            </>
           ) : null}
         </div>
       </div>

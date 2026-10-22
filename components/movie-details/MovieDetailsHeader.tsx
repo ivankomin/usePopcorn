@@ -24,12 +24,15 @@ export function MovieDetailsHeader({
   const liveRating = getUserRating(media.id);
   const userRating = liveRating !== null ? liveRating : initialUserRating;
 
-  const ratingStr = media.vote_average
+  const hasUserReviews = (media.vote_count || 0) > 0 && (media.vote_average || 0) > 0;
+  const ratingStr = hasUserReviews
     ? Number(media.vote_average).toFixed(1)
     : "0.0";
   const votesStr = formatVoteCount(media.vote_count);
   const isMature = isMatureRating(media.age_rating);
-  const isTopRated = (media.vote_average || 0) >= 8.0;
+
+  // Top-500 badge can qualify based on official IMDb rating or high community rating
+  const isTopRated = (media.imdb_rating || media.vote_average || 0) >= 8.0;
 
   const metadata = media.metadata as {
     tagline?: string | null;
@@ -73,7 +76,7 @@ export function MovieDetailsHeader({
           )}
         </div>
 
-        {/* Top-Right Rating Display: Dual score if user rated, otherwise standard IMDb rating */}
+        {/* Top-Right Rating Display: Only shows community rating if user reviews exist */}
         <div className="flex flex-col items-end shrink-0 pt-0.5">
           {userRating !== null && userRating > 0 ? (
             <>
@@ -86,15 +89,20 @@ export function MovieDetailsHeader({
                 </span>
                 <Star className="w-6 h-6 sm:w-7 sm:h-7 fill-[#8ce648] text-[#8ce648]" />
               </div>
-              <div className="flex items-center gap-1.5 mt-0.5 text-xs text-neutral-400">
-                <span className="italic">IMDb Rating:</span>
-                <span className="font-semibold text-neutral-200">
-                  {ratingStr}
-                </span>
-                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-              </div>
+              {hasUserReviews && (
+                <div className="flex items-center gap-1.5 mt-0.5 text-xs text-neutral-400">
+                  <span className="italic">Rating:</span>
+                  <span className="font-semibold text-neutral-200">
+                    {ratingStr}
+                  </span>
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <span className="text-[11px] text-neutral-400">
+                    ({votesStr})
+                  </span>
+                </div>
+              )}
             </>
-          ) : (
+          ) : hasUserReviews ? (
             <>
               <div className="flex items-center gap-1.5">
                 <span className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
@@ -102,12 +110,34 @@ export function MovieDetailsHeader({
                 </span>
                 <Star className="w-6 h-6 sm:w-7 sm:h-7 fill-amber-400 text-amber-400" />
               </div>
-              {media.vote_count > 0 && (
-                <span className="text-xs text-neutral-400 font-medium">
-                  ({votesStr} votes)
-                </span>
+              <span className="text-xs text-neutral-400 font-medium">
+                ({votesStr} reviews)
+              </span>
+              {user && (
+                <button
+                  type="button"
+                  onClick={handleScrollToReview}
+                  className="mt-1.5 text-xs text-[#8ce648] hover:text-[#9ded5b] flex items-center gap-1 font-medium transition-colors cursor-pointer"
+                >
+                  <Star className="w-3.5 h-3.5" />
+                  <span>Rate / Review</span>
+                </button>
               )}
             </>
+          ) : (
+            // No user reviews yet
+            <div className="flex flex-col items-end gap-1">
+              {user && (
+                <button
+                  type="button"
+                  onClick={handleScrollToReview}
+                  className="text-xs text-[#8ce648] hover:text-[#9ded5b] flex items-center gap-1 font-medium transition-colors cursor-pointer py-1 px-2.5 rounded-lg border border-[#8ce648]/30 hover:border-[#8ce648] bg-[#8ce648]/10"
+                >
+                  <Star className="w-3.5 h-3.5" />
+                  <span>Rate / Review</span>
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -126,7 +156,7 @@ export function MovieDetailsHeader({
             <Link
               key={genre.id}
               href={`/catalog?genres=${encodeURIComponent(genre.name)}`}
-              className="px-3 py-1 bg-[#8bb967] hover:bg-[#9ded5b] text-black font-bold text-xs rounded-lg uppercase tracking-wide shadow-sm transition-all hover:scale-102 cursor-pointer"
+              className="px-3 py-1 bg-[#8ce648] hover:bg-[#9ded5b] text-black font-bold text-xs rounded-lg uppercase tracking-wide shadow-sm transition-all hover:scale-102 cursor-pointer"
               title={`Browse all ${genre.name} movies`}
             >
               {genre.name}

@@ -1,4 +1,5 @@
 import type { MediaItem } from "@/types/media";
+import { Star } from "lucide-react";
 import {
   formatRuntime,
   formatCurrency,
@@ -100,6 +101,16 @@ export function MovieDetailsMetadata({ media }: MovieDetailsMetadataProps) {
           >
             {media.age_rating}
           </span>
+        </div>
+      )}
+
+      {media.imdb_rating && (
+        <div className="flex items-baseline gap-2">
+          <span className="text-neutral-400 font-medium">IMDb rating:</span>
+          <div className="flex items-center gap-1.5 font-semibold text-white">
+            <span>{Number(media.imdb_rating).toFixed(1)}</span>
+            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+          </div>
         </div>
       )}
 

@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed:reviews": "tsx --env-file=.env.local scripts/seed-reviews.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

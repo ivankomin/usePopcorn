@@ -69,6 +69,7 @@ export type Database = {
           created_at: string
           episodes_count: number | null
           id: string
+          imdb_rating: number | null
           media_type: string
           metadata: Json | null
           original_title: string | null
@@ -94,6 +95,7 @@ export type Database = {
           created_at?: string
           episodes_count?: number | null
           id?: string
+          imdb_rating?: number | null
           media_type: string
           metadata?: Json | null
           original_title?: string | null
@@ -119,6 +121,7 @@ export type Database = {
           created_at?: string
           episodes_count?: number | null
           id?: string
+          imdb_rating?: number | null
           media_type?: string
           metadata?: Json | null
           original_title?: string | null

@@ -26,6 +26,8 @@ import { Plus, Check, Star } from "lucide-react";
 import type { MediaItem } from "@/types/media";
 import { formatRuntime, getPosterUrl } from "@/lib/utils";
 import { useWatchlist } from "@/hooks/useWatchlist";
+import { useAuth } from "@/hooks/useAuth";
+import { useRatings } from "@/hooks/useRatings";
 
 export interface MediaCardProps {
   media: MediaItem;
@@ -45,16 +47,18 @@ export default function MediaCard({
   onRate,
 }: MediaCardProps) {
   const router = useRouter();
+  const { user } = useAuth();
   const { isInWatchlist, toggleWatchlist, isLoading: isWatchlistLoading } =
     useWatchlist();
+  const { getUserRating, rateMedia } = useRatings();
 
   // If watchlist is still loading on mount and initialInWatchlist was provided by SSR, trust it
   const isSaved = isInWatchlist(media.id);
   const inWatchlist = isWatchlistLoading && initialInWatchlist ? true : isSaved;
 
-  const [userRating, setUserRating] = useState<number | null>(
-    initialUserRating,
-  );
+  const liveRating = getUserRating(media.id);
+  const userRating = liveRating !== null ? liveRating : initialUserRating;
+
   const [isRatingOpen, setIsRatingOpen] = useState<boolean>(false);
   const [imageError, setImageError] = useState<boolean>(false);
 
@@ -97,15 +101,15 @@ export default function MediaCard({
     }
   };
 
-  const handleRatingChange = (newStars: number | null) => {
+  const handleRatingChange = async (newStars: number | null) => {
     if (!newStars) return;
     const score10 = Math.round(newStars * 2);
-    setUserRating(score10);
     setIsRatingOpen(false);
 
     if (onRate) {
       onRate(media.id, score10);
     }
+    await rateMedia(media.id, score10);
   };
 
   return (
@@ -220,7 +224,7 @@ export default function MediaCard({
                 />
               </div>
             </>
-          ) : isRatingOpen ? (
+          ) : user && isRatingOpen ? (
             <>
               <div className="h-3.5 w-px bg-neutral-700 mx-3 sm:mx-4 hidden xs:block" />
               <div className="flex items-center gap-1.5 animate-fadeIn">
@@ -245,7 +249,7 @@ export default function MediaCard({
                 />
               </div>
             </>
-          ) : (
+          ) : user ? (
             <button
               type="button"
               onClick={() => setIsRatingOpen(true)}
@@ -255,7 +259,7 @@ export default function MediaCard({
               <Star className="w-3.5 h-3.5 text-neutral-500 hover:text-brand-lime" />
               <span>Rate</span>
             </button>
-          )}
+          ) : null}
         </div>
       </div>
 

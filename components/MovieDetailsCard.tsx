@@ -19,6 +19,7 @@ export interface MovieDetailsCardProps {
   initialAddedAt?: string | null;
   initialWatchlistStatus?: WatchlistStatus;
   initialFrom?: "catalog" | "watchlist";
+  initialUserRating?: number | null;
   onWatchlistToggle?: (mediaId: string, inWatchlist: boolean) => void;
   onStatusChange?: (mediaId: string, status: WatchlistStatus) => void;
 }
@@ -29,6 +30,7 @@ export default function MovieDetailsCard({
   initialAddedAt = null,
   initialWatchlistStatus = "plan_to_watch",
   initialFrom = "catalog",
+  initialUserRating = null,
   onWatchlistToggle,
   onStatusChange,
 }: MovieDetailsCardProps) {
@@ -90,7 +92,7 @@ export default function MovieDetailsCard({
 
           {/* Right Column: Title, Rating, Badges, and Metadata Box */}
           <div className="flex-1 min-w-0 w-full flex flex-col gap-4">
-            <MovieDetailsHeader media={media} />
+            <MovieDetailsHeader media={media} initialUserRating={initialUserRating} />
             <MovieDetailsMetadata media={media} />
           </div>
         </div>

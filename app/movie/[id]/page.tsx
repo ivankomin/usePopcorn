@@ -1,8 +1,14 @@
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import type { Metadata } from "next";
-import { getMediaById, getUserWatchlistEntryForMedia } from "@/lib/api";
+import {
+  getMediaById,
+  getUserWatchlistEntryForMedia,
+  getUserReviewForMedia,
+  getMediaReviews,
+} from "@/lib/api";
 import MovieDetailsCard from "@/components/MovieDetailsCard";
+import { MovieReviewsSection } from "@/components/reviews";
 import type { WatchlistStatus } from "@/types/media";
 
 interface MoviePageProps {
@@ -44,9 +50,11 @@ export default async function MoviePage({
     params,
     searchParams ? searchParams : Promise.resolve(undefined),
   ]);
-  const [media, watchlistEntry] = await Promise.all([
+  const [media, watchlistEntry, userReview, mediaReviews] = await Promise.all([
     getMediaById(id),
     getUserWatchlistEntryForMedia(id),
+    getUserReviewForMedia(id),
+    getMediaReviews(id),
   ]);
 
   if (!media) {
@@ -66,6 +74,12 @@ export default async function MoviePage({
           (watchlistEntry?.status as WatchlistStatus) || "plan_to_watch"
         }
         initialFrom={fromSource}
+        initialUserRating={userReview?.rating ?? null}
+      />
+      <MovieReviewsSection
+        mediaId={media.id}
+        initialUserReview={userReview}
+        initialReviews={mediaReviews}
       />
     </div>
   );

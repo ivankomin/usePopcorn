@@ -156,7 +156,7 @@ export function MovieDetailsHeader({
             <Link
               key={genre.id}
               href={`/catalog?genres=${encodeURIComponent(genre.name)}`}
-              className="px-3 py-1 bg-[#8ce648] hover:bg-[#9ded5b] text-black font-bold text-xs rounded-lg uppercase tracking-wide shadow-sm transition-all hover:scale-102 cursor-pointer"
+              className="px-3 py-1 bg-[#85c355] hover:bg-[#9ded5b] text-black font-bold text-xs rounded-lg uppercase tracking-wide shadow-sm transition-all hover:scale-102 cursor-pointer"
               title={`Browse all ${genre.name} movies`}
             >
               {genre.name}

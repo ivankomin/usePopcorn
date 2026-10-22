@@ -14,9 +14,11 @@
 - **UI Design from Screenshots & Visual Consistency**:
   - Implement frontend components based on provided Figma screenshots.
   - If a screenshot for a requested UI component is not provided and the design must be created from scratch, strictly adhere to the established application style (matching the color palette, dark theme, typography, padding, card radiuses, and structural layout of existing components).
-- **Preservation of User-Authored UI Changes**:
-  - Always respect and preserve UI styling modifications made manually by the user (e.g., custom color hex values, presence/absence of shadows, borders, radiuses, paddings, copy wording).
-  - During refactoring, modularization, or code generation, inspect the current working file / git diff carefully and DO NOT revert, overwrite, or roll back user-customized UI styling to older or default states.
+- **Preservation of User-Authored UI Changes & DOM Structure**:
+  - Always respect and preserve UI styling modifications and DOM adjustments made manually by the user (e.g., custom color hex values such as genre chips `bg-[#85c355]`, presence/absence of shadows, borders, radiuses, paddings, copy wording).
+  - **Do not restore removed elements**: If the user removed any HTML elements or components they deemed unnecessary, never re-add them.
+  - **Explicit Color Rule**: Never change the color of the genre chips in media details from `bg-[#85c355]`.
+  - During refactoring, modularization, or code generation, inspect the current working file / git diff carefully and DO NOT revert, overwrite, or roll back user-customized UI styling, colors, or structural removals to older or default states.
 
 ---
 

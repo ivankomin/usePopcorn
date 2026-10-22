@@ -14,6 +14,9 @@
 - **UI Design from Screenshots & Visual Consistency**:
   - Implement frontend components based on provided Figma screenshots.
   - If a screenshot for a requested UI component is not provided and the design must be created from scratch, strictly adhere to the established application style (matching the color palette, dark theme, typography, padding, card radiuses, and structural layout of existing components).
+- **Preservation of User-Authored UI Changes**:
+  - Always respect and preserve UI styling modifications made manually by the user (e.g., custom color hex values, presence/absence of shadows, borders, radiuses, paddings, copy wording).
+  - During refactoring, modularization, or code generation, inspect the current working file / git diff carefully and DO NOT revert, overwrite, or roll back user-customized UI styling to older or default states.
 
 ---
 
@@ -83,8 +86,3 @@
 - Read compiler errors, fix syntax or typing mismatches, and re-run until the build check passes with exit code 0.
 
 4. **State Reporting**: Conclude every task with a concise summary stating which files changed, the verification command executed, and the status.
-
-```
-
-```
-````

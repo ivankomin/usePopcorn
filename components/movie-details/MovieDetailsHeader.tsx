@@ -107,16 +107,6 @@ export function MovieDetailsHeader({
                   ({votesStr} votes)
                 </span>
               )}
-              {user && (
-                <button
-                  type="button"
-                  onClick={handleScrollToReview}
-                  className="mt-1.5 text-xs text-[#8ce648] hover:text-[#9ded5b] flex items-center gap-1 font-medium transition-colors cursor-pointer"
-                >
-                  <Star className="w-3.5 h-3.5" />
-                  <span>Rate / Review</span>
-                </button>
-              )}
             </>
           )}
         </div>
@@ -136,7 +126,7 @@ export function MovieDetailsHeader({
             <Link
               key={genre.id}
               href={`/catalog?genres=${encodeURIComponent(genre.name)}`}
-              className="px-3 py-1 bg-[#8ce648] hover:bg-[#9ded5b] text-black font-bold text-xs rounded-lg uppercase tracking-wide shadow-sm transition-all hover:scale-102 cursor-pointer"
+              className="px-3 py-1 bg-[#8bb967] hover:bg-[#9ded5b] text-black font-bold text-xs rounded-lg uppercase tracking-wide shadow-sm transition-all hover:scale-102 cursor-pointer"
               title={`Browse all ${genre.name} movies`}
             >
               {genre.name}

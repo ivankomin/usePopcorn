@@ -46,7 +46,7 @@ export function UserReviewCard({ review, onAddTextReview }: UserReviewCardProps)
               <span className="font-bold text-white text-sm sm:text-base">
                 {username}
               </span>
-              <span className="px-2 py-0.5 rounded-full bg-[#8ce648]/15 border border-[#8ce648]/30 text-[#8ce648] text-[10px] font-semibold uppercase tracking-wider">
+              <span className="px-2 py-0.5 rounded-full text-[#8ce648] text-[10px] font-semibold uppercase tracking-wider">
                 Your Review
               </span>
             </div>

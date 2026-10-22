@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import { Send, Loader2, Sparkles, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useRatings } from "@/hooks/useRatings";
 import { cn } from "@/lib/utils";
 
@@ -82,7 +82,6 @@ export function ReviewForm({
     >
       <div className="flex items-center justify-between flex-wrap gap-2 border-b border-neutral-800/80 pb-4">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-[#8ce648]" />
           <h3 className="text-lg font-bold text-white tracking-tight">
             Add Your Rating & Review
           </h3>
@@ -100,7 +99,7 @@ export function ReviewForm({
           </label>
           {rating !== null && (
             <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-[#8ce648]">
+              <span className="text-sm font-bold text-[#e1e648]">
                 {rating} / 10
               </span>
               <button
@@ -123,15 +122,15 @@ export function ReviewForm({
             onChange={(_, val) => handleRatingChange(val)}
             size="large"
             sx={{
-              color: "#8ce648",
+              color: "#e1e648",
               "& .MuiRating-iconEmpty": {
                 color: "#383838",
               },
               "& .MuiRating-iconFilled": {
-                color: "#8ce648",
+                color: "#e1e648",
               },
               "& .MuiRating-iconHover": {
-                color: "#9ded5b",
+                color: "#e1e648",
               },
               "& .MuiRating-icon": {
                 fontSize: { xs: "1.75rem", sm: "2rem" },
@@ -160,7 +159,7 @@ export function ReviewForm({
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="Share your thoughts, favorite moments, or critique with the community..."
-          className="w-full bg-[#121212] border border-neutral-700/80 rounded-xl p-4 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#8ce648] focus:ring-1 focus:ring-[#8ce648] transition-all resize-y min-h-24 leading-relaxed"
+          className="w-full bg-[#121212] border border-neutral-700/80 rounded-xl p-4 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500 focus:ring-1 focus:ring-neutral-500 transition-all resize-y min-h-24 leading-relaxed"
         />
       </div>
 
@@ -172,10 +171,6 @@ export function ReviewForm({
 
       {/* Submit Button */}
       <div className="flex items-center justify-between flex-wrap gap-3 pt-1">
-        <span className="text-xs text-neutral-400">
-          {!canSubmit && "Select a star rating or type a review to submit"}
-        </span>
-
         <button
           type="submit"
           disabled={!canSubmit || isSubmitting}
@@ -188,12 +183,10 @@ export function ReviewForm({
         >
           {isSubmitting ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin" />
               <span>Saving...</span>
             </>
           ) : (
             <>
-              <Send className="w-3.5 h-3.5" />
               <span>Submit Review</span>
             </>
           )}

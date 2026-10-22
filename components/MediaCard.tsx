@@ -31,6 +31,7 @@ export interface MediaCardProps {
   media: MediaItem;
   initialInWatchlist?: boolean;
   initialUserRating?: number | null; // scale 1-10 (e.g. 9 or 10)
+  fromWatchlist?: boolean;
   onWatchlistToggle?: (mediaId: string, inWatchlist: boolean) => void;
   onRate?: (mediaId: string, rating10: number) => void;
 }
@@ -39,6 +40,7 @@ export default function MediaCard({
   media,
   initialInWatchlist = false,
   initialUserRating = null,
+  fromWatchlist = false,
   onWatchlistToggle,
   onRate,
 }: MediaCardProps) {
@@ -75,12 +77,15 @@ export default function MediaCard({
       : formatRuntime(media.runtime);
 
   const posterSrc = getPosterUrl(media.poster_path, "w500");
+  const movieHref = fromWatchlist
+    ? `/movie/${media.id}?from=watchlist`
+    : `/movie/${media.id}`;
 
   const handleCardClick = () => {
     if (typeof window !== "undefined" && window.getSelection()?.toString()) {
       return;
     }
-    router.push(`/movie/${media.id}`);
+    router.push(movieHref);
   };
 
   const handleToggleWatchlist = async (e: React.MouseEvent) => {
@@ -109,7 +114,7 @@ export default function MediaCard({
       className="group relative bg-[#181818] border-[#181818] rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-center sm:items-stretch gap-5 sm:gap-6 transition-all border duration-200 hover:border-neutral-700 hover:shadow-xl hover:shadow-black/50 cursor-pointer"
     >
       <Link
-        href={`/movie/${media.id}`}
+        href={movieHref}
         className="relative w-28.75 sm:w-31 aspect-2/3 shrink-0 rounded-xl overflow-hidden bg-neutral-900 border border-white/5 shadow-md block cursor-pointer"
       >
         {!imageError && posterSrc ? (
@@ -136,7 +141,7 @@ export default function MediaCard({
           <div className="flex items-baseline flex-wrap gap-x-2.5 leading-snug">
             <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight leading-tight">
               <Link
-                href={`/movie/${media.id}`}
+                href={movieHref}
                 className="hover:text-brand-lime transition-colors"
               >
                 {media.title}

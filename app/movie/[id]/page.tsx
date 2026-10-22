@@ -9,6 +9,9 @@ interface MoviePageProps {
   params: Promise<{
     id: string;
   }>;
+  searchParams?: Promise<{
+    from?: string;
+  }>;
 }
 
 export async function generateMetadata({
@@ -32,9 +35,15 @@ export async function generateMetadata({
   };
 }
 
-export default async function MoviePage({ params }: MoviePageProps) {
+export default async function MoviePage({
+  params,
+  searchParams,
+}: MoviePageProps) {
   await connection();
-  const { id } = await params;
+  const [{ id }, resolvedSearchParams] = await Promise.all([
+    params,
+    searchParams ? searchParams : Promise.resolve(undefined),
+  ]);
   const [media, watchlistEntry] = await Promise.all([
     getMediaById(id),
     getUserWatchlistEntryForMedia(id),
@@ -43,6 +52,9 @@ export default async function MoviePage({ params }: MoviePageProps) {
   if (!media) {
     notFound();
   }
+
+  const fromSource =
+    resolvedSearchParams?.from === "watchlist" ? "watchlist" : "catalog";
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col justify-start py-4 sm:py-8">
@@ -53,6 +65,7 @@ export default async function MoviePage({ params }: MoviePageProps) {
         initialWatchlistStatus={
           (watchlistEntry?.status as WatchlistStatus) || "plan_to_watch"
         }
+        initialFrom={fromSource}
       />
     </div>
   );

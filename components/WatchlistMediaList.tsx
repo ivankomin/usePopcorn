@@ -159,6 +159,7 @@ export default function WatchlistMediaList({
                 key={entry.id}
                 media={entry.media}
                 initialInWatchlist={true}
+                fromWatchlist={true}
                 onWatchlistToggle={handleWatchlistToggle}
               />
             );

@@ -157,6 +157,7 @@ export function ReviewForm({
           id="review-content"
           rows={4}
           value={content}
+          maxLength={1000}
           onChange={(e) => setContent(e.target.value)}
           placeholder="Share your thoughts, favorite moments, or critique with the community..."
           className="w-full bg-[#121212] border border-neutral-700/80 rounded-xl p-4 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500 focus:ring-1 focus:ring-neutral-500 transition-all resize-y min-h-24 leading-relaxed"

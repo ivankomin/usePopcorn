@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import Button from "@/components/Button";
+import { SettingsMessage, type SettingsMessageData } from "./SettingsMessage";
 import {
   getPasswordValidationError,
   PASSWORD_REQUIREMENTS_HINT,
@@ -22,10 +23,7 @@ export function ProfileSecuritySettings({
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
-  const [passwordMessage, setPasswordMessage] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
+  const [passwordMessage, setPasswordMessage] = useState<SettingsMessageData | null>(null);
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,22 +166,7 @@ export function ProfileSecuritySettings({
         </div>
       </div>
 
-      {passwordMessage && (
-        <div
-          className={`flex items-center gap-2 text-xs px-3.5 py-2.5 rounded-xl ${
-            passwordMessage.type === "success"
-              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
-              : "bg-red-500/10 text-red-400 border border-red-500/30"
-          }`}
-        >
-          {passwordMessage.type === "success" ? (
-            <CheckCircle2 className="w-4 h-4 shrink-0" />
-          ) : (
-            <AlertCircle className="w-4 h-4 shrink-0" />
-          )}
-          <span>{passwordMessage.text}</span>
-        </div>
-      )}
+      <SettingsMessage message={passwordMessage} />
 
       <div className="flex justify-end pt-2">
         <Button

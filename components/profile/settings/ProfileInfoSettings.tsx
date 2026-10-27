@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import type { ProfileRow } from "@/types/media";
 import { useProfile } from "@/hooks/useProfile";
 import Button from "@/components/Button";
+import { validateEmail } from "@/lib/validation";
+import { SettingsMessage, type SettingsMessageData } from "./SettingsMessage";
 
 export interface ProfileInfoSettingsProps {
   profile?: ProfileRow | null;
@@ -27,10 +29,7 @@ export function ProfileInfoSettings({
   );
   const [email, setEmail] = useState(currentEmail || userEmail || "");
   const [isSavingInfo, setIsSavingInfo] = useState(false);
-  const [infoMessage, setInfoMessage] = useState<{
-    type: "success" | "error" | "info";
-    text: string;
-  } | null>(null);
+  const [infoMessage, setInfoMessage] = useState<SettingsMessageData | null>(null);
 
   const handleSaveInfo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,6 +55,16 @@ export function ProfileInfoSettings({
       setInfoMessage({
         type: "error",
         text: "Username may only contain letters, numbers, and underscores.",
+      });
+      setIsSavingInfo(false);
+      return;
+    }
+
+    const emailError = validateEmail(trimmedEmail);
+    if (emailError) {
+      setInfoMessage({
+        type: "error",
+        text: emailError,
       });
       setIsSavingInfo(false);
       return;
@@ -156,24 +165,7 @@ export function ProfileInfoSettings({
         </div>
       </div>
 
-      {infoMessage && (
-        <div
-          className={`flex items-start gap-2 text-xs px-3.5 py-2.5 rounded-xl ${
-            infoMessage.type === "success"
-              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
-              : infoMessage.type === "info"
-                ? "bg-blue-500/10 text-blue-300 border border-blue-500/30"
-                : "bg-red-500/10 text-red-400 border border-red-500/30"
-          }`}
-        >
-          {infoMessage.type === "success" ? (
-            <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-          ) : (
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-          )}
-          <span>{infoMessage.text}</span>
-        </div>
-      )}
+      <SettingsMessage message={infoMessage} />
 
       <div className="flex justify-end pt-2">
         <Button

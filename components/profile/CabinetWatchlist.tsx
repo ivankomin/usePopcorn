@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Bookmark, ExternalLink, Filter } from "lucide-react";
+import { Bookmark, ExternalLink } from "lucide-react";
 import type { WatchlistEntry, WatchlistStatus } from "@/types/media";
 import { ProfileMovieCard } from "./ProfileMovieCard";
 

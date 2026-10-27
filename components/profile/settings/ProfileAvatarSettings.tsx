@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import Image from "next/image";
-import { Upload, User, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { Upload, User, Loader2 } from "lucide-react";
 import type { ProfileRow } from "@/types/media";
 import { useProfile } from "@/hooks/useProfile";
 import Button from "@/components/Button";
+import { SettingsMessage, type SettingsMessageData } from "./SettingsMessage";
 
 export interface ProfileAvatarSettingsProps {
   profile?: ProfileRow | null;
@@ -20,17 +21,7 @@ export function ProfileAvatarSettings({ profile }: ProfileAvatarSettingsProps) {
   );
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
-  const [avatarMessage, setAvatarMessage] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
-
-  // Sync avatar preview if avatarUrl updates
-  useEffect(() => {
-    if (avatarUrl && !avatarFile) {
-      setAvatarPreview(avatarUrl);
-    }
-  }, [avatarUrl, avatarFile]);
+  const [avatarMessage, setAvatarMessage] = useState<SettingsMessageData | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -94,7 +85,8 @@ export function ProfileAvatarSettings({ profile }: ProfileAvatarSettingsProps) {
           Profile Avatar
         </h2>
         <p className="text-xs text-neutral-400 mt-1">
-          Upload a custom avatar picture. Supported formats: JPG, PNG, WebP (max 2 MB).
+          Upload a custom avatar picture. Supported formats: JPG, PNG, WebP (max
+          2 MB).
         </p>
       </div>
 
@@ -171,26 +163,12 @@ export function ProfileAvatarSettings({ profile }: ProfileAvatarSettingsProps) {
 
           {avatarFile && (
             <span className="text-xs text-brand-lime">
-              Selected: {avatarFile.name} ({(avatarFile.size / 1024).toFixed(1)} KB)
+              Selected: {avatarFile.name} ({(avatarFile.size / 1024).toFixed(1)}{" "}
+              KB)
             </span>
           )}
 
-          {avatarMessage && (
-            <div
-              className={`flex items-center gap-2 text-xs px-3 py-2 rounded-xl w-full ${
-                avatarMessage.type === "success"
-                  ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
-                  : "bg-red-500/10 text-red-400 border border-red-500/30"
-              }`}
-            >
-              {avatarMessage.type === "success" ? (
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
-              ) : (
-                <AlertCircle className="w-4 h-4 shrink-0" />
-              )}
-              <span>{avatarMessage.text}</span>
-            </div>
-          )}
+          <SettingsMessage message={avatarMessage} className="w-full px-3 py-2" />
         </div>
       </div>
     </div>

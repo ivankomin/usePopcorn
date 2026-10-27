@@ -84,7 +84,7 @@ export function UserReviewsArchive({
     }
   };
 
-  const handleEditSuccess = (mediaId: string) => {
+  const handleEditSuccess = () => {
     setEditingMediaId(null);
     // Reload or refresh can happen via router, but local UI updates smoothly
   };
@@ -270,7 +270,7 @@ export function UserReviewsArchive({
                       initialRating={review.rating}
                       initialContent={review.content}
                       isEditing={true}
-                      onSuccess={() => handleEditSuccess(review.media_id)}
+                      onSuccess={handleEditSuccess}
                       onCancel={() => setEditingMediaId(null)}
                     />
                   </div>

@@ -89,3 +89,22 @@ export function getPasswordValidationError(password: string): string | null {
   if (result.isValid) return null;
   return `Password must include: ${result.errors.join(", ")}.`;
 }
+
+/**
+ * Validates basic email address structure (non-empty and valid format).
+ */
+export function validateEmail(email: string): string | null {
+  const trimmed = (email || "").trim();
+  if (!trimmed) {
+    return "Email address is required.";
+  }
+
+  const emailRegex =
+    /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+  if (!emailRegex.test(trimmed)) {
+    return "Please enter a valid email address (e.g., user@domain.com).";
+  }
+
+  return null;
+}
+

@@ -63,7 +63,7 @@ export function ProfileMovieCard({
         )}
 
         {/* Gradient shadow overlay for badge readability */}
-        <div className="absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-black/70 via-black/20 to-transparent pointer-events-none" />
+        <div className="absolute inset-x-0 top-0 h-14 bg-linear-to-b from-black/70 via-black/20 to-transparent pointer-events-none" />
 
         {/* Top-left: Media Type Badge */}
         <div className="absolute top-2.5 left-2.5 z-10">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import type {
@@ -43,14 +43,8 @@ export function ProfileCabinetContainer({
   const [activeTab, setActiveTab] = useState<CabinetTabId>(
     urlTab && ["overview", "watchlist", "reviews", "settings"].includes(urlTab)
       ? urlTab
-      : initialTab
+      : initialTab,
   );
-
-  useEffect(() => {
-    if (urlTab && ["overview", "watchlist", "reviews", "settings"].includes(urlTab)) {
-      setActiveTab(urlTab);
-    }
-  }, [urlTab]);
 
   const handleTabChange = (tab: CabinetTabId) => {
     setActiveTab(tab);
@@ -84,7 +78,7 @@ export function ProfileCabinetContainer({
       />
 
       {/* 3. Tab Content View */}
-      <div className="w-full min-h-[400px]">
+      <div className="w-full min-h-100">
         {activeTab === "overview" && (
           <CabinetOverview
             stats={stats}

@@ -91,6 +91,17 @@ export async function updateProfileDetails(
     });
 
     if (emailError) {
+      const errCode = (emailError as { code?: string })?.code;
+      const errMsg = emailError.message.toLowerCase();
+
+      if (errCode === "email_exists" || errMsg.includes("already been registered")) {
+        throw new Error("This email address is already in use by another account.");
+      }
+
+      if (errMsg.includes("rate limit")) {
+        throw new Error("Email request limit reached. Please wait a few minutes before trying again.");
+      }
+
       throw new Error(emailError.message);
     }
     emailChanged = true;

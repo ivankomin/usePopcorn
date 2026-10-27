@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -19,6 +20,8 @@ export async function generateMetadata() {
   };
 }
 
+export const instant = false;
+
 interface ProfilePageProps {
   searchParams: Promise<{
     tab?: string;
@@ -30,6 +33,7 @@ async function ProfileCabinetContent({
 }: {
   searchParams: ProfilePageProps["searchParams"];
 }) {
+  await connection();
   const supabase = await createClient();
   const {
     data: { user },
@@ -63,6 +67,7 @@ async function ProfileCabinetContent({
 }
 
 export default async function ProfilePage({ searchParams }: ProfilePageProps) {
+  await connection();
   return (
     <main className="min-h-screen bg-black text-white">
       <Suspense fallback={<ProfileLoading />}>

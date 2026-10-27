@@ -15,6 +15,11 @@ import {
 import Loader from "@/components/Loader";
 import Button from "@/components/Button";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  getPasswordValidationError,
+  PASSWORD_REQUIREMENTS_HINT,
+  PASSWORD_MIN_LENGTH,
+} from "@/lib/validation";
 
 function SignUpForm() {
   const router = useRouter();
@@ -54,8 +59,9 @@ function SignUpForm() {
       return;
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters long.");
+    const passwordError = getPasswordValidationError(password);
+    if (passwordError) {
+      setError(passwordError);
       setPassword("");
       setConfirmPassword("");
       return;
@@ -189,6 +195,7 @@ function SignUpForm() {
               type={showPassword ? "text" : "password"}
               autoComplete="new-password"
               required
+              minLength={PASSWORD_MIN_LENGTH}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
@@ -208,7 +215,7 @@ function SignUpForm() {
             </button>
           </div>
           <p className="text-[11px] text-neutral-500 mt-1">
-            At least 6 characters
+            {PASSWORD_REQUIREMENTS_HINT}
           </p>
         </div>
 

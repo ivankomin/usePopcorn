@@ -107,3 +107,17 @@ export interface WatchlistQueryResult {
   totalPages: number;
   statusCounts: WatchlistStatusCounts;
 }
+
+export interface UserReviewArchiveItem extends ReviewRow {
+  media?: MediaItem | null;
+}
+
+export interface UserCabinetStats {
+  watchlistTotal: number;
+  planToWatchCount: number;
+  watchedCount: number;
+  favoriteCount: number;
+  reviewsCount: number;
+  averageRatingGiven: number | null;
+}
+

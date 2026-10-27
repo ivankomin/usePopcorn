@@ -20,6 +20,8 @@ import type {
   WatchlistFilterParams,
   WatchlistQueryResult,
   WatchlistStatusCounts,
+  UserReviewArchiveItem,
+  UserCabinetStats,
 } from "@/types/media";
 
 interface MediaGenreJoin {
@@ -493,5 +495,115 @@ export async function getCurrentUserProfile(): Promise<ProfileRow | null> {
   }
 
   return data;
+}
+
+/**
+ * Fetches the archive of reviews and ratings submitted by a specific user.
+ */
+export async function getUserReviewsArchive(
+  userId: string
+): Promise<UserReviewArchiveItem[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("reviews")
+    .select("*, media:media_items(*, media_genres(genres(*)))")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching user reviews archive:", error);
+    throw error;
+  }
+
+  type RawReviewJoin = ReviewRow & {
+    media: (Omit<MediaItemRow, "metadata"> & {
+      metadata?: MediaMetadata | null;
+      media_genres?: MediaGenreJoin[] | null;
+    }) | null;
+  };
+
+  const rawRows = (data || []) as unknown as RawReviewJoin[];
+
+  return rawRows.map((entry) => {
+    if (!entry.media) return entry as UserReviewArchiveItem;
+
+    const rawGenres = entry.media.media_genres || [];
+    const genres: GenreRow[] = rawGenres
+      .map((mg) => mg.genres)
+      .filter((g): g is GenreRow => Boolean(g));
+
+    const { media_genres: _mg, ...mediaFields } = entry.media;
+
+    return {
+      ...entry,
+      media: {
+        ...mediaFields,
+        genres,
+      },
+    };
+  });
+}
+
+/**
+ * Aggregates statistics for the user cabinet (watchlists, reviews, average rating).
+ */
+export async function getUserCabinetStats(
+  userId: string
+): Promise<UserCabinetStats> {
+  const supabase = await createClient();
+
+  // Watchlist stats
+  const { data: watchlistData, error: wlError } = await supabase
+    .from("watchlists")
+    .select("status")
+    .eq("user_id", userId);
+
+  if (wlError) {
+    console.error("Error fetching watchlist stats:", wlError);
+  }
+
+  const wlItems = watchlistData || [];
+  let planToWatchCount = 0;
+  let watchedCount = 0;
+  let favoriteCount = 0;
+
+  for (const item of wlItems) {
+    if (item.status === "plan_to_watch") planToWatchCount++;
+    else if (item.status === "watched") watchedCount++;
+    else if (item.status === "favorite") favoriteCount++;
+  }
+
+  // Reviews stats
+  const { data: reviewData, error: revError } = await supabase
+    .from("reviews")
+    .select("rating")
+    .eq("user_id", userId);
+
+  if (revError) {
+    console.error("Error fetching review stats:", revError);
+  }
+
+  const reviews = reviewData || [];
+  const reviewsCount = reviews.length;
+  const ratingsWithScore = reviews.filter(
+    (r) => typeof r.rating === "number" && r.rating !== null
+  );
+  const averageRatingGiven =
+    ratingsWithScore.length > 0
+      ? Math.round(
+          (ratingsWithScore.reduce((sum, r) => sum + (r.rating || 0), 0) /
+            ratingsWithScore.length) *
+            10
+        ) / 10
+      : null;
+
+  return {
+    watchlistTotal: wlItems.length,
+    planToWatchCount,
+    watchedCount,
+    favoriteCount,
+    reviewsCount,
+    averageRatingGiven,
+  };
 }
 

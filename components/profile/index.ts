@@ -7,3 +7,4 @@ export * from "./UserReviewsArchive";
 export * from "./ProfileSettings";
 export * from "./ProfileCabinetContainer";
 export * from "./ProfileMovieCard";
+export * from "./settings";

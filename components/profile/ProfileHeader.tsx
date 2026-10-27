@@ -4,24 +4,43 @@ import Image from "next/image";
 import { Mail, Calendar } from "lucide-react";
 import type { ProfileRow } from "@/types/media";
 import { formatDate } from "@/lib/utils";
+import { useProfile } from "@/hooks/useProfile";
 import { ProfileRoleBadge } from "./ProfileRoleBadge";
 
 export interface ProfileHeaderProps {
-  profile: ProfileRow | null;
+  profile?: ProfileRow | null;
   userEmail?: string | null;
   userCreatedAt?: string | null;
 }
 
 export function ProfileHeader({
-  profile,
-  userEmail,
-  userCreatedAt,
+  profile: initialProfile,
+  userEmail: initialUserEmail,
+  userCreatedAt: initialUserCreatedAt,
 }: ProfileHeaderProps) {
+  const {
+    profile,
+    username: liveUsername,
+    avatarUrl: liveAvatarUrl,
+    email: liveEmail,
+    user,
+  } = useProfile();
+
   const username =
-    profile?.username || userEmail?.split("@")[0] || "Popcorn Enthusiast";
-  const avatarUrl = profile?.avatar_url;
+    liveUsername ||
+    initialProfile?.username ||
+    initialUserEmail?.split("@")[0] ||
+    "Popcorn Enthusiast";
+  const avatarUrl = liveAvatarUrl || initialProfile?.avatar_url;
   const initial = username.charAt(0).toUpperCase();
-  const joinedDate = formatDate(profile?.created_at || userCreatedAt);
+  const joinedDate = formatDate(
+    profile?.created_at ||
+      initialProfile?.created_at ||
+      user?.created_at ||
+      initialUserCreatedAt,
+  );
+  const displayEmail = liveEmail || initialUserEmail;
+  const role = profile?.role || initialProfile?.role;
 
   return (
     <div className="relative overflow-hidden rounded-2xl bg-brand-surface border border-neutral-800 p-6 sm:p-8 shadow-xl">
@@ -52,14 +71,14 @@ export function ProfileHeader({
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
               {username}
             </h1>
-            <ProfileRoleBadge role={profile?.role} />
+            <ProfileRoleBadge role={role} />
           </div>
 
           <div className="flex flex-wrap items-center gap-y-1.5 gap-x-4 text-xs sm:text-sm text-neutral-400">
-            {userEmail && (
+            {displayEmail && (
               <div className="flex items-center gap-1.5">
                 <Mail className="w-4 h-4 text-neutral-500" />
-                <span>{userEmail}</span>
+                <span>{displayEmail}</span>
               </div>
             )}
             {joinedDate && (

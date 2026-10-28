@@ -215,6 +215,27 @@ export type Database = {
           },
         ]
       }
+      system_state: {
+        Row: {
+          id: string
+          message: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          id: string
+          message?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          message?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       watchlists: {
         Row: {
           created_at: string

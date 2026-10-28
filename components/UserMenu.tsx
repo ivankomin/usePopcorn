@@ -3,7 +3,13 @@
 import { useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { User as UserIcon, Bookmark, LogOut, ChevronDown } from "lucide-react";
+import {
+  User as UserIcon,
+  Bookmark,
+  LogOut,
+  ChevronDown,
+  ShieldCheck,
+} from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOutsideClick } from "@/hooks/useOutsideClick";
 
@@ -70,11 +76,6 @@ export default function UserMenu() {
               <span className="font-semibold text-white text-sm truncate">
                 {displayName}
               </span>
-              {profile?.role === "admin" && (
-                <span className="text-[10px] bg-brand-lime/10 text-brand-lime border border-brand-lime/30 px-1.5 py-0.5 rounded font-mono uppercase">
-                  Admin
-                </span>
-              )}
             </div>
             <p className="text-xs text-neutral-400 truncate mt-0.5">
               {displayEmail}
@@ -83,6 +84,17 @@ export default function UserMenu() {
 
           {/* Navigation Links */}
           <div className="space-y-0.5">
+            {profile?.role === "admin" && (
+              <Link
+                href="/admin"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-brand-lime hover:bg-brand-lime/10 transition-colors font-semibold"
+              >
+                <ShieldCheck className="w-4 h-4 text-brand-lime shrink-0" />
+                <span>Admin Dashboard</span>
+              </Link>
+            )}
+
             <Link
               href="/profile"
               onClick={() => setIsOpen(false)}

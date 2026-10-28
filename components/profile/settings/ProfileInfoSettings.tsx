@@ -78,8 +78,8 @@ export function ProfileInfoSettings({
 
       if (emailChanged) {
         setInfoMessage({
-          type: "info",
-          text: "Profile updated! A confirmation link has been sent to your new email address to complete the change.",
+          type: "success",
+          text: "Profile details and email updated successfully!",
         });
       } else {
         setInfoMessage({

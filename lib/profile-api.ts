@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { updateUserEmailAction } from "@/app/actions/profile";
 
 export interface UploadAvatarResult {
   publicUrl: string;
@@ -84,27 +85,15 @@ export async function updateProfileDetails(
   const { userId, currentEmail, newUsername, newEmail } = params;
   let emailChanged = false;
 
-  // 1. Update Email in Supabase Auth if changed
+  // 1. Update Email via Server Action if changed (bypasses Supabase email service rate limits)
   if (newEmail !== (currentEmail || "").toLowerCase()) {
-    const { error: emailError } = await client.auth.updateUser({
-      email: newEmail,
-    });
-
-    if (emailError) {
-      const errCode = (emailError as { code?: string })?.code;
-      const errMsg = emailError.message.toLowerCase();
-
-      if (errCode === "email_exists" || errMsg.includes("already been registered")) {
-        throw new Error("This email address is already in use by another account.");
-      }
-
-      if (errMsg.includes("rate limit")) {
-        throw new Error("Email request limit reached. Please wait a few minutes before trying again.");
-      }
-
-      throw new Error(emailError.message);
+    const emailResult = await updateUserEmailAction(newEmail);
+    if (!emailResult.success) {
+      throw new Error(emailResult.error || "Failed to update email address.");
     }
     emailChanged = true;
+    // Refresh client auth session so that the updated email is reflected locally
+    await client.auth.refreshSession();
   }
 
   // 2. Update Username in public.profiles

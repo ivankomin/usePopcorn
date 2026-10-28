@@ -78,9 +78,15 @@ export function AuthProvider({
 
   const refreshProfile = useCallback(async () => {
     if (userId) {
+      const {
+        data: { user: currentUser },
+      } = await supabase.auth.getUser();
+      if (currentUser) {
+        setUser(currentUser);
+      }
       await fetchProfile(userId);
     }
-  }, [userId, fetchProfile]);
+  }, [userId, fetchProfile, supabase]);
 
   const signIn = useCallback(
     async (

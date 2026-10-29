@@ -3,7 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { MediaMetadata } from "@/types/media";
+import type {
+  MediaMetadata,
+  ModeratedReviewItem,
+  ModeratedReviewsResult,
+  ReviewModerationStatus,
+} from "@/types/media";
 import type { Json } from "@/types/database.types";
 
 export interface SystemStateData {
@@ -335,3 +340,228 @@ export async function createMediaItemAction(
     return { success: false, error: message };
   }
 }
+
+export interface GetModeratedReviewsParams {
+  status?: "all" | ReviewModerationStatus;
+  search?: string;
+  sortBy?: "newest" | "oldest" | "rating_desc" | "rating_asc";
+  page?: number;
+  pageSize?: number;
+}
+
+/**
+ * Fetches all user reviews with associated user profile and target media item details,
+ * supporting filtering by status, search, and sorting.
+ */
+export async function getModeratedReviewsAction(
+  params: GetModeratedReviewsParams = {}
+): Promise<ActionResult<ModeratedReviewsResult>> {
+  const auth = await verifyAdminSession();
+  if (!auth.isAdmin) {
+    return { success: false, error: auth.error || "Unauthorized" };
+  }
+
+  const {
+    status = "all",
+    search = "",
+    sortBy = "newest",
+    page = 1,
+    pageSize = 15,
+  } = params;
+
+  try {
+    const adminClient = createAdminClient();
+
+    // 1. Fetch Status Counts in parallel
+    const [allCountRes, approvedCountRes, pendingCountRes, flaggedCountRes] =
+      await Promise.all([
+        adminClient.from("reviews").select("*", { count: "exact", head: true }),
+        adminClient
+          .from("reviews")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "approved"),
+        adminClient
+          .from("reviews")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "pending"),
+        adminClient
+          .from("reviews")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "flagged"),
+      ]);
+
+    const statusCounts = {
+      all: allCountRes.count ?? 0,
+      approved: approvedCountRes.count ?? 0,
+      pending: pendingCountRes.count ?? 0,
+      flagged: flaggedCountRes.count ?? 0,
+    };
+
+    // 2. Build filtered review query
+    let query = adminClient
+      .from("reviews")
+      .select(
+        `
+        id,
+        user_id,
+        media_id,
+        rating,
+        content,
+        status,
+        created_at,
+        updated_at,
+        profile:profiles!reviews_user_id_fkey(
+          id,
+          username,
+          avatar_url,
+          role
+        ),
+        media:media_items!reviews_media_id_fkey(
+          id,
+          title,
+          release_year,
+          poster_path,
+          media_type
+        )
+      `,
+        { count: "exact" }
+      );
+
+    if (status !== "all") {
+      query = query.eq("status", status);
+    }
+
+    if (search.trim()) {
+      const term = `%${search.trim()}%`;
+      query = query.ilike("content", term);
+    }
+
+    // 3. Sorting
+    switch (sortBy) {
+      case "oldest":
+        query = query.order("created_at", { ascending: true });
+        break;
+      case "rating_desc":
+        query = query.order("rating", { ascending: false, nullsFirst: false });
+        break;
+      case "rating_asc":
+        query = query.order("rating", { ascending: true, nullsFirst: false });
+        break;
+      case "newest":
+      default:
+        query = query.order("created_at", { ascending: false });
+        break;
+    }
+
+    // 4. Pagination
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+    query = query.range(from, to);
+
+    const { data, count, error } = await query;
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    const total = count ?? 0;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+    return {
+      success: true,
+      data: {
+        reviews: (data as unknown as ModeratedReviewItem[]) || [],
+        total,
+        page,
+        pageSize,
+        totalPages,
+        statusCounts,
+      },
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Failed to load reviews.";
+    return { success: false, error: msg };
+  }
+}
+
+/**
+ * Updates the moderation status of a review (approved, pending, or flagged).
+ * The PostgreSQL database trigger automatically recalculates average rating and vote count.
+ */
+export async function updateReviewStatusAction(
+  reviewId: string,
+  newStatus: ReviewModerationStatus
+): Promise<ActionResult> {
+  const auth = await verifyAdminSession();
+  if (!auth.isAdmin) {
+    return { success: false, error: auth.error || "Unauthorized" };
+  }
+
+  const validStatuses: ReviewModerationStatus[] = ["approved", "pending", "flagged"];
+  if (!validStatuses.includes(newStatus)) {
+    return { success: false, error: "Invalid status value" };
+  }
+
+  try {
+    const adminClient = createAdminClient();
+    const { data: updatedReview, error } = await adminClient
+      .from("reviews")
+      .update({
+        status: newStatus,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", reviewId)
+      .select("media_id")
+      .single();
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    revalidatePath("/admin/reviews");
+    if (updatedReview?.media_id) {
+      revalidatePath(`/movie/${updatedReview.media_id}`);
+    }
+
+    return { success: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Failed to update review status.";
+    return { success: false, error: msg };
+  }
+}
+
+/**
+ * Permanently deletes an inappropriate or spam review.
+ * The PostgreSQL database trigger automatically recalculates average rating and vote count.
+ */
+export async function deleteReviewAction(reviewId: string): Promise<ActionResult> {
+  const auth = await verifyAdminSession();
+  if (!auth.isAdmin) {
+    return { success: false, error: auth.error || "Unauthorized" };
+  }
+
+  try {
+    const adminClient = createAdminClient();
+    const { data: deletedReview, error } = await adminClient
+      .from("reviews")
+      .delete()
+      .eq("id", reviewId)
+      .select("media_id")
+      .single();
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    revalidatePath("/admin/reviews");
+    if (deletedReview?.media_id) {
+      revalidatePath(`/movie/${deletedReview.media_id}`);
+    }
+
+    return { success: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Failed to delete review.";
+    return { success: false, error: msg };
+  }
+}
+

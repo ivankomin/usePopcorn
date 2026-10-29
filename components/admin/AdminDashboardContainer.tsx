@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { PlusCircle, Film, List } from "lucide-react";
 import Button from "@/components/Button";
+import { AdminNavTabs } from "./AdminNavTabs";
 import { SystemStatusCard } from "./SystemStatusCard";
 import { AddMediaForm } from "./AddMediaForm";
 import { AdminRecentMedia } from "./AdminRecentMedia";
@@ -27,9 +28,11 @@ export function AdminDashboardContainer({
   const [isFormOpen, setIsFormOpen] = useState(true);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      <AdminNavTabs />
+
       {/* Admin Dashboard Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-neutral-800">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
             Admin Dashboard

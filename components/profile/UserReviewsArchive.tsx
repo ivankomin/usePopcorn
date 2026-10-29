@@ -289,7 +289,7 @@ export function UserReviewsArchive({
                     <div className="flex items-center justify-between text-xs text-neutral-500 mt-2">
                       <span>Evaluated on {reviewDate}</span>
                       {review.status !== "approved" && (
-                        <span className="text-[10px] font-mono uppercase bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 px-2 py-0.5 rounded">
+                        <span className="text-[11px] font-mono uppercase bg-yellow-500 text-black px-2 py-0.5 rounded">
                           {review.status}
                         </span>
                       )}
@@ -299,7 +299,7 @@ export function UserReviewsArchive({
 
                 {/* Delete Confirmation Alert Banner */}
                 {isConfirming && (
-                  <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in duration-200">
+                  <div className=" rounded-xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in duration-200">
                     <div className="flex items-center gap-2 text-xs text-red-300">
                       <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
                       <span>

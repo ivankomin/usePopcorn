@@ -121,3 +121,27 @@ export interface UserCabinetStats {
   averageRatingGiven: number | null;
 }
 
+export type ReviewModerationStatus = "approved" | "pending" | "flagged";
+
+export interface ModeratedReviewItem extends ReviewRow {
+  profile?: Pick<ProfileRow, "id" | "username" | "avatar_url" | "role"> | null;
+  media?: Pick<MediaItemRow, "id" | "title" | "release_year" | "poster_path" | "media_type"> | null;
+}
+
+export interface ModeratedReviewsCounts {
+  all: number;
+  approved: number;
+  pending: number;
+  flagged: number;
+}
+
+export interface ModeratedReviewsResult {
+  reviews: ModeratedReviewItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  statusCounts: ModeratedReviewsCounts;
+}
+
+

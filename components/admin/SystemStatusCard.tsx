@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Activity, Lock, Unlock, RefreshCw, AlertTriangle, CheckCircle2 } from "lucide-react";
+import {
+  Activity,
+  Lock,
+  Unlock,
+  RefreshCw,
+  AlertTriangle,
+  CheckCircle2,
+} from "lucide-react";
 import Button from "@/components/Button";
 import { setSystemStateAction } from "@/app/actions/admin";
 
@@ -14,7 +21,6 @@ export interface SystemStatusCardProps {
 
 export function SystemStatusCard({
   status: currentStatus,
-  message,
   updatedAt,
   onStatusChange,
 }: SystemStatusCardProps) {
@@ -78,20 +84,8 @@ export function SystemStatusCard({
       {/* Description & Action */}
       <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs">
         <div className="space-y-1">
-          <p className="text-neutral-300">
-            {isFree ? (
-              <span className="text-emerald-300">
-                System is available for manual movie ingestion and catalog adjustments.
-              </span>
-            ) : (
-              <span className="text-amber-300 font-medium">
-                System is updating. Ingestion is locked (&quot;Try again later&quot; constraint active).
-              </span>
-            )}
-          </p>
-          {message && <p className="text-neutral-400 font-mono text-[11px]">{message}</p>}
           {updatedAt && (
-            <p className="text-neutral-500 text-[11px]">
+            <p className="text-neutral-400 text-[12px]">
               Last updated: {new Date(updatedAt).toLocaleString()}
             </p>
           )}
@@ -112,15 +106,15 @@ export function SystemStatusCard({
             ) : (
               <Unlock className="w-3.5 h-3.5 mr-1.5 text-brand-lime" />
             )}
-            {isFree ? "Simulate Sync Lock (Set Updating)" : "Unlock System (Set Free)"}
+            {isFree
+              ? "Simulate Sync Lock (Set Updating)"
+              : "Unlock System (Set Free)"}
           </Button>
         </div>
       </div>
 
       {feedback && (
-        <p className="mt-3 text-xs text-brand-lime font-mono">
-          {feedback}
-        </p>
+        <p className="mt-3 text-xs text-brand-lime font-mono">{feedback}</p>
       )}
     </div>
   );

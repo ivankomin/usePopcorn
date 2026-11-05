@@ -49,7 +49,7 @@ export function AdminDashboardContainer({
             {isFormOpen ? (
               <>
                 <List className="w-4 h-4 mr-1.5" />
-                <span>Hide Ingestion Form</span>
+                <span>Hide Form</span>
               </>
             ) : (
               <>

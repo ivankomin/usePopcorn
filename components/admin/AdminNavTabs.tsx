@@ -25,7 +25,7 @@ export function AdminNavTabs() {
           }`}
         >
           <Film className="w-4 h-4 shrink-0" />
-          <span>Catalog & System Ingestion</span>
+          <span>Catalog Management</span>
         </Link>
 
         <Link

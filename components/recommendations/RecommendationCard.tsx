@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { Plus, Check, Star, Sparkles, Award } from "lucide-react";
+import { Plus, Check, Star } from "lucide-react";
 import type { RecommendedMediaItem } from "@/types/media";
 import { formatRuntime, getPosterUrl } from "@/lib/utils";
 import { useWatchlist } from "@/hooks/useWatchlist";
@@ -37,7 +37,7 @@ export function RecommendationCard({
   item,
   onUserInteraction,
 }: RecommendationCardProps) {
-  const { media, matchPercent, matchReasons, isPersonalized } = item;
+  const { media, matchReasons } = item;
   const router = useRouter();
   const { user } = useAuth();
   const { isInWatchlist, toggleWatchlist } = useWatchlist();

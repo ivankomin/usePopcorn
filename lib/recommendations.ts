@@ -7,7 +7,6 @@ import type {
   RecommendedMediaItem,
   RecommendationsResult,
   SimilarMediaItem,
-  TasteGenreStat,
   UserTasteProfile,
 } from "@/types/media";
 
@@ -92,14 +91,10 @@ async function hydrateMediaItemsByIds(
   return map;
 }
 
-function buildGuestProfile(): UserTasteProfile {
+function buildColdProfile(): UserTasteProfile {
   return {
-    isAuthenticated: false,
-    stage: "guest",
+    stage: "cold",
     signalCount: 0,
-    reviewsCount: 0,
-    watchlistCount: 0,
-    positiveCount: 0,
     topGenres: [],
     preferredDecade: null,
     movieRatio: 50,
@@ -112,7 +107,7 @@ async function computeUserTasteProfile(
   userId: string | null,
 ): Promise<UserTasteProfile> {
   if (!userId) {
-    return buildGuestProfile();
+    return buildColdProfile();
   }
 
   const [{ data: reviews, error: revErr }, { data: watchlists, error: wlErr }] =
@@ -145,22 +140,9 @@ async function computeUserTasteProfile(
   );
 
   const signalCount = allMediaIds.length;
-  const reviewsCount = (reviews || []).length;
-  const watchlistCount = (watchlists || []).length;
 
   if (signalCount === 0) {
-    return {
-      isAuthenticated: true,
-      stage: "cold",
-      signalCount: 0,
-      reviewsCount,
-      watchlistCount,
-      positiveCount: 0,
-      topGenres: [],
-      preferredDecade: null,
-      movieRatio: 50,
-      tvRatio: 50,
-    };
+    return buildColdProfile();
   }
 
   const { data: mediaRows, error: mediaErr } = await supabase
@@ -222,25 +204,11 @@ async function computeUserTasteProfile(
     }
   }
 
-  const positiveGenres = Array.from(genreWeights.entries())
+  const topGenres = Array.from(genreWeights.entries())
     .filter(([, w]) => w > 0)
-    .sort((a, b) => b[1] - a[1]);
-
-  const totalPositiveGenreWeight = positiveGenres.reduce(
-    (acc, [, w]) => acc + w,
-    0,
-  );
-
-  const topGenres: TasteGenreStat[] = positiveGenres
+    .sort((a, b) => b[1] - a[1])
     .slice(0, 4)
-    .map(([name, weight]) => ({
-      name,
-      weight: Number(weight.toFixed(2)),
-      sharePercent:
-        totalPositiveGenreWeight > 0
-          ? Math.round((weight / totalPositiveGenreWeight) * 100)
-          : 0,
-    }));
+    .map(([name]) => name);
 
   const preferredDecade =
     positiveWeightSum > 0
@@ -254,19 +222,11 @@ async function computeUserTasteProfile(
   const tvRatio = positiveWeightSum > 0 ? 100 - movieRatio : 50;
 
   const stage: UserTasteProfile["stage"] =
-    signalCount === 0
-      ? "cold"
-      : signalCount < 3 || positiveCount === 0
-        ? "warming"
-        : "personalized";
+    signalCount < 3 || positiveCount === 0 ? "warming" : "personalized";
 
   return {
-    isAuthenticated: true,
     stage,
     signalCount,
-    reviewsCount,
-    watchlistCount,
-    positiveCount,
     topGenres,
     preferredDecade,
     movieRatio,
@@ -302,8 +262,6 @@ export async function getUserRecommendations(options?: {
     console.error("Error fetching user recommendations RPC:", rpcError);
     return {
       items: [],
-      isPersonalized: false,
-      signalCount: tasteProfile.signalCount,
       tasteProfile,
     };
   }
@@ -318,20 +276,12 @@ export async function getUserRecommendations(options?: {
     if (!media) continue;
     items.push({
       media,
-      score: row.score,
-      matchPercent: row.match_percent,
       matchReasons: row.match_reasons || [],
-      isPersonalized: row.is_personalized,
     });
   }
 
-  const isPersonalized = rows.some((r) => r.is_personalized);
-  const signalCount = rows[0]?.signal_count ?? tasteProfile.signalCount;
-
   return {
     items,
-    isPersonalized,
-    signalCount,
     tasteProfile,
   };
 }
@@ -368,7 +318,6 @@ export async function getSimilarMedia(
     if (!media) continue;
     items.push({
       media,
-      score: row.score,
       matchPercent: row.match_percent,
       matchReasons: row.match_reasons || [],
     });

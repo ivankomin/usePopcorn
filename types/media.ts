@@ -146,33 +146,19 @@ export interface ModeratedReviewsResult {
 
 export interface RecommendedMediaItem {
   media: MediaItem;
-  score: number;
-  matchPercent: number;
   matchReasons: string[];
-  isPersonalized: boolean;
 }
 
 export interface SimilarMediaItem {
   media: MediaItem;
-  score: number;
   matchPercent: number;
   matchReasons: string[];
 }
 
-export interface TasteGenreStat {
-  name: string;
-  weight: number;
-  sharePercent: number;
-}
-
 export interface UserTasteProfile {
-  isAuthenticated: boolean;
-  stage: "guest" | "cold" | "warming" | "personalized";
+  stage: "cold" | "warming" | "personalized";
   signalCount: number;
-  reviewsCount: number;
-  watchlistCount: number;
-  positiveCount: number;
-  topGenres: TasteGenreStat[];
+  topGenres: string[];
   preferredDecade: string | null;
   movieRatio: number;
   tvRatio: number;
@@ -180,8 +166,6 @@ export interface UserTasteProfile {
 
 export interface RecommendationsResult {
   items: RecommendedMediaItem[];
-  isPersonalized: boolean;
-  signalCount: number;
   tasteProfile: UserTasteProfile;
 }
 

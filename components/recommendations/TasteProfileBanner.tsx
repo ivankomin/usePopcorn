@@ -4,11 +4,9 @@ import { useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Sparkles,
   RefreshCw,
   Film,
   Tv,
-  Calendar,
   Compass,
   CircleHelp,
 } from "lucide-react";
@@ -28,11 +26,6 @@ export function TasteProfileBanner({ profile }: TasteProfileBannerProps) {
       router.refresh();
     });
   };
-
-  // Unauthenticated users are redirected away from /recommendations
-  if (profile.stage === "guest") {
-    return null;
-  }
 
   // Cold-start (0 signals) or warming (1–2 signals)
   if (profile.stage === "cold" || profile.stage === "warming") {
@@ -106,12 +99,12 @@ export function TasteProfileBanner({ profile }: TasteProfileBannerProps) {
             </span>
             {profile.topGenres.map((genre) => (
               <Link
-                key={genre.name}
-                href={`/catalog?genres=${encodeURIComponent(genre.name)}`}
-                title={`Browse all ${genre.name} titles`}
+                key={genre}
+                href={`/catalog?genres=${encodeURIComponent(genre)}`}
+                title={`Browse all ${genre} titles`}
                 className="px-3 py-1 bg-[#85c355] hover:bg-[#9ded5b] text-black font-bold text-xs rounded-lg uppercase tracking-wide shadow-sm transition-all hover:scale-102 cursor-pointer"
               >
-                {genre.name}
+                {genre}
               </Link>
             ))}
           </div>
@@ -153,12 +146,12 @@ export function TasteProfileBanner({ profile }: TasteProfileBannerProps) {
             {profile.topGenres.length > 0 ? (
               profile.topGenres.map((genre) => (
                 <Link
-                  key={genre.name}
-                  href={`/catalog?genres=${encodeURIComponent(genre.name)}`}
-                  title={`Browse all ${genre.name} titles`}
+                  key={genre}
+                  href={`/catalog?genres=${encodeURIComponent(genre)}`}
+                  title={`Browse all ${genre} titles`}
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#85c355] hover:bg-[#9ded5b] text-black font-bold text-xs rounded-lg uppercase tracking-wide shadow-sm transition-all hover:scale-102 cursor-pointer"
                 >
-                  <span>{genre.name}</span>
+                  <span>{genre}</span>
                 </Link>
               ))
             ) : (

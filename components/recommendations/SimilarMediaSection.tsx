@@ -13,7 +13,7 @@ interface SimilarMediaSectionProps {
 }
 
 function SimilarMediaCard({ item }: { item: SimilarMediaItem }) {
-  const { media, matchPercent, matchReasons } = item;
+  const { media } = item;
   const [imageError, setImageError] = useState(false);
 
   const posterSrc = getPosterUrl(media.poster_path, "w500");

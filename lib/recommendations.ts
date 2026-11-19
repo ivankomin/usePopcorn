@@ -112,18 +112,17 @@ async function computeUserTasteProfile(
 
   const [{ data: reviews, error: revErr }, { data: watchlists, error: wlErr }] =
     await Promise.all([
-      supabase
-        .from("reviews")
-        .select("media_id, rating")
-        .eq("user_id", userId),
+      supabase.from("reviews").select("media_id, rating").eq("user_id", userId),
       supabase
         .from("watchlists")
         .select("media_id, status")
         .eq("user_id", userId),
     ]);
 
-  if (revErr) console.error("Error fetching user reviews for taste profile:", revErr);
-  if (wlErr) console.error("Error fetching user watchlists for taste profile:", wlErr);
+  if (revErr)
+    console.error("Error fetching user reviews for taste profile:", revErr);
+  if (wlErr)
+    console.error("Error fetching user watchlists for taste profile:", wlErr);
 
   const reviewMap = new Map<string, number | null>();
   for (const r of reviews || []) {
@@ -325,8 +324,6 @@ export async function getSimilarMedia(
     if (!media) continue;
     items.push({
       media,
-      matchPercent: row.match_percent,
-      matchReasons: row.match_reasons || [],
     });
   }
 

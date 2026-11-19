@@ -89,14 +89,11 @@ export function ReviewForm({
       <div className="flex items-center justify-between flex-wrap gap-2 border-b border-neutral-800/80 pb-4">
         <div className="flex items-center gap-2">
           <h3 className="text-lg font-bold text-white tracking-tight">
-            {isEditing ? "Edit Your Rating & Review" : "Add Your Rating & Review"}
+            {isEditing
+              ? "Edit Your Rating & Review"
+              : "Add Your Rating & Review"}
           </h3>
         </div>
-        <span className="text-xs text-neutral-400">
-          {isEditing
-            ? "Update your score or critique"
-            : "Rating & review can be submitted together or independently"}
-        </span>
       </div>
 
       {/* Star Rating Selector */}

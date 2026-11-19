@@ -55,7 +55,11 @@ async function RecommendationsContent({
 
       </div>
 
-      <RecommendationsGrid items={result.items} mediaType={mediaType} />
+      <RecommendationsGrid
+        items={result.items}
+        mediaType={mediaType}
+        autoRefreshOnInteraction={result.tasteProfile.stage !== "personalized"}
+      />
     </div>
   );
 }

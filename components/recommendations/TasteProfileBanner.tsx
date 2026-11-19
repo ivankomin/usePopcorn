@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useEffect, useMemo, useRef, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -11,15 +11,86 @@ import {
   CircleHelp,
 } from "lucide-react";
 import Button from "@/components/Button";
+import { useWatchlist } from "@/hooks/useWatchlist";
+import { useRatings } from "@/hooks/useRatings";
 import type { UserTasteProfile } from "@/types/media";
 
 interface TasteProfileBannerProps {
   profile: UserTasteProfile;
 }
 
+function getGenreLabel(genre: unknown): string | null {
+  if (typeof genre === "string") {
+    const trimmed = genre.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+  if (
+    genre &&
+    typeof genre === "object" &&
+    "name" in genre &&
+    typeof (genre as { name?: unknown }).name === "string"
+  ) {
+    const trimmed = (genre as { name: string }).name.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+  return null;
+}
+
 export function TasteProfileBanner({ profile }: TasteProfileBannerProps) {
   const router = useRouter();
   const [isRefreshing, startRefreshing] = useTransition();
+  const { watchlistIds, isLoading: isWatchlistLoading } = useWatchlist();
+  const { userRatings, userReviews, isLoading: isRatingsLoading } =
+    useRatings();
+  const hasCheckedInitialSyncRef = useRef(false);
+
+  const liveSignalCount = useMemo(() => {
+    if (isWatchlistLoading || isRatingsLoading) {
+      return profile.signalCount;
+    }
+    const ids = new Set<string>(watchlistIds);
+    for (const id of userReviews.keys()) {
+      ids.add(id);
+    }
+    for (const id of userRatings.keys()) {
+      ids.add(id);
+    }
+    return ids.size;
+  }, [
+    isWatchlistLoading,
+    isRatingsLoading,
+    watchlistIds,
+    userReviews,
+    userRatings,
+    profile.signalCount,
+  ]);
+
+  const topGenres = useMemo(
+    () =>
+      (profile.topGenres || [])
+        .map((genre) => getGenreLabel(genre))
+        .filter((name): name is string => name !== null),
+    [profile.topGenres],
+  );
+
+  // Sync if the page loaded from a stale prefetched server payload after interacting elsewhere
+  useEffect(() => {
+    if (isWatchlistLoading || isRatingsLoading) return;
+    if (hasCheckedInitialSyncRef.current) return;
+    hasCheckedInitialSyncRef.current = true;
+
+    if (liveSignalCount !== profile.signalCount) {
+      startRefreshing(() => {
+        router.refresh();
+      });
+    }
+  }, [
+    isWatchlistLoading,
+    isRatingsLoading,
+    liveSignalCount,
+    profile.signalCount,
+    router,
+  ]);
 
   const handleRefresh = () => {
     startRefreshing(() => {
@@ -29,8 +100,11 @@ export function TasteProfileBanner({ profile }: TasteProfileBannerProps) {
 
   // Cold-start (0 signals) or warming (1–2 signals)
   if (profile.stage === "cold" || profile.stage === "warming") {
-    const progress = Math.min(3, profile.signalCount);
+    const progress = Math.min(3, liveSignalCount);
     const progressPercent = Math.round((progress / 3) * 100);
+    const effectiveStage = liveSignalCount === 0 ? "cold" : "warming";
+    const isUnlocking =
+      liveSignalCount >= 3 && liveSignalCount !== profile.signalCount;
 
     return (
       <section className="bg-[#181818] border border-neutral-800 rounded-2xl p-6 sm:p-7 flex flex-col gap-5">
@@ -38,25 +112,29 @@ export function TasteProfileBanner({ profile }: TasteProfileBannerProps) {
           <div className="space-y-1.5 max-w-2xl">
             <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-brand-lime">
               <span>
-                {profile.stage === "cold"
+                {effectiveStage === "cold"
                   ? "Build Your Taste Profile"
                   : "Warming Up Your Profile"}
               </span>
             </div>
             <h2 className="text-lg sm:text-xl font-bold text-white">
-              {profile.stage === "cold"
+              {effectiveStage === "cold"
                 ? "Rate or favorite 3 titles to unlock personalized picks"
-                : `${progress} of 3 titles recorded — early personalized picks are live!`}
+                : isUnlocking
+                  ? "3 of 3 titles recorded — unlocking your personalized profile..."
+                  : progress >= 3
+                    ? "Rate a title positively or add a favorite to unlock personalized picks"
+                    : `${progress} of 3 titles recorded — early personalized picks are live!`}
             </h2>
             <p className="text-sm text-neutral-400 leading-relaxed">
-              {profile.stage === "cold"
+              {effectiveStage === "cold"
                 ? "Until you interact with a few titles, we've curated diverse top-rated movies and series across genres below. You can rate or add any card directly here."
                 : "Add a couple more ratings or favorites to sharpen genre, director, cast, and era matching."}
             </p>
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
-            {profile.stage === "warming" && (
+            {effectiveStage === "warming" && (
               <button
                 type="button"
                 onClick={handleRefresh}
@@ -92,12 +170,12 @@ export function TasteProfileBanner({ profile }: TasteProfileBannerProps) {
           </div>
         </div>
 
-        {profile.topGenres.length > 0 && (
+        {topGenres.length > 0 && (
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <span className="text-xs text-neutral-400 mr-1">
               Emerging genres:
             </span>
-            {profile.topGenres.map((genre) => (
+            {topGenres.map((genre) => (
               <Link
                 key={genre}
                 href={`/catalog?genres=${encodeURIComponent(genre)}`}
@@ -143,8 +221,8 @@ export function TasteProfileBanner({ profile }: TasteProfileBannerProps) {
             Top Genres
           </span>
           <div className="flex flex-wrap items-center gap-2">
-            {profile.topGenres.length > 0 ? (
-              profile.topGenres.map((genre) => (
+            {topGenres.length > 0 ? (
+              topGenres.map((genre) => (
                 <Link
                   key={genre}
                   href={`/catalog?genres=${encodeURIComponent(genre)}`}

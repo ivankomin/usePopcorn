@@ -10,11 +10,13 @@ import { RecommendationCard } from "./RecommendationCard";
 interface RecommendationsGridProps {
   items: RecommendedMediaItem[];
   mediaType: "all" | "movie" | "tv";
+  autoRefreshOnInteraction?: boolean;
 }
 
 export function RecommendationsGrid({
   items,
   mediaType,
+  autoRefreshOnInteraction = false,
 }: RecommendationsGridProps) {
   const router = useRouter();
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
@@ -25,6 +27,16 @@ export function RecommendationsGrid({
       setHasPendingChanges(false);
       router.refresh();
     });
+  };
+
+  const handleUserInteraction = () => {
+    if (autoRefreshOnInteraction) {
+      startRefreshing(() => {
+        router.refresh();
+      });
+    } else {
+      setHasPendingChanges(true);
+    }
   };
 
   if (items.length === 0) {
@@ -80,7 +92,7 @@ export function RecommendationsGrid({
           <RecommendationCard
             key={item.media.id}
             item={item}
-            onUserInteraction={() => setHasPendingChanges(true)}
+            onUserInteraction={handleUserInteraction}
           />
         ))}
       </div>

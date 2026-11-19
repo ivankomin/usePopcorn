@@ -101,8 +101,8 @@ export function RecommendationCard({
     if (!newStars) return;
     const score10 = Math.round(newStars * 2);
     setIsRatingOpen(false);
-    await rateMedia(media.id, score10);
-    if (onUserInteraction) {
+    const success = await rateMedia(media.id, score10);
+    if (success && onUserInteraction) {
       onUserInteraction();
     }
   };

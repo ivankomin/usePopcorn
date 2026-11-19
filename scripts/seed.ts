@@ -19,6 +19,10 @@ if (!tmdbToken) {
   process.exit(1);
 }
 
+// Target counts for new items to add per run (defaults to 50 movies + 50 TV = 100 total)
+const TARGET_NEW_MOVIES = parseInt(process.env.SEED_MOVIES_COUNT || '50', 10);
+const TARGET_NEW_TV = parseInt(process.env.SEED_TV_COUNT || '50', 10);
+
 // Interfaces for TMDB API Responses
 interface TMDBGenre {
   id: number;
@@ -197,6 +201,32 @@ async function mapConcurrent<T, R>(
   return results;
 }
 
+async function fetchExistingMediaKeys(): Promise<{
+  existingTmdbIds: Set<number>;
+  existingTitleYears: Set<string>;
+}> {
+  const rows = await supabaseFetch<
+    Array<{ tmdb_id: number | null; title: string; release_year: number }>
+  >('/media_items?select=tmdb_id,title,release_year&limit=2000');
+
+  const existingTmdbIds = new Set<number>();
+  const existingTitleYears = new Set<string>();
+
+  for (const row of rows || []) {
+    if (row.tmdb_id !== null) {
+      existingTmdbIds.add(row.tmdb_id);
+    }
+    if (row.title && row.release_year) {
+      existingTitleYears.add(`${row.title.toLowerCase()}::${row.release_year}`);
+    }
+  }
+
+  console.log(
+    `Found ${existingTmdbIds.size} existing TMDB IDs (${existingTitleYears.size} title+year keys) in Supabase.`
+  );
+  return { existingTmdbIds, existingTitleYears };
+}
+
 async function seedGenres(): Promise<Map<number, string>> {
   console.log('Fetching genres from TMDB...');
   const [movieGenresRes, tvGenresRes] = await Promise.all([
@@ -251,23 +281,53 @@ interface MediaSeedData {
   genreIds: number[];
 }
 
-async function fetchMoviesToSeed(): Promise<MediaSeedData[]> {
-  console.log('Discovering popular and top rated movies from TMDB...');
-  const [popPage1, popPage2, topPage1] = await Promise.all([
-    tmdbFetch<TMDBListResponse<TMDBMovieListItem>>('/movie/popular?language=en&page=1'),
-    tmdbFetch<TMDBListResponse<TMDBMovieListItem>>('/movie/popular?language=en&page=2'),
-    tmdbFetch<TMDBListResponse<TMDBMovieListItem>>('/movie/top_rated?language=en&page=1'),
-  ]);
-
-  const candidateIds = Array.from(
-    new Set([
-      ...popPage1.results.map((m) => m.id),
-      ...popPage2.results.map((m) => m.id),
-      ...topPage1.results.map((m) => m.id),
-    ])
+async function fetchMoviesToSeed(
+  existingTmdbIds: Set<number>,
+  existingTitleYears: Set<string>,
+  targetCount: number
+): Promise<MediaSeedData[]> {
+  if (targetCount <= 0) return [];
+  console.log(
+    `Discovering ${targetCount} new popular & top-rated movies from TMDB...`
   );
 
-  console.log(`Fetching details for ${candidateIds.length} candidate movies...`);
+  const candidateIds: number[] = [];
+  const seenCandidateIds = new Set<number>(existingTmdbIds);
+  const endpoints = [
+    '/movie/top_rated?language=en',
+    '/movie/popular?language=en',
+  ];
+
+  // Fetch extra buffer so we still hit targetCount after detail validation/dedup
+  const bufferTarget = Math.ceil(targetCount * 1.4);
+
+  for (let page = 1; page <= 12 && candidateIds.length < bufferTarget; page++) {
+    const responses = await Promise.all(
+      endpoints.map((ep) =>
+        tmdbFetch<TMDBListResponse<TMDBMovieListItem>>(`${ep}&page=${page}`)
+      )
+    );
+
+    for (const res of responses) {
+      for (const m of res.results) {
+        if (seenCandidateIds.has(m.id)) continue;
+        if (!m.poster_path || !m.overview || !m.release_date) continue;
+        if ((m.vote_count || 0) < 200) continue;
+
+        const year = parseInt(m.release_date.slice(0, 4), 10);
+        if (isNaN(year)) continue;
+        const key = `${m.title.trim().toLowerCase()}::${year}`;
+        if (existingTitleYears.has(key)) continue;
+
+        seenCandidateIds.add(m.id);
+        candidateIds.push(m.id);
+        if (candidateIds.length >= bufferTarget) break;
+      }
+      if (candidateIds.length >= bufferTarget) break;
+    }
+  }
+
+  console.log(`Fetching details for ${candidateIds.length} candidate new movies...`);
 
   const movies = await mapConcurrent(candidateIds, 5, async (tmdbId) => {
     try {
@@ -280,7 +340,7 @@ async function fetchMoviesToSeed(): Promise<MediaSeedData[]> {
         ? parseInt(releaseDate.slice(0, 4), 10)
         : null;
 
-      if (!releaseYear || isNaN(releaseYear) || !details.title) {
+      if (!releaseYear || isNaN(releaseYear) || !details.title || !details.poster_path) {
         return null;
       }
 
@@ -294,7 +354,7 @@ async function fetchMoviesToSeed(): Promise<MediaSeedData[]> {
 
       const genreIds = (details.genres || []).map((g) => g.id);
 
-      const voteAvg = Math.min(
+      const imdbRating = Math.min(
         10,
         Math.max(0, Math.round((details.vote_average || 0) * 10) / 10)
       );
@@ -328,14 +388,15 @@ async function fetchMoviesToSeed(): Promise<MediaSeedData[]> {
         seasons_count: null,
         episodes_count: null,
         poster_path: details.poster_path || null,
-        vote_average: voteAvg,
-        vote_count: details.vote_count || 0,
+        imdb_rating: imdbRating > 0 ? imdbRating : null,
+        vote_average: 0,
+        vote_count: 0,
         country: primaryCountry,
-        countries: countries,
-        budget: budget,
+        countries,
+        budget,
         budget_category: budgetCategory,
-        revenue: revenue,
-        status: status,
+        revenue,
+        status,
         age_rating: ageRating,
         metadata: {
           tagline: details.tagline || null,
@@ -351,26 +412,57 @@ async function fetchMoviesToSeed(): Promise<MediaSeedData[]> {
     }
   });
 
-  return movies.filter((m): m is MediaSeedData => m !== null);
+  return movies.filter((m): m is MediaSeedData => m !== null).slice(0, targetCount);
 }
 
-async function fetchTVToSeed(): Promise<MediaSeedData[]> {
-  console.log('Discovering popular and top rated TV series from TMDB...');
-  const [popPage1, popPage2, topPage1] = await Promise.all([
-    tmdbFetch<TMDBListResponse<TMDBTVListItem>>('/tv/popular?language=en&page=1'),
-    tmdbFetch<TMDBListResponse<TMDBTVListItem>>('/tv/popular?language=en&page=2'),
-    tmdbFetch<TMDBListResponse<TMDBTVListItem>>('/tv/top_rated?language=en&page=1'),
-  ]);
-
-  const candidateIds = Array.from(
-    new Set([
-      ...popPage1.results.map((t) => t.id),
-      ...popPage2.results.map((t) => t.id),
-      ...topPage1.results.map((t) => t.id),
-    ])
+async function fetchTVToSeed(
+  existingTmdbIds: Set<number>,
+  existingTitleYears: Set<string>,
+  targetCount: number
+): Promise<MediaSeedData[]> {
+  if (targetCount <= 0) return [];
+  console.log(
+    `Discovering ${targetCount} new popular & top-rated TV series from TMDB...`
   );
 
-  console.log(`Fetching details for ${candidateIds.length} candidate TV series...`);
+  const candidateIds: number[] = [];
+  const seenCandidateIds = new Set<number>(existingTmdbIds);
+  const endpoints = [
+    '/tv/top_rated?language=en',
+    '/tv/popular?language=en',
+  ];
+
+  const bufferTarget = Math.ceil(targetCount * 1.4);
+
+  for (let page = 1; page <= 12 && candidateIds.length < bufferTarget; page++) {
+    const responses = await Promise.all(
+      endpoints.map((ep) =>
+        tmdbFetch<TMDBListResponse<TMDBTVListItem>>(`${ep}&page=${page}`)
+      )
+    );
+
+    for (const res of responses) {
+      for (const t of res.results) {
+        if (seenCandidateIds.has(t.id)) continue;
+        if (!t.poster_path || !t.overview || !t.first_air_date) continue;
+        if ((t.vote_count || 0) < 200) continue;
+
+        const year = parseInt(t.first_air_date.slice(0, 4), 10);
+        if (isNaN(year)) continue;
+        const key = `${t.name.trim().toLowerCase()}::${year}`;
+        if (existingTitleYears.has(key)) continue;
+
+        seenCandidateIds.add(t.id);
+        candidateIds.push(t.id);
+        if (candidateIds.length >= bufferTarget) break;
+      }
+      if (candidateIds.length >= bufferTarget) break;
+    }
+  }
+
+  console.log(
+    `Fetching details for ${candidateIds.length} candidate new TV series...`
+  );
 
   const tvSeries = await mapConcurrent(candidateIds, 5, async (tmdbId) => {
     try {
@@ -381,7 +473,7 @@ async function fetchTVToSeed(): Promise<MediaSeedData[]> {
       const airDate = details.first_air_date || null;
       const releaseYear = airDate ? parseInt(airDate.slice(0, 4), 10) : null;
 
-      if (!releaseYear || isNaN(releaseYear) || !details.name) {
+      if (!releaseYear || isNaN(releaseYear) || !details.name || !details.poster_path) {
         return null;
       }
 
@@ -392,7 +484,7 @@ async function fetchTVToSeed(): Promise<MediaSeedData[]> {
 
       const genreIds = (details.genres || []).map((g) => g.id);
 
-      const voteAvg = Math.min(
+      const imdbRating = Math.min(
         10,
         Math.max(0, Math.round((details.vote_average || 0) * 10) / 10)
       );
@@ -418,10 +510,11 @@ async function fetchTVToSeed(): Promise<MediaSeedData[]> {
         seasons_count: details.number_of_seasons || 1,
         episodes_count: details.number_of_episodes || null,
         poster_path: details.poster_path || null,
-        vote_average: voteAvg,
-        vote_count: details.vote_count || 0,
+        imdb_rating: imdbRating > 0 ? imdbRating : null,
+        vote_average: 0,
+        vote_count: 0,
         country: primaryCountry,
-        countries: countries,
+        countries,
         budget: null,
         budget_category: null,
         revenue: null,
@@ -441,16 +534,17 @@ async function fetchTVToSeed(): Promise<MediaSeedData[]> {
     }
   });
 
-  return tvSeries.filter((t): t is MediaSeedData => t !== null);
+  return tvSeries.filter((t): t is MediaSeedData => t !== null).slice(0, targetCount);
 }
 
 async function seedMediaItems(
   allMedia: MediaSeedData[],
-  genreMap: Map<number, string>
+  genreMap: Map<number, string>,
+  existingTmdbIds: Set<number>,
+  existingTitleYears: Set<string>
 ) {
-  // Deduplicate by tmdb_id and composite fallback (title + release_year)
-  const seenTmdb = new Set<number>();
-  const seenTitleYear = new Set<string>();
+  const seenTmdb = new Set<number>(existingTmdbIds);
+  const seenTitleYear = new Set<string>(existingTitleYears);
   const uniqueItems: MediaSeedData[] = [];
 
   for (const entry of allMedia) {
@@ -467,12 +561,17 @@ async function seedMediaItems(
   }
 
   console.log(
-    `Prepared ${uniqueItems.length} unique media items after deduplication.`
+    `Prepared ${uniqueItems.length} new unique media items to insert.`
   );
+
+  if (uniqueItems.length === 0) {
+    console.log('No new media items to insert.');
+    return;
+  }
 
   const mediaInsertRecords = uniqueItems.map((u) => u.item);
 
-  console.log(`Upserting media items to Supabase in chunks...`);
+  console.log('Inserting new media items to Supabase in chunks...');
   const chunkSize = 25;
   const insertedItems: Array<{ id: string; tmdb_id: number }> = [];
 
@@ -483,13 +582,13 @@ async function seedMediaItems(
       {
         method: 'POST',
         body: chunk,
-        prefer: 'resolution=merge-duplicates,return=representation',
+        prefer: 'resolution=ignore-duplicates,return=representation',
       }
     );
     insertedItems.push(...result);
   }
 
-  console.log(`Successfully upserted ${insertedItems.length} media items.`);
+  console.log(`Successfully inserted ${insertedItems.length} new media items.`);
 
   // Map returned UUIDs back to genre associations
   const tmdbToUuid = new Map<number, string>();
@@ -534,17 +633,26 @@ async function main() {
   console.log('Starting TMDB offline database seeding...');
   const startTime = Date.now();
 
-  const genreMap = await seedGenres();
+  const [genreMap, { existingTmdbIds, existingTitleYears }] = await Promise.all([
+    seedGenres(),
+    fetchExistingMediaKeys(),
+  ]);
+
   const [movies, tvSeries] = await Promise.all([
-    fetchMoviesToSeed(),
-    fetchTVToSeed(),
+    fetchMoviesToSeed(existingTmdbIds, existingTitleYears, TARGET_NEW_MOVIES),
+    fetchTVToSeed(existingTmdbIds, existingTitleYears, TARGET_NEW_TV),
   ]);
 
   console.log(
-    `Fetched ${movies.length} movies and ${tvSeries.length} TV series from TMDB.`
+    `Fetched ${movies.length} new movies and ${tvSeries.length} new TV series from TMDB.`
   );
 
-  await seedMediaItems([...movies, ...tvSeries], genreMap);
+  await seedMediaItems(
+    [...movies, ...tvSeries],
+    genreMap,
+    existingTmdbIds,
+    existingTitleYears
+  );
 
   const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
   console.log(`Seeding complete in ${durationSec}s!`);

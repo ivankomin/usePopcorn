@@ -3,14 +3,13 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Sparkles, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import type { SimilarMediaItem } from "@/types/media";
 import { getPosterUrl } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 
 interface SimilarMediaSectionProps {
   items: SimilarMediaItem[];
-  currentTitle: string;
 }
 
 function SimilarMediaCard({ item }: { item: SimilarMediaItem }) {
@@ -47,15 +46,10 @@ function SimilarMediaCard({ item }: { item: SimilarMediaItem }) {
             </span>
           </div>
         )}
-
-        {/* Match badge overlay */}
-        <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-black/80 backdrop-blur-sm text-brand-lime border border-brand-lime/40">
-          {matchPercent}% Match
-        </div>
       </div>
 
       <div className="p-3.5 flex flex-col gap-2 flex-1">
-        <div className="space-y-0.5">
+        <div className="space-y-1">
           <h3 className="text-sm sm:text-base font-bold text-white leading-snug line-clamp-1 group-hover:text-brand-lime transition-colors">
             {media.title}
           </h3>
@@ -72,28 +66,12 @@ function SimilarMediaCard({ item }: { item: SimilarMediaItem }) {
             )}
           </div>
         </div>
-
-        {matchReasons.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-auto pt-1">
-            {matchReasons.slice(0, 2).map((reason) => (
-              <span
-                key={reason}
-                className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-neutral-900 text-neutral-300 border border-neutral-800 truncate max-w-full"
-              >
-                {reason}
-              </span>
-            ))}
-          </div>
-        )}
       </div>
     </Link>
   );
 }
 
-export function SimilarMediaSection({
-  items,
-  currentTitle,
-}: SimilarMediaSectionProps) {
+export function SimilarMediaSection({ items }: SimilarMediaSectionProps) {
   const { user } = useAuth();
 
   if (items.length === 0) return null;
@@ -102,10 +80,6 @@ export function SimilarMediaSection({
     <section className="w-full max-w-5xl lg:max-w-6xl mx-auto px-4 sm:px-6 pt-4 pb-12">
       <div className="flex items-center justify-between gap-4 mb-5">
         <div className="space-y-1">
-          <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-brand-lime">
-            <Sparkles className="w-4 h-4" />
-            <span>Because you&apos;re viewing {currentTitle}</span>
-          </div>
           <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
             Similar Titles
           </h2>

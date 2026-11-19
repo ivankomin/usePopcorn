@@ -89,7 +89,7 @@ export default async function MoviePage({
         initialUserReview={userReview}
         initialReviews={mediaReviews}
       />
-      <SimilarMediaSection items={similarMedia} currentTitle={media.title} />
+      <SimilarMediaSection items={similarMedia} />
     </div>
   );
 }

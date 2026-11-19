@@ -187,8 +187,15 @@ async function computeUserTasteProfile(
     if (!media) continue;
 
     const genres = (media.media_genres || [])
-      .map((mg) => mg.genres?.name)
-      .filter((name): name is string => Boolean(name));
+      .flatMap((mg) => {
+        const g = mg.genres as GenreRow | GenreRow[] | null;
+        if (!g) return [];
+        return Array.isArray(g) ? g.map((item) => item?.name) : [g.name];
+      })
+      .filter(
+        (name): name is string =>
+          typeof name === "string" && name.trim().length > 0,
+      );
 
     for (const genreName of genres) {
       genreWeights.set(genreName, (genreWeights.get(genreName) || 0) + weight);

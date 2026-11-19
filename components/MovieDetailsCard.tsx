@@ -18,7 +18,7 @@ export interface MovieDetailsCardProps {
   initialInWatchlist?: boolean;
   initialAddedAt?: string | null;
   initialWatchlistStatus?: WatchlistStatus;
-  initialFrom?: "catalog" | "watchlist";
+  initialFrom?: "catalog" | "watchlist" | "recommendations";
   initialUserRating?: number | null;
   onWatchlistToggle?: (mediaId: string, inWatchlist: boolean) => void;
   onStatusChange?: (mediaId: string, status: WatchlistStatus) => void;

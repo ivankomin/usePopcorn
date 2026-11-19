@@ -3,14 +3,14 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
-import { Search, X } from "lucide-react";
+import { Search, Sparkles, X } from "lucide-react";
 import { useState, useTransition, Suspense } from "react";
 import Loader from "./Loader";
 import UserMenu from "./UserMenu";
 import Button from "./Button";
 import { useAuth } from "@/hooks/useAuth";
 
-function NavLinks() {
+function NavLinks({ isAuthenticated }: { isAuthenticated: boolean }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentMediaType = searchParams.get("mediaType") || "movie";
@@ -19,6 +19,7 @@ function NavLinks() {
     { label: "Home", href: "/" },
     { label: "Movies", href: "/catalog?mediaType=movie" },
     { label: "Series", href: "/catalog?mediaType=tv" },
+    ...(isAuthenticated ? [{ label: "For You", href: "/recommendations" }] : []),
   ];
 
   return (
@@ -27,6 +28,8 @@ function NavLinks() {
         let isActive = false;
         if (link.href === "/") {
           isActive = pathname === "/";
+        } else if (link.href === "/recommendations") {
+          isActive = pathname.startsWith("/recommendations");
         } else if (pathname.startsWith("/catalog")) {
           if (link.href.includes("mediaType=tv")) {
             isActive = currentMediaType === "tv";
@@ -217,10 +220,17 @@ export default function Navbar() {
                     Series
                   </span>
                 </div>
+                {user && (
+                  <div className="relative py-1">
+                    <span className="text-base font-medium text-[#a0a0a0]">
+                      For You
+                    </span>
+                  </div>
+                )}
               </nav>
             }
           >
-            <NavLinks />
+            <NavLinks isAuthenticated={Boolean(user)} />
           </Suspense>
         </div>
 
@@ -240,6 +250,17 @@ export default function Navbar() {
           >
             <SearchBar />
           </Suspense>
+
+          {user && (
+            <Link
+              href="/recommendations"
+              aria-label="For You Recommendations"
+              title="For You"
+              className="flex md:hidden items-center text-white hover:text-brand-lime transition-colors"
+            >
+              <Sparkles className="w-5 h-5" />
+            </Link>
+          )}
 
           <Link
             href="/watchlist"

@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 
 export interface MovieDetailsBackLinkProps {
-  initialFrom?: "catalog" | "watchlist";
+  initialFrom?: "catalog" | "watchlist" | "recommendations";
   mediaType?: "movie" | "tv" | string;
 }
 
@@ -73,6 +73,9 @@ export function MovieDetailsBackLink({
   const isWatchlist =
     initialFrom === "watchlist" ||
     (searchParams ? searchParams.get("from") === "watchlist" : false);
+  const isRecommendations =
+    initialFrom === "recommendations" ||
+    (searchParams ? searchParams.get("from") === "recommendations" : false);
 
   const defaultCatalogHref =
     mediaType === "tv" ? "/catalog?mediaType=tv" : "/catalog";
@@ -94,9 +97,12 @@ export function MovieDetailsBackLink({
     }
   );
 
-  const backHref =
-    isWatchlist ? "/watchlist" : resolvedCatalogHref;
-  const backLabel = "Back to media";
+  const backHref = isWatchlist
+    ? "/watchlist"
+    : isRecommendations
+      ? "/recommendations"
+      : resolvedCatalogHref;
+  const backLabel = isRecommendations ? "Back to recommendations" : "Back to media";
 
   const handleBackClick = (e: React.MouseEvent) => {
     if (typeof window !== "undefined" && window.history.length > 1) {
@@ -105,13 +111,18 @@ export function MovieDetailsBackLink({
         typeof document !== "undefined" &&
         Boolean(
           (isWatchlist && document.referrer.includes("/watchlist")) ||
-            (!isWatchlist && document.referrer.includes("/catalog"))
+            (isRecommendations &&
+              document.referrer.includes("/recommendations")) ||
+            (!isWatchlist &&
+              !isRecommendations &&
+              document.referrer.includes("/catalog"))
         );
 
       if (
         hasReferrer ||
         (isWatchlist && navSource === "watchlist") ||
-        (!isWatchlist && navSource === "catalog")
+        (isRecommendations && navSource === "recommendations") ||
+        (!isWatchlist && !isRecommendations && navSource === "catalog")
       ) {
         sessionStorage.removeItem("internal_nav_from");
         e.preventDefault();

@@ -280,6 +280,26 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_similar_media: {
+        Args: { p_limit?: number; p_media_id: string }
+        Returns: {
+          match_percent: number
+          match_reasons: string[]
+          media_id: string
+          score: number
+        }[]
+      }
+      get_user_recommendations: {
+        Args: { p_limit?: number; p_media_type?: string }
+        Returns: {
+          is_personalized: boolean
+          match_percent: number
+          match_reasons: string[]
+          media_id: string
+          score: number
+          signal_count: number
+        }[]
+      }
       is_admin: { Args: never; Returns: boolean }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }

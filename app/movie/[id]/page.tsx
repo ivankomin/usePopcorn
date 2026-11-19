@@ -7,8 +7,10 @@ import {
   getUserReviewForMedia,
   getMediaReviews,
 } from "@/lib/api";
+import { getSimilarMedia } from "@/lib/recommendations";
 import MovieDetailsCard from "@/components/MovieDetailsCard";
 import { MovieReviewsSection } from "@/components/reviews";
+import { SimilarMediaSection } from "@/components/recommendations";
 import type { WatchlistStatus } from "@/types/media";
 
 interface MoviePageProps {
@@ -50,19 +52,25 @@ export default async function MoviePage({
     params,
     searchParams ? searchParams : Promise.resolve(undefined),
   ]);
-  const [media, watchlistEntry, userReview, mediaReviews] = await Promise.all([
-    getMediaById(id),
-    getUserWatchlistEntryForMedia(id),
-    getUserReviewForMedia(id),
-    getMediaReviews(id),
-  ]);
+  const [media, watchlistEntry, userReview, mediaReviews, similarMedia] =
+    await Promise.all([
+      getMediaById(id),
+      getUserWatchlistEntryForMedia(id),
+      getUserReviewForMedia(id),
+      getMediaReviews(id),
+      getSimilarMedia(id, 6),
+    ]);
 
   if (!media) {
     notFound();
   }
 
   const fromSource =
-    resolvedSearchParams?.from === "watchlist" ? "watchlist" : "catalog";
+    resolvedSearchParams?.from === "watchlist"
+      ? "watchlist"
+      : resolvedSearchParams?.from === "recommendations"
+        ? "recommendations"
+        : "catalog";
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col justify-start py-4 sm:py-8">
@@ -81,6 +89,7 @@ export default async function MoviePage({
         initialUserReview={userReview}
         initialReviews={mediaReviews}
       />
+      <SimilarMediaSection items={similarMedia} currentTitle={media.title} />
     </div>
   );
 }

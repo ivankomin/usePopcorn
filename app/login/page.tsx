@@ -62,9 +62,11 @@ function LoginForm() {
 
   const errorMessage =
     error ||
-    (urlError === "auth_callback_failed"
-      ? "Authentication verification failed or expired. Please sign in again."
-      : null);
+    (urlError === "account_blocked"
+      ? "Your account has been blocked by an administrator for violating platform rules."
+      : urlError === "auth_callback_failed"
+        ? "Authentication verification failed or expired. Please sign in again."
+        : null);
 
   return (
     <div className="w-full max-w-md bg-brand-surface border border-neutral-800 rounded-2xl p-6 sm:p-8 shadow-2xl">

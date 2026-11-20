@@ -169,3 +169,42 @@ export interface RecommendationsResult {
   items: RecommendedMediaItem[];
   tasteProfile: UserTasteProfile;
 }
+
+export type ManagedUserStatusFilter = "all" | "active" | "blocked" | "admin";
+
+export type ManagedUserSortOption =
+  | "newest"
+  | "oldest"
+  | "username_asc"
+  | "reviews_desc";
+
+export interface ManagedUserItem {
+  id: string;
+  username: string;
+  email: string | null;
+  avatar_url: string | null;
+  role: string;
+  is_blocked: boolean;
+  blocked_reason: string | null;
+  blocked_at: string | null;
+  created_at: string;
+  last_sign_in_at: string | null;
+  reviews_count: number;
+  watchlist_count: number;
+}
+
+export interface ManagedUsersCounts {
+  all: number;
+  active: number;
+  blocked: number;
+  admin: number;
+}
+
+export interface ManagedUsersResult {
+  users: ManagedUserItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  counts: ManagedUsersCounts;
+}

@@ -100,9 +100,14 @@ export function AuthProvider({
         });
 
         if (error) {
-          const isInvalid = error.message
-            .toLowerCase()
-            .includes("invalid login credentials");
+          const lowerMsg = error.message.toLowerCase();
+          if (lowerMsg.includes("banned")) {
+            return {
+              error:
+                "Your account has been blocked by an administrator for violating platform rules.",
+            };
+          }
+          const isInvalid = lowerMsg.includes("invalid login credentials");
           return {
             error: isInvalid
               ? "Invalid email or password. Please try again."
@@ -111,8 +116,30 @@ export function AuthProvider({
         }
 
         if (data?.user) {
+          const { data: userProfile } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", data.user.id)
+            .maybeSingle();
+
+          if (userProfile?.is_blocked) {
+            await supabase.auth.signOut();
+            setUser(null);
+            setProfile(null);
+            const reasonSuffix = userProfile.blocked_reason
+              ? ` Reason: ${userProfile.blocked_reason}`
+              : "";
+            return {
+              error: `Your account has been blocked by an administrator.${reasonSuffix}`,
+            };
+          }
+
           setUser(data.user);
-          await fetchProfile(data.user.id);
+          if (userProfile) {
+            setProfile(userProfile);
+          } else {
+            await fetchProfile(data.user.id);
+          }
         }
 
         return { error: null };

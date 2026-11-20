@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Film, MessageSquareText } from "lucide-react";
+import { Film, MessageSquareText, Users } from "lucide-react";
 
 export function AdminNavTabs() {
   const pathname = usePathname();
 
   const isReviews = pathname.startsWith("/admin/reviews");
-  const isCatalog = pathname === "/admin" || !isReviews;
+  const isUsers = pathname.startsWith("/admin/users");
+  const isCatalog = pathname === "/admin" || (!isReviews && !isUsers);
 
   return (
     <div className="border-b border-neutral-800 mb-8">
@@ -38,6 +39,18 @@ export function AdminNavTabs() {
         >
           <MessageSquareText className="w-4 h-4 shrink-0" />
           <span>Review Moderation</span>
+        </Link>
+
+        <Link
+          href="/admin/users"
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+            isUsers
+              ? "bg-brand-surface text-brand-lime shadow-md border border-brand-lime/20"
+              : "text-neutral-400 hover:text-white hover:bg-neutral-900/60"
+          }`}
+        >
+          <Users className="w-4 h-4 shrink-0" />
+          <span>User Management</span>
         </Link>
       </nav>
     </div>

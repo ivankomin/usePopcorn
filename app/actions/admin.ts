@@ -8,6 +8,10 @@ import type {
   ModeratedReviewItem,
   ModeratedReviewsResult,
   ReviewModerationStatus,
+  ManagedUserItem,
+  ManagedUsersResult,
+  ManagedUserStatusFilter,
+  ManagedUserSortOption,
 } from "@/types/media";
 import type { Json } from "@/types/database.types";
 
@@ -561,6 +565,282 @@ export async function deleteReviewAction(reviewId: string): Promise<ActionResult
     return { success: true };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Failed to delete review.";
+    return { success: false, error: msg };
+  }
+}
+
+export interface GetManagedUsersParams {
+  status?: ManagedUserStatusFilter;
+  search?: string;
+  sortBy?: ManagedUserSortOption;
+  page?: number;
+  pageSize?: number;
+}
+
+/**
+ * Fetches registered user accounts (profiles enriched with auth emails,
+ * last sign-in timestamps, and review/watchlist counts) for admin user management.
+ */
+export async function getManagedUsersAction(
+  params: GetManagedUsersParams = {}
+): Promise<ActionResult<ManagedUsersResult>> {
+  const auth = await verifyAdminSession();
+  if (!auth.isAdmin) {
+    return { success: false, error: auth.error || "Unauthorized" };
+  }
+
+  const {
+    status = "all",
+    search = "",
+    sortBy = "newest",
+    page = 1,
+    pageSize = 15,
+  } = params;
+
+  try {
+    const adminClient = createAdminClient();
+
+    // 1. Fetch profiles, review user_ids, watchlist user_ids, and auth users in parallel
+    const [profilesRes, reviewsRes, watchlistsRes, authUsersMap] = await Promise.all([
+      adminClient
+        .from("profiles")
+        .select(
+          "id, username, avatar_url, role, is_blocked, blocked_reason, blocked_at, created_at"
+        ),
+      adminClient.from("reviews").select("user_id"),
+      adminClient.from("watchlists").select("user_id"),
+      (async () => {
+        const map = new Map<
+          string,
+          { email: string | null; last_sign_in_at: string | null; banned_until: string | null }
+        >();
+        const perPage = 1000;
+        for (let authPage = 1; ; authPage++) {
+          const { data, error } = await adminClient.auth.admin.listUsers({
+            page: authPage,
+            perPage,
+          });
+          if (error) {
+            throw new Error(error.message);
+          }
+          const batch = data?.users || [];
+          for (const u of batch) {
+            map.set(u.id, {
+              email: u.email ?? null,
+              last_sign_in_at: u.last_sign_in_at ?? null,
+              banned_until:
+                (u as { banned_until?: string | null }).banned_until ?? null,
+            });
+          }
+          if (batch.length < perPage) break;
+        }
+        return map;
+      })(),
+    ]);
+
+    if (profilesRes.error) {
+      return { success: false, error: profilesRes.error.message };
+    }
+
+    const reviewCounts = new Map<string, number>();
+    for (const r of reviewsRes.data || []) {
+      reviewCounts.set(r.user_id, (reviewCounts.get(r.user_id) || 0) + 1);
+    }
+
+    const watchlistCounts = new Map<string, number>();
+    for (const w of watchlistsRes.data || []) {
+      watchlistCounts.set(w.user_id, (watchlistCounts.get(w.user_id) || 0) + 1);
+    }
+
+    const nowMs = Date.now();
+    const allUsers: ManagedUserItem[] = (profilesRes.data || []).map((p) => {
+      const authInfo = authUsersMap.get(p.id);
+      const isAuthBanned = Boolean(
+        authInfo?.banned_until &&
+          new Date(authInfo.banned_until).getTime() > nowMs
+      );
+      return {
+        id: p.id,
+        username: p.username,
+        email: authInfo?.email ?? null,
+        avatar_url: p.avatar_url,
+        role: p.role,
+        is_blocked: Boolean(p.is_blocked || isAuthBanned),
+        blocked_reason: p.blocked_reason,
+        blocked_at: p.blocked_at,
+        created_at: p.created_at,
+        last_sign_in_at: authInfo?.last_sign_in_at ?? null,
+        reviews_count: reviewCounts.get(p.id) || 0,
+        watchlist_count: watchlistCounts.get(p.id) || 0,
+      };
+    });
+
+    const counts = {
+      all: allUsers.length,
+      active: allUsers.filter((u) => !u.is_blocked).length,
+      blocked: allUsers.filter((u) => u.is_blocked).length,
+      admin: allUsers.filter((u) => u.role === "admin").length,
+    };
+
+    // 2. Filter by status & search term
+    let filtered = allUsers;
+    if (status === "active") {
+      filtered = filtered.filter((u) => !u.is_blocked);
+    } else if (status === "blocked") {
+      filtered = filtered.filter((u) => u.is_blocked);
+    } else if (status === "admin") {
+      filtered = filtered.filter((u) => u.role === "admin");
+    }
+
+    const term = search.trim().toLowerCase();
+    if (term) {
+      filtered = filtered.filter(
+        (u) =>
+          u.username.toLowerCase().includes(term) ||
+          (u.email && u.email.toLowerCase().includes(term))
+      );
+    }
+
+    // 3. Sort
+    filtered = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case "oldest":
+          return (
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          );
+        case "username_asc":
+          return a.username.localeCompare(b.username);
+        case "reviews_desc":
+          return (
+            b.reviews_count - a.reviews_count ||
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
+        case "newest":
+        default:
+          return (
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
+      }
+    });
+
+    // 4. Paginate
+    const total = filtered.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const safePage = Math.min(Math.max(1, page), totalPages);
+    const start = (safePage - 1) * pageSize;
+    const paginatedUsers = filtered.slice(start, start + pageSize);
+
+    return {
+      success: true,
+      data: {
+        users: paginatedUsers,
+        total,
+        page: safePage,
+        pageSize,
+        totalPages,
+        counts,
+      },
+    };
+  } catch (err: unknown) {
+    const msg =
+      err instanceof Error ? err.message : "Failed to load registered users.";
+    return { success: false, error: msg };
+  }
+}
+
+/**
+ * Blocks or unblocks a registered user account in both Supabase Auth (ban_duration)
+ * and public.profiles (is_blocked / blocked_reason / blocked_at).
+ */
+export async function toggleUserBlockAction(
+  targetUserId: string,
+  shouldBlock: boolean,
+  reason?: string
+): Promise<
+  ActionResult<{
+    is_blocked: boolean;
+    blocked_reason: string | null;
+    blocked_at: string | null;
+  }>
+> {
+  const auth = await verifyAdminSession();
+  if (!auth.isAdmin || !auth.user) {
+    return { success: false, error: auth.error || "Unauthorized" };
+  }
+
+  if (targetUserId === auth.user.id) {
+    return {
+      success: false,
+      error: "You cannot block your own administrator account.",
+    };
+  }
+
+  try {
+    const adminClient = createAdminClient();
+
+    const { data: targetProfile, error: fetchError } = await adminClient
+      .from("profiles")
+      .select("id, username, role")
+      .eq("id", targetUserId)
+      .maybeSingle();
+
+    if (fetchError || !targetProfile) {
+      return { success: false, error: "User account not found." };
+    }
+
+    if (targetProfile.role === "admin") {
+      return {
+        success: false,
+        error: "Administrator accounts cannot be blocked.",
+      };
+    }
+
+    // 1. Update Supabase Auth ban status (prevents future sign-ins & token refresh)
+    const { error: authBanError } = await adminClient.auth.admin.updateUserById(
+      targetUserId,
+      {
+        ban_duration: shouldBlock ? "876000h" : "none",
+      }
+    );
+
+    if (authBanError) {
+      return { success: false, error: authBanError.message };
+    }
+
+    // 2. Sync block status and metadata on public.profiles (enforced immediately in middleware)
+    const nowIso = new Date().toISOString();
+    const cleanReason = shouldBlock
+      ? reason?.trim() || "Violation of platform rules"
+      : null;
+    const blockedAt = shouldBlock ? nowIso : null;
+
+    const { error: profileUpdateError } = await adminClient
+      .from("profiles")
+      .update({
+        is_blocked: shouldBlock,
+        blocked_reason: cleanReason,
+        blocked_at: blockedAt,
+        updated_at: nowIso,
+      })
+      .eq("id", targetUserId);
+
+    if (profileUpdateError) {
+      return { success: false, error: profileUpdateError.message };
+    }
+
+    revalidatePath("/admin/users");
+
+    return {
+      success: true,
+      data: {
+        is_blocked: shouldBlock,
+        blocked_reason: cleanReason,
+        blocked_at: blockedAt,
+      },
+    };
+  } catch (err: unknown) {
+    const msg =
+      err instanceof Error ? err.message : "Failed to update user status.";
     return { success: false, error: msg };
   }
 }

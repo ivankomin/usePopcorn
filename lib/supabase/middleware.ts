@@ -45,6 +45,34 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
+  // 0. Enforce account block status immediately on every request
+  if (user) {
+    const { data: profileStatus } = await supabase
+      .from("profiles")
+      .select("is_blocked")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profileStatus?.is_blocked) {
+      await supabase.auth.signOut();
+
+      if (!pathname.startsWith("/login")) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/login";
+        url.search = "";
+        url.searchParams.set("error", "account_blocked");
+
+        const redirectResponse = NextResponse.redirect(url);
+        supabaseResponse.cookies.getAll().forEach((cookie) => {
+          redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
+        });
+        return redirectResponse;
+      }
+
+      return supabaseResponse;
+    }
+  }
+
   // 1. Redirect unauthenticated users from protected routes to login
   const isProtected = PROTECTED_ROUTES.some((route) =>
     pathname.startsWith(route)

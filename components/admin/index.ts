@@ -5,3 +5,5 @@ export { AdminDashboardContainer } from "./AdminDashboardContainer";
 export { AdminNavTabs } from "./AdminNavTabs";
 export { ReviewModerationCard } from "./ReviewModerationCard";
 export { ReviewModerationContainer } from "./ReviewModerationContainer";
+export { UserManagementCard } from "./UserManagementCard";
+export { UserManagementContainer } from "./UserManagementContainer";

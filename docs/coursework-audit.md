@@ -25,7 +25,7 @@
   * **Recommended Implementation:**
     * Update `scripts/seed-weekly.ts` (and optionally `scripts/seed.ts`) to set `system_state` (`id = 'sync_status'`) to `'Updating'` before ingestion and restore `'Free'` inside a `finally` block (skipped in `--dry-run` mode).
 
-- [ ] **3. Password Recovery (`«Forgot?»` Flow)**
+- [x] **3. Password Recovery (`«Forgot?»` Flow)**
   * **Source:** ТЗ — Fig. 4.2 (*«функцію відновлення доступу "Forgot?"»*)
   * **Required:** Login screen includes a password recovery flow.
   * **Current State:** Missing in `app/login/page.tsx`.

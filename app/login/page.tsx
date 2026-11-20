@@ -3,7 +3,15 @@
 import { useState, useEffect, useTransition, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Mail, Lock, Eye, EyeOff, LogIn, AlertCircle } from "lucide-react";
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  LogIn,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react";
 import Loader from "@/components/Loader";
 import Button from "@/components/Button";
 import { useAuth } from "@/hooks/useAuth";
@@ -13,6 +21,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const nextParam = searchParams.get("next") || "/";
   const urlError = searchParams.get("error");
+  const resetStatus = searchParams.get("reset");
 
   const { signIn } = useAuth();
 
@@ -83,6 +92,11 @@ function LoginForm() {
         ? "Authentication verification failed or expired. Please sign in again."
         : null);
 
+  const successMessage =
+    !errorMessage && resetStatus === "success"
+      ? "Your password has been updated. Please sign in with your new password."
+      : null;
+
   return (
     <div className="w-full max-w-md bg-brand-surface border border-neutral-800 rounded-2xl p-6 sm:p-8 shadow-2xl">
       {/* Header */}
@@ -94,6 +108,17 @@ function LoginForm() {
           Sign in to access your personal watchlists and reviews
         </p>
       </div>
+
+      {/* Success Alert */}
+      {successMessage && (
+        <div
+          role="status"
+          className="mb-6 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm rounded-lg p-3.5 flex items-start gap-3"
+        >
+          <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+          <span>{successMessage}</span>
+        </div>
+      )}
 
       {/* Error Alert */}
       {errorMessage && (
@@ -139,6 +164,12 @@ function LoginForm() {
             >
               Password
             </label>
+            <Link
+              href="/forgot-password"
+              className="text-xs font-medium text-brand-lime hover:underline transition-colors"
+            >
+              Forgot?
+            </Link>
           </div>
           <div className="relative flex items-center">
             <Lock className="w-4 h-4 text-neutral-400 absolute left-3.5 pointer-events-none" />

@@ -8,7 +8,7 @@ const PROTECTED_ROUTES = [
   "/admin",
   "/recommendations",
 ];
-const AUTH_ROUTES = ["/login", "/signup"];
+const AUTH_ROUTES = ["/login", "/signup", "/forgot-password"];
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({

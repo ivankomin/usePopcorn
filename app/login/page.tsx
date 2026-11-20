@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, useTransition, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, Eye, EyeOff, LogIn, AlertCircle } from "lucide-react";
@@ -21,6 +21,19 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
+  const [isNavigating, startNavigation] = useTransition();
+  const isSubmitting = isPending || isNavigating;
+
+  // Reset preserved form state when Next.js <Activity> hides this route on navigation
+  useEffect(() => {
+    return () => {
+      setEmail("");
+      setPassword("");
+      setShowPassword(false);
+      setError(null);
+      setIsPending(false);
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,20 +55,22 @@ function LoginForm() {
         setError(result.error);
         // Reset ONLY the incorrect field (password), preserving the email
         setPassword("");
-        setIsPending(false);
         return;
       }
 
       // Smooth client navigation while cookies and auth state are already synchronized
       const destination = nextParam.startsWith("/") ? nextParam : "/";
-      router.push(destination);
-      router.refresh();
+      startNavigation(() => {
+        router.push(destination);
+        router.refresh();
+      });
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Failed to sign in. Please try again.";
       setError(message);
       // Reset ONLY the password field
       setPassword("");
+    } finally {
       setIsPending(false);
     }
   };
@@ -156,10 +171,10 @@ function LoginForm() {
         <Button
           type="submit"
           fullWidth
-          disabled={isPending}
+          disabled={isSubmitting}
           className="mt-2"
         >
-          {isPending ? (
+          {isSubmitting ? (
             <>
               <Loader size="sm" />
               <span>Signing in...</span>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, useTransition, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -38,6 +38,22 @@ function SignUpForm() {
 
   const [error, setError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
+  const [isNavigating, startNavigation] = useTransition();
+  const isSubmitting = isPending || isNavigating;
+
+  // Reset preserved form state when Next.js <Activity> hides this route on navigation
+  useEffect(() => {
+    return () => {
+      setUsername("");
+      setEmail("");
+      setPassword("");
+      setConfirmPassword("");
+      setShowPassword(false);
+      setShowConfirmPassword(false);
+      setError(null);
+      setIsPending(false);
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,7 +96,6 @@ function SignUpForm() {
 
       if (result.error) {
         setError(result.error);
-        setIsPending(false);
         const lower = result.error.toLowerCase();
         if (lower.includes("username")) {
           setUsername("");
@@ -95,12 +110,15 @@ function SignUpForm() {
 
       // If auto-confirmed/logged-in immediately
       const destination = nextParam.startsWith("/") ? nextParam : "/";
-      router.push(destination);
-      router.refresh();
+      startNavigation(() => {
+        router.push(destination);
+        router.refresh();
+      });
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "An unexpected error occurred.";
       setError(message);
+    } finally {
       setIsPending(false);
     }
   };
@@ -256,8 +274,8 @@ function SignUpForm() {
           </div>
         </div>
 
-        <Button type="submit" fullWidth disabled={isPending} className="mt-4">
-          {isPending ? (
+        <Button type="submit" fullWidth disabled={isSubmitting} className="mt-4">
+          {isSubmitting ? (
             <>
               <Loader size="sm" />
               <span>Creating account...</span>

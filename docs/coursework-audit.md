@@ -18,7 +18,7 @@
     * Add server actions in `app/actions/admin.ts` to list registered users (`profiles` + auth email/status) and block/unblock users (using Supabase Auth `ban_duration` and/or an `is_blocked` column on `profiles`).
     * Enforce blocked status in `lib/supabase/middleware.ts` and sign-in flow so blocked accounts cannot access authenticated features.
 
-- [ ] **2. Integrate `system_state` Lock (`Updating` / `Free`) into Automated Sync Scripts**
+- [x] **2. Integrate `system_state` Lock (`Updating` / `Free`) into Automated Sync Scripts**
   * **Source:** ТЗ — *«керування статусом системи для запобігання конфліктам запису в БД»*; ПЗ — FR-19, BPMN 1.4
   * **Required:** Scheduled API sync sets global status to `Updating` (temporarily locking manual edits) and resets it to `Free` upon completion.
   * **Current State:** Partially implemented. The `system_state` table, admin UI toggle (`components/admin/SystemStatusCard.tsx`), and write guard (`app/actions/admin.ts`) exist, but `scripts/seed-weekly.ts` and `scripts/seed.ts` never update `system_state`.

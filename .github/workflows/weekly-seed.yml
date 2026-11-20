@@ -1,0 +1,61 @@
+name: Weekly TMDB Release Sync
+
+on:
+  schedule:
+    # Runs every Monday at 03:00 UTC
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Preview new releases without writing to Supabase'
+        type: boolean
+        default: false
+      lookback_days:
+        description: 'Rolling release lookback window in days'
+        type: string
+        default: '30'
+      movies_limit:
+        description: 'Max new movies to insert'
+        type: string
+        default: '25'
+      tv_limit:
+        description: 'Max newly premiered TV series to insert'
+        type: string
+        default: '25'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: weekly-tmdb-seed
+  cancel-in-progress: false
+
+jobs:
+  seed-weekly:
+    name: Sync latest TMDB releases
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run weekly TMDB seeding script
+        run: npm run seed:weekly
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TMDB_ACCESS_TOKEN: ${{ secrets.TMDB_ACCESS_TOKEN }}
+          DRY_RUN: ${{ inputs.dry_run || 'false' }}
+          WEEKLY_LOOKBACK_DAYS: ${{ inputs.lookback_days || '30' }}
+          WEEKLY_MOVIES_LIMIT: ${{ inputs.movies_limit || '25' }}
+          WEEKLY_TV_LIMIT: ${{ inputs.tv_limit || '25' }}

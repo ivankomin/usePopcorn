@@ -779,6 +779,7 @@ export async function getManagedUsersAction(
 
     const reviewCounts = new Map<string, number>();
     for (const r of reviewsRes.data || []) {
+      if (!r.user_id) continue;
       reviewCounts.set(r.user_id, (reviewCounts.get(r.user_id) || 0) + 1);
     }
 

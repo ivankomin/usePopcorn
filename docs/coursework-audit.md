@@ -41,7 +41,7 @@
     * Create a `system_logs` table (admin-readable via RLS) and a lightweight logger helper for sync scripts, admin actions, auth events, and errors.
     * Add an Admin Logs & Analytics page/tab with platform counters (total users, movies/TV count, reviews by status, watchlist activity) and a **"Download `.log`"** export button.
 
-- [ ] **5. User Account Deletion (Data Lifecycle)**
+- [x] **5. User Account Deletion (Data Lifecycle)**
   * **Source:** ПЗ — NFR 2.3 & Section 3.2 (*«видалення акаунта»*, complete personal data removal within 48 hours while preserving anonymized rating statistics)
   * **Required:** Users can close/delete their account and remove personal data.
   * **Current State:** `components/profile/ProfileSettings.tsx` has Avatar, Info, and Security sections, but no account deletion option.

@@ -54,7 +54,12 @@ export default function PrivacyPage() {
             <h2 className="text-base font-bold text-white">Your Control</h2>
             <p>
               You can update your profile details, edit or remove your reviews,
-              and modify your watchlist at any time from your account.
+              modify your watchlist, or permanently delete your account at any
+              time from your Profile Settings. When an account is deleted, all
+              personal data (credentials, profile details, avatar, watchlist,
+              and written review text) is removed immediately, while anonymized
+              numeric ratings are retained solely to preserve aggregate catalog
+              scores.
             </p>
           </div>
         </section>

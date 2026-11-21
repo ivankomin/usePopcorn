@@ -110,9 +110,15 @@ export function ReviewModerationCard({
 
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-bold text-white text-sm">
-              {author?.username || "Anonymous"}
+              {author?.username || (review.user_id ? "Anonymous" : "Deleted Account")}
             </span>
-            <ProfileRoleBadge role={author?.role || "user"} />
+            {author ? (
+              <ProfileRoleBadge role={author.role || "user"} />
+            ) : (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-neutral-800 text-neutral-400 border border-neutral-700">
+                Anonymized
+              </span>
+            )}
             <span className="text-xs text-neutral-500 font-mono">
               • {new Date(review.created_at).toLocaleDateString()}
             </span>

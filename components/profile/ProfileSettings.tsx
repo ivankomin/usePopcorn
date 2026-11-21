@@ -3,6 +3,7 @@ import {
   ProfileAvatarSettings,
   ProfileInfoSettings,
   ProfileSecuritySettings,
+  ProfileDangerZone,
 } from "./settings";
 
 export interface ProfileSettingsProps {
@@ -16,6 +17,7 @@ export function ProfileSettings({ profile, userEmail }: ProfileSettingsProps) {
       <ProfileAvatarSettings profile={profile} />
       <ProfileInfoSettings profile={profile} userEmail={userEmail} />
       <ProfileSecuritySettings userEmail={userEmail} />
+      <ProfileDangerZone />
     </div>
   );
 }

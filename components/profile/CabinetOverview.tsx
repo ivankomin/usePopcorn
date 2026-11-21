@@ -119,10 +119,10 @@ export function CabinetOverview({
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-white">Watchlist Snapshot</h2>
-            <p className="text-xs text-neutral-400">
+            <h2 className="text-xl font-bold text-white">
               Recently saved movies and series
-            </p>
+            </h2>
+
           </div>
           <button
             type="button"
@@ -171,9 +171,6 @@ export function CabinetOverview({
             <h2 className="text-xl font-bold text-white">
               Recent Ratings & Reviews
             </h2>
-            <p className="text-xs text-neutral-400">
-              Your latest movie evaluations
-            </p>
           </div>
           <button
             type="button"

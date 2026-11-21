@@ -210,6 +210,7 @@ export async function getMediaReviews(
     .from("reviews")
     .select("*, profile:profiles(id, username, avatar_url)")
     .eq("media_id", mediaId)
+    .not("user_id", "is", null)
     .order("created_at", { ascending: false });
 
   if (error) {

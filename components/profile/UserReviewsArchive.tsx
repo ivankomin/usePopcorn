@@ -96,7 +96,7 @@ export function UserReviewsArchive({
 
   const handleEditSuccess = (
     mediaId: string,
-    updated?: { rating: number | null; content: string | null },
+    updated?: { rating: number | null; content: string | null; status: string },
   ) => {
     if (updated) {
       setReviewsList((prev) =>
@@ -106,6 +106,7 @@ export function UserReviewsArchive({
                 ...item,
                 rating: updated.rating,
                 content: updated.content,
+                status: updated.status,
                 updated_at: new Date().toISOString(),
               }
             : item,

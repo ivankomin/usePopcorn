@@ -27,6 +27,7 @@ export interface ReviewFormProps {
   onSuccess?: (updated?: {
     rating: number | null;
     content: string | null;
+    status: string;
   }) => void;
   onCancel?: () => void;
 }
@@ -67,19 +68,20 @@ export function ReviewForm({
       const normalizedRating = rating !== null ? rating : null;
       const normalizedContent = content.trim() ? content.trim() : null;
 
-      const success = await submitReview(mediaId, {
+      const savedReview = await submitReview(mediaId, {
         rating: normalizedRating,
         content: normalizedContent,
       });
 
-      if (!success) {
+      if (!savedReview) {
         setErrorMessage("Failed to save your review. Please try again.");
       } else {
         setContent("");
         if (onSuccess) {
           onSuccess({
-            rating: normalizedRating,
-            content: normalizedContent,
+            rating: savedReview.rating,
+            content: savedReview.content,
+            status: savedReview.status,
           });
         }
       }

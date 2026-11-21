@@ -2,7 +2,16 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Star, User, MessageSquare, Pencil, Trash2, AlertCircle } from "lucide-react";
+import {
+  Star,
+  User,
+  MessageSquare,
+  Pencil,
+  Trash2,
+  AlertCircle,
+  Clock,
+  Flag,
+} from "lucide-react";
 import type { ReviewRow } from "@/types/media";
 import { formatDate } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -68,6 +77,18 @@ export function UserReviewCard({
               <span className="px-2 py-0.5 rounded-full text-[#8ce648] text-[10px] font-semibold uppercase tracking-wider">
                 Your Review
               </span>
+              {review.status === "pending" && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                  <Clock className="w-3 h-3" />
+                  Pending Review
+                </span>
+              )}
+              {review.status === "flagged" && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-rose-500/15 text-rose-300 border border-rose-500/30">
+                  <Flag className="w-3 h-3" />
+                  Flagged
+                </span>
+              )}
             </div>
             {formattedDate && (
               <span className="text-xs text-neutral-400 font-normal">
@@ -113,6 +134,27 @@ export function UserReviewCard({
           )}
         </div>
       </div>
+
+      {/* Moderation Status Notice */}
+      {review.status === "pending" && (
+        <div className="bg-amber-500/10 border border-amber-500/25 rounded-xl px-4 py-3 flex items-start gap-2.5 text-xs text-amber-200/90">
+          <Clock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+          <span>
+            Your review is currently awaiting moderator approval and is hidden
+            from public view until reviewed.
+          </span>
+        </div>
+      )}
+
+      {review.status === "flagged" && (
+        <div className="bg-rose-500/10 border border-rose-500/25 rounded-xl px-4 py-3 flex items-start gap-2.5 text-xs text-rose-200/90">
+          <Flag className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+          <span>
+            This review was flagged by a moderator and is hidden from public
+            view. Edit your review text to submit it for re-review.
+          </span>
+        </div>
+      )}
 
       {/* Inline Delete Confirmation */}
       {isConfirmingDelete && (

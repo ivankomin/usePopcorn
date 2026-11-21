@@ -24,7 +24,7 @@ export interface RatingContextType {
   submitReview: (
     mediaId: string,
     data: { rating?: number | null; content?: string | null },
-  ) => Promise<boolean>;
+  ) => Promise<ReviewRow | null>;
   deleteReview: (mediaId: string) => Promise<boolean>;
   refreshRatings: () => Promise<void>;
 }
@@ -172,13 +172,11 @@ export function RatingProvider({ children }: RatingProviderProps) {
           user_id: string;
           media_id: string;
           rating: number;
-          status: string;
           content?: string | null;
         } = {
           user_id: userId,
           media_id: mediaId,
           rating,
-          status: "approved",
         };
 
         if (existingReview?.content) {
@@ -237,7 +235,7 @@ export function RatingProvider({ children }: RatingProviderProps) {
     async (
       mediaId: string,
       data: { rating?: number | null; content?: string | null },
-    ): Promise<boolean> => {
+    ): Promise<ReviewRow | null> => {
       if (!userId) {
         const currentPath =
           typeof window !== "undefined"
@@ -245,7 +243,7 @@ export function RatingProvider({ children }: RatingProviderProps) {
             : "/";
         const next = currentPath ? `?next=${encodeURIComponent(currentPath)}` : "";
         router.push(`/login${next}`);
-        return false;
+        return null;
       }
 
       const existingReview = userReviews.get(mediaId);
@@ -258,10 +256,10 @@ export function RatingProvider({ children }: RatingProviderProps) {
         data.content !== undefined ? data.content : (existingReview?.content ?? null);
 
       if (finalRating === null && (!finalContent || finalContent.trim() === "")) {
-        return false;
+        return null;
       }
 
-      // Optimistic update
+      // Optimistic update (preserves prior moderation status until DB trigger returns final status)
       if (finalRating !== null) {
         setUserRatings((prev) => new Map(prev).set(mediaId, finalRating));
       }
@@ -271,7 +269,7 @@ export function RatingProvider({ children }: RatingProviderProps) {
         media_id: mediaId,
         rating: finalRating,
         content: finalContent,
-        status: "approved",
+        status: existingReview?.status || "approved",
         created_at: existingReview?.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -286,7 +284,6 @@ export function RatingProvider({ children }: RatingProviderProps) {
               media_id: mediaId,
               rating: finalRating,
               content: finalContent,
-              status: "approved",
             },
             { onConflict: "user_id,media_id" },
           )
@@ -314,16 +311,13 @@ export function RatingProvider({ children }: RatingProviderProps) {
             });
           }
           console.error("Failed to submit review:", error);
-          return false;
+          return null;
         }
 
-        if (savedReview) {
-          setUserReviews((prev) =>
-            new Map(prev).set(mediaId, savedReview as ReviewRow),
-          );
-        }
+        const persisted = (savedReview as ReviewRow) ?? optimisticReview;
+        setUserReviews((prev) => new Map(prev).set(mediaId, persisted));
         router.refresh();
-        return true;
+        return persisted;
       } catch (err) {
         setUserRatings((prev) => {
           const next = new Map(prev);
@@ -344,7 +338,7 @@ export function RatingProvider({ children }: RatingProviderProps) {
           });
         }
         console.error("Failed to submit review:", err);
-        return false;
+        return null;
       }
     },
     [userId, userReviews, userRatings, router, supabase],

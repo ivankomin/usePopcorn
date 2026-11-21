@@ -12,6 +12,7 @@ import {
 import type { User } from "@supabase/supabase-js";
 import type { ProfileRow } from "@/types/media";
 import { createClient } from "@/lib/supabase/client";
+import { logAuthEventAction } from "@/app/actions/auth";
 import { useRouter } from "next/navigation";
 
 export interface AuthContextType {
@@ -102,12 +103,22 @@ export function AuthProvider({
         if (error) {
           const lowerMsg = error.message.toLowerCase();
           if (lowerMsg.includes("banned")) {
+            void logAuthEventAction({
+              event: "auth.login_blocked",
+              email,
+              reason: "Account banned in Supabase Auth",
+            });
             return {
               error:
                 "Your account has been blocked by an administrator for violating platform rules.",
             };
           }
           const isInvalid = lowerMsg.includes("invalid login credentials");
+          void logAuthEventAction({
+            event: "auth.login_failed",
+            email,
+            reason: isInvalid ? "Invalid credentials" : error.message,
+          });
           return {
             error: isInvalid
               ? "Invalid email or password. Please try again."
@@ -123,6 +134,11 @@ export function AuthProvider({
             .maybeSingle();
 
           if (userProfile?.is_blocked) {
+            await logAuthEventAction({
+              event: "auth.login_blocked",
+              email,
+              reason: userProfile.blocked_reason || "Blocked in profile",
+            });
             await supabase.auth.signOut();
             setUser(null);
             setProfile(null);
@@ -140,6 +156,10 @@ export function AuthProvider({
           } else {
             await fetchProfile(data.user.id);
           }
+          void logAuthEventAction({
+            event: "auth.login",
+            email: data.user.email || email,
+          });
         }
 
         return { error: null };
@@ -202,11 +222,20 @@ export function AuthProvider({
         if (data?.session && data.user) {
           setUser(data.user);
           await fetchProfile(data.user.id);
+          void logAuthEventAction({
+            event: "auth.signup",
+            email: data.user.email || email,
+          });
           return {
             success: true,
             error: null,
           };
         }
+
+        void logAuthEventAction({
+          event: "auth.signup",
+          email,
+        });
 
         return {
           success: true,
@@ -228,6 +257,7 @@ export function AuthProvider({
 
   const signOut = useCallback(async () => {
     try {
+      await logAuthEventAction({ event: "auth.logout" });
       await supabase.auth.signOut();
       setUser(null);
       setProfile(null);

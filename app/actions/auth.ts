@@ -1,12 +1,113 @@
 "use server";
 
 import { headers } from "next/headers";
+import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { logSystemEvent } from "@/lib/logger";
 import { validateEmail } from "@/lib/validation";
 
 export interface PasswordResetRequestResult {
   success: boolean;
   error?: string;
+}
+
+export type ClientAuthEventType =
+  | "auth.login"
+  | "auth.login_failed"
+  | "auth.login_blocked"
+  | "auth.signup"
+  | "auth.logout"
+  | "auth.password_updated";
+
+/**
+ * Records user session lifecycle events (sign-in, sign-up, sign-out, failed/blocked
+ * login attempts, password resets) into `public.system_logs` via the server.
+ */
+export async function logAuthEventAction(params: {
+  event: ClientAuthEventType;
+  email?: string;
+  reason?: string;
+}): Promise<void> {
+  try {
+    const supabase = await createServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    const actorId = user?.id ?? null;
+    const normalizedEmail = params.email?.trim().toLowerCase() || user?.email || undefined;
+
+    switch (params.event) {
+      case "auth.login":
+        await logSystemEvent({
+          level: "info",
+          category: "auth",
+          action: "auth.login",
+          message: `User session started${normalizedEmail ? ` for ${normalizedEmail}` : ""}.`,
+          actorId,
+          metadata: normalizedEmail ? { email: normalizedEmail } : {},
+        });
+        break;
+      case "auth.login_failed":
+        await logSystemEvent({
+          level: "warn",
+          category: "auth",
+          action: "auth.login_failed",
+          message: `Failed sign-in attempt${normalizedEmail ? ` for ${normalizedEmail}` : ""}.`,
+          actorId: null,
+          metadata: {
+            ...(normalizedEmail ? { email: normalizedEmail } : {}),
+            ...(params.reason ? { reason: params.reason } : {}),
+          },
+        });
+        break;
+      case "auth.login_blocked":
+        await logSystemEvent({
+          level: "warn",
+          category: "auth",
+          action: "auth.login_blocked",
+          message: `Blocked account attempted sign-in${normalizedEmail ? ` (${normalizedEmail})` : ""}.`,
+          actorId,
+          metadata: {
+            ...(normalizedEmail ? { email: normalizedEmail } : {}),
+            ...(params.reason ? { reason: params.reason } : {}),
+          },
+        });
+        break;
+      case "auth.signup":
+        await logSystemEvent({
+          level: "info",
+          category: "auth",
+          action: "auth.signup",
+          message: `New user account registered${normalizedEmail ? ` (${normalizedEmail})` : ""}.`,
+          actorId,
+          metadata: normalizedEmail ? { email: normalizedEmail } : {},
+        });
+        break;
+      case "auth.logout":
+        await logSystemEvent({
+          level: "info",
+          category: "auth",
+          action: "auth.logout",
+          message: `User signed out${normalizedEmail ? ` (${normalizedEmail})` : ""}.`,
+          actorId,
+          metadata: normalizedEmail ? { email: normalizedEmail } : {},
+        });
+        break;
+      case "auth.password_updated":
+        await logSystemEvent({
+          level: "info",
+          category: "auth",
+          action: "auth.password_updated",
+          message: `User completed password reset${normalizedEmail ? ` (${normalizedEmail})` : ""}.`,
+          actorId,
+          metadata: normalizedEmail ? { email: normalizedEmail } : {},
+        });
+        break;
+    }
+  } catch {
+    // Non-blocking audit logging
+  }
 }
 
 const BREVO_SMTP_ENDPOINT = "https://api.brevo.com/v3/smtp/email";
@@ -124,10 +225,17 @@ async function sendRecoveryEmailViaBrevo(params: {
 
   if (!response.ok) {
     const body = await response.text().catch(() => "");
-    console.error(
-      `[Password Recovery] Brevo API error (${response.status}):`,
-      body
-    );
+    await logSystemEvent({
+      level: "error",
+      category: "auth",
+      action: "auth.password_reset_email_failed",
+      message: `Brevo API rejected password recovery email (HTTP ${response.status}).`,
+      metadata: {
+        status: response.status,
+        recipient: params.recipientEmail,
+        responsePreview: body.slice(0, 400),
+      },
+    });
     return {
       ok: false,
       error:
@@ -157,9 +265,12 @@ export async function requestPasswordResetAction(
     process.env.BREVO_SENDER_NAME?.trim() || "usePopcorn";
 
   if (!brevoApiKey || !brevoSenderEmail) {
-    console.error(
-      "[Password Recovery] BREVO_API_KEY or BREVO_SENDER_EMAIL is not configured."
-    );
+    await logSystemEvent({
+      level: "critical",
+      category: "system",
+      action: "auth.password_reset_unconfigured",
+      message: "BREVO_API_KEY or BREVO_SENDER_EMAIL is not configured.",
+    });
     return {
       success: false,
       error:
@@ -178,20 +289,48 @@ export async function requestPasswordResetAction(
       const lower = error.message.toLowerCase();
       // Do not reveal whether an account exists for the entered email
       if (lower.includes("user not found") || error.code === "user_not_found") {
+        await logSystemEvent({
+          level: "info",
+          category: "auth",
+          action: "auth.password_reset_unknown_email",
+          message: `Password reset requested for unregistered email (${trimmedEmail}).`,
+          metadata: { email: trimmedEmail },
+        });
         return { success: true };
       }
       if (lower.includes("rate limit") || lower.includes("too many")) {
+        await logSystemEvent({
+          level: "warn",
+          category: "auth",
+          action: "auth.password_reset_rate_limited",
+          message: `Password reset rate limited for ${trimmedEmail}.`,
+          metadata: { email: trimmedEmail },
+        });
         return {
           success: false,
           error:
             "Too many reset attempts. Please wait a few minutes and try again.",
         };
       }
+      await logSystemEvent({
+        level: "error",
+        category: "auth",
+        action: "auth.password_reset_token_failed",
+        message: `Supabase generateLink failed for ${trimmedEmail}: ${error.message}`,
+        metadata: { email: trimmedEmail, code: error.code ?? null },
+      });
       return { success: false, error: error.message };
     }
 
     const hashedToken = data?.properties?.hashed_token;
     if (!hashedToken) {
+      await logSystemEvent({
+        level: "error",
+        category: "auth",
+        action: "auth.password_reset_token_missing",
+        message: `Supabase generateLink returned no hashed_token for ${trimmedEmail}.`,
+        metadata: { email: trimmedEmail },
+      });
       return {
         success: false,
         error: "Failed to generate a password recovery token. Please try again.",
@@ -214,12 +353,28 @@ export async function requestPasswordResetAction(
       return { success: false, error: emailResult.error };
     }
 
+    await logSystemEvent({
+      level: "info",
+      category: "auth",
+      action: "auth.password_reset_sent",
+      message: `Sent password recovery email to ${trimmedEmail}.`,
+      actorId: data?.user?.id ?? null,
+      metadata: { email: trimmedEmail },
+    });
+
     return { success: true };
   } catch (err: unknown) {
     const message =
       err instanceof Error
         ? err.message
         : "Failed to process password reset request. Please try again.";
+    await logSystemEvent({
+      level: "error",
+      category: "auth",
+      action: "auth.password_reset_exception",
+      message: `Unexpected error during password reset for ${trimmedEmail}: ${message}`,
+      metadata: { email: trimmedEmail },
+    });
     return { success: false, error: message };
   }
 }

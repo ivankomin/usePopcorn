@@ -208,3 +208,31 @@ export interface ManagedUsersResult {
   totalPages: number;
   counts: ManagedUsersCounts;
 }
+
+export type SystemLogRow = Database["public"]["Tables"]["system_logs"]["Row"];
+
+export type LogLevel = "info" | "warn" | "error" | "critical";
+export type LogCategory = "system" | "auth" | "admin" | "db" | "sync";
+
+export interface SystemLogItem extends Omit<SystemLogRow, "level" | "category"> {
+  level: LogLevel;
+  category: LogCategory;
+  actor?: Pick<ProfileRow, "id" | "username" | "role"> | null;
+}
+
+export interface SystemLogLevelCounts {
+  all: number;
+  info: number;
+  warn: number;
+  error: number;
+  critical: number;
+}
+
+export interface SystemLogsResult {
+  logs: SystemLogItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  levelCounts: SystemLogLevelCounts;
+}

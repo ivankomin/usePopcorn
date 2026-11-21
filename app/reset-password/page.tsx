@@ -14,6 +14,7 @@ import {
 import Loader from "@/components/Loader";
 import Button from "@/components/Button";
 import { createClient } from "@/lib/supabase/client";
+import { logAuthEventAction } from "@/app/actions/auth";
 import {
   getPasswordValidationError,
   PASSWORD_MIN_LENGTH,
@@ -121,6 +122,8 @@ export default function ResetPasswordPage() {
         setConfirmPassword("");
         return;
       }
+
+      await logAuthEventAction({ event: "auth.password_updated" });
 
       // Sign out the temporary recovery session so the user signs in cleanly with their new password
       await supabase.auth.signOut();

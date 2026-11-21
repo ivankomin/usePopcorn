@@ -2,6 +2,7 @@
 
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { logSystemEvent } from "@/lib/logger";
 
 export interface UpdateUserEmailResult {
   success: boolean;
@@ -63,10 +64,26 @@ export async function updateUserEmailAction(
       return { success: false, error: updateError.message };
     }
 
+    await logSystemEvent({
+      level: "info",
+      category: "auth",
+      action: "profile.email_updated",
+      message: `User updated account email to ${normalizedEmail}.`,
+      actorId: user.id,
+      metadata: { previousEmail: user.email ?? null, newEmail: normalizedEmail },
+    });
+
     return { success: true };
   } catch (err: unknown) {
     const message =
       err instanceof Error ? err.message : "Failed to update email address.";
+    await logSystemEvent({
+      level: "error",
+      category: "auth",
+      action: "profile.email_update_failed",
+      message: `Failed updating user email: ${message}`,
+      actorId: user.id,
+    });
     return { success: false, error: message };
   }
 }

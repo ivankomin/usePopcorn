@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { logSystemEvent } from "@/lib/logger";
 import type {
   MediaMetadata,
   ModeratedReviewItem,
@@ -12,6 +13,10 @@ import type {
   ManagedUsersResult,
   ManagedUserStatusFilter,
   ManagedUserSortOption,
+  LogLevel,
+  LogCategory,
+  SystemLogItem,
+  SystemLogsResult,
 } from "@/types/media";
 import type { Json } from "@/types/database.types";
 
@@ -135,10 +140,35 @@ export async function setSystemStateAction(
     });
 
   if (error) {
+    await logSystemEvent({
+      level: "error",
+      category: "db",
+      action: "system.state_update_failed",
+      message: `Failed updating system_state to "${status}": ${error.message}`,
+      actorId: auth.user?.id ?? null,
+      metadata: { targetStatus: status },
+    });
     return { success: false, error: error.message };
   }
 
+  await logSystemEvent({
+    level: "info",
+    category: "system",
+    action: "system.state_changed",
+    message: `System operational state set to "${status}".`,
+    actorId: auth.user?.id ?? null,
+    metadata: {
+      status,
+      message:
+        message ??
+        (status === "Updating"
+          ? "Background synchronization active"
+          : "System operational"),
+    },
+  });
+
   revalidatePath("/admin");
+  revalidatePath("/admin/logs");
   return { success: true };
 }
 
@@ -216,6 +246,14 @@ export async function uploadMediaPosterAction(formData: FormData): Promise<Actio
       });
 
     if (uploadError) {
+      await logSystemEvent({
+        level: "error",
+        category: "admin",
+        action: "admin.poster_upload_failed",
+        message: `Poster upload failed: ${uploadError.message}`,
+        actorId: auth.user?.id ?? null,
+        metadata: { fileName, fileSize: file.size, mimeType: file.type },
+      });
       return { success: false, error: uploadError.message };
     }
 
@@ -223,9 +261,25 @@ export async function uploadMediaPosterAction(formData: FormData): Promise<Actio
       .from("posters")
       .getPublicUrl(uploadData.path);
 
+    await logSystemEvent({
+      level: "info",
+      category: "admin",
+      action: "admin.poster_uploaded",
+      message: `Uploaded manual poster image (${Math.round(file.size / 1024)} KB).`,
+      actorId: auth.user?.id ?? null,
+      metadata: { path: uploadData.path, mimeType: file.type, sizeBytes: file.size },
+    });
+
     return { success: true, data: { url: urlData.publicUrl } };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Failed to upload poster";
+    await logSystemEvent({
+      level: "error",
+      category: "admin",
+      action: "admin.poster_upload_failed",
+      message: `Unexpected poster upload error: ${msg}`,
+      actorId: auth.user?.id ?? null,
+    });
     return { success: false, error: msg };
   }
 }
@@ -304,12 +358,28 @@ export async function createMediaItemAction(
 
     if (insertError) {
       if (insertError.code === "23505") {
+        await logSystemEvent({
+          level: "warn",
+          category: "db",
+          action: "db.duplicate_media_rejected",
+          message: `Duplicate media insert rejected for "${input.title.trim()}" (${input.release_year}).`,
+          actorId: auth.user?.id ?? null,
+          metadata: { title: input.title.trim(), releaseYear: input.release_year, code: insertError.code },
+        });
         return {
           success: false,
           code: "DUPLICATE_ENTRY",
           error: `Duplicate Entry: A title with this name and release year already exists in the database.`,
         };
       }
+      await logSystemEvent({
+        level: "error",
+        category: "db",
+        action: "db.media_insert_failed",
+        message: `Failed inserting media item "${input.title.trim()}": ${insertError.message}`,
+        actorId: auth.user?.id ?? null,
+        metadata: { title: input.title.trim(), releaseYear: input.release_year, code: insertError.code },
+      });
       return { success: false, error: insertError.message };
     }
 
@@ -327,12 +397,34 @@ export async function createMediaItemAction(
         .insert(genreInserts);
 
       if (genreError) {
-        console.error("Failed to associate genres:", genreError.message);
+        await logSystemEvent({
+          level: "error",
+          category: "db",
+          action: "db.media_genres_insert_failed",
+          message: `Failed associating genres for media ${newMediaId}: ${genreError.message}`,
+          actorId: auth.user?.id ?? null,
+          metadata: { mediaId: newMediaId, genreIds: input.genre_ids },
+        });
       }
     }
 
+    await logSystemEvent({
+      level: "info",
+      category: "admin",
+      action: "admin.media_created",
+      message: `Added ${input.media_type} "${input.title.trim()}" (${input.release_year}) to catalog.`,
+      actorId: auth.user?.id ?? null,
+      metadata: {
+        mediaId: newMediaId,
+        mediaType: input.media_type,
+        releaseYear: input.release_year,
+        genresCount: input.genre_ids?.length ?? 0,
+      },
+    });
+
     revalidatePath("/catalog");
     revalidatePath("/admin");
+    revalidatePath("/admin/logs");
     revalidatePath("/");
 
     return {
@@ -341,6 +433,13 @@ export async function createMediaItemAction(
     };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Failed to create media item.";
+    await logSystemEvent({
+      level: "error",
+      category: "db",
+      action: "db.media_insert_exception",
+      message: `Unexpected error creating media item "${input.title.trim()}": ${message}`,
+      actorId: auth.user?.id ?? null,
+    });
     return { success: false, error: message };
   }
 }
@@ -519,10 +618,28 @@ export async function updateReviewStatusAction(
       .single();
 
     if (error) {
+      await logSystemEvent({
+        level: "error",
+        category: "db",
+        action: "admin.review_moderation_failed",
+        message: `Failed updating review ${reviewId} status to "${newStatus}": ${error.message}`,
+        actorId: auth.user?.id ?? null,
+        metadata: { reviewId, newStatus },
+      });
       return { success: false, error: error.message };
     }
 
+    await logSystemEvent({
+      level: "info",
+      category: "admin",
+      action: "admin.review_moderated",
+      message: `Updated review ${reviewId.slice(0, 8)} status to "${newStatus}".`,
+      actorId: auth.user?.id ?? null,
+      metadata: { reviewId, mediaId: updatedReview?.media_id ?? null, newStatus },
+    });
+
     revalidatePath("/admin/reviews");
+    revalidatePath("/admin/logs");
     if (updatedReview?.media_id) {
       revalidatePath(`/movie/${updatedReview.media_id}`);
     }
@@ -554,10 +671,28 @@ export async function deleteReviewAction(reviewId: string): Promise<ActionResult
       .single();
 
     if (error) {
+      await logSystemEvent({
+        level: "error",
+        category: "db",
+        action: "admin.review_delete_failed",
+        message: `Failed deleting review ${reviewId}: ${error.message}`,
+        actorId: auth.user?.id ?? null,
+        metadata: { reviewId },
+      });
       return { success: false, error: error.message };
     }
 
+    await logSystemEvent({
+      level: "warn",
+      category: "admin",
+      action: "admin.review_deleted",
+      message: `Permanently deleted review ${reviewId.slice(0, 8)}.`,
+      actorId: auth.user?.id ?? null,
+      metadata: { reviewId, mediaId: deletedReview?.media_id ?? null },
+    });
+
     revalidatePath("/admin/reviews");
+    revalidatePath("/admin/logs");
     if (deletedReview?.media_id) {
       revalidatePath(`/movie/${deletedReview.media_id}`);
     }
@@ -825,10 +960,34 @@ export async function toggleUserBlockAction(
       .eq("id", targetUserId);
 
     if (profileUpdateError) {
+      await logSystemEvent({
+        level: "error",
+        category: "db",
+        action: "admin.user_block_failed",
+        message: `Failed updating block status for user "${targetProfile.username}": ${profileUpdateError.message}`,
+        actorId: auth.user.id,
+        metadata: { targetUserId, shouldBlock },
+      });
       return { success: false, error: profileUpdateError.message };
     }
 
+    await logSystemEvent({
+      level: shouldBlock ? "warn" : "info",
+      category: "admin",
+      action: shouldBlock ? "admin.user_blocked" : "admin.user_unblocked",
+      message: shouldBlock
+        ? `Blocked user "${targetProfile.username}" (reason: ${cleanReason}).`
+        : `Unblocked user "${targetProfile.username}" and restored access.`,
+      actorId: auth.user.id,
+      metadata: {
+        targetUserId,
+        targetUsername: targetProfile.username,
+        reason: cleanReason,
+      },
+    });
+
     revalidatePath("/admin/users");
+    revalidatePath("/admin/logs");
 
     return {
       success: true,
@@ -841,6 +1000,144 @@ export async function toggleUserBlockAction(
   } catch (err: unknown) {
     const msg =
       err instanceof Error ? err.message : "Failed to update user status.";
+    await logSystemEvent({
+      level: "error",
+      category: "admin",
+      action: "admin.user_block_exception",
+      message: `Unexpected error updating block status for ${targetUserId}: ${msg}`,
+      actorId: auth.user.id,
+      metadata: { targetUserId, shouldBlock },
+    });
+    return { success: false, error: msg };
+  }
+}
+
+export interface GetSystemLogsParams {
+  level?: "all" | LogLevel;
+  category?: "all" | LogCategory;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+/**
+ * Fetches paginated structured system logs with per-level summary counters
+ * for the Admin Logs & Analytics dashboard.
+ */
+export async function getSystemLogsAction(
+  params: GetSystemLogsParams = {}
+): Promise<ActionResult<SystemLogsResult>> {
+  const auth = await verifyAdminSession();
+  if (!auth.isAdmin) {
+    return { success: false, error: auth.error || "Unauthorized" };
+  }
+
+  const {
+    level = "all",
+    category = "all",
+    search = "",
+    page = 1,
+    pageSize = 20,
+  } = params;
+
+  try {
+    const adminClient = createAdminClient();
+
+    const [allRes, infoRes, warnRes, errorRes, criticalRes] = await Promise.all([
+      adminClient
+        .from("system_logs")
+        .select("*", { count: "exact", head: true }),
+      adminClient
+        .from("system_logs")
+        .select("*", { count: "exact", head: true })
+        .eq("level", "info"),
+      adminClient
+        .from("system_logs")
+        .select("*", { count: "exact", head: true })
+        .eq("level", "warn"),
+      adminClient
+        .from("system_logs")
+        .select("*", { count: "exact", head: true })
+        .eq("level", "error"),
+      adminClient
+        .from("system_logs")
+        .select("*", { count: "exact", head: true })
+        .eq("level", "critical"),
+    ]);
+
+    const levelCounts = {
+      all: allRes.count ?? 0,
+      info: infoRes.count ?? 0,
+      warn: warnRes.count ?? 0,
+      error: errorRes.count ?? 0,
+      critical: criticalRes.count ?? 0,
+    };
+
+    let query = adminClient
+      .from("system_logs")
+      .select(
+        `
+        id,
+        created_at,
+        level,
+        category,
+        action,
+        message,
+        actor_id,
+        metadata,
+        actor:profiles!system_logs_actor_id_fkey(
+          id,
+          username,
+          role
+        )
+      `,
+        { count: "exact" }
+      )
+      .order("created_at", { ascending: false });
+
+    if (level !== "all") {
+      query = query.eq("level", level);
+    }
+
+    if (category !== "all") {
+      query = query.eq("category", category);
+    }
+
+    const trimmedSearch = search.trim().replace(/[%_,]/g, "");
+    if (trimmedSearch) {
+      query = query.or(
+        `message.ilike.%${trimmedSearch}%,action.ilike.%${trimmedSearch}%`
+      );
+    }
+
+    const safePage = Math.max(1, page);
+    const from = (safePage - 1) * pageSize;
+    const to = from + pageSize - 1;
+    query = query.range(from, to);
+
+    const { data, count, error } = await query;
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    const total = count ?? 0;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+    return {
+      success: true,
+      data: {
+        logs: (data as unknown as SystemLogItem[]) || [],
+        total,
+        page: safePage,
+        pageSize,
+        totalPages,
+        levelCounts,
+      },
+    };
+  } catch (err: unknown) {
+    const msg =
+      err instanceof Error ? err.message : "Failed to load system logs.";
     return { success: false, error: msg };
   }
 }

@@ -1,7 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import type { Database, TablesInsert } from '../../types/database.types';
+import type { Database, Json, TablesInsert } from '../../types/database.types';
 
 // Shared TMDB response interfaces
 export interface TMDBGenre {
@@ -122,6 +122,37 @@ export interface SystemLockOptions {
 
 const SYSTEM_STATE_ID = 'sync_status';
 type SystemStatus = 'Free' | 'Updating';
+type SeedLogLevel = 'info' | 'warn' | 'error' | 'critical';
+type SeedLogCategory = 'system' | 'auth' | 'admin' | 'db' | 'sync';
+
+export async function writeSeedLog(
+  supabase: SupabaseClient<Database>,
+  entry: {
+    level: SeedLogLevel;
+    category: SeedLogCategory;
+    action: string;
+    message: string;
+    metadata?: Record<string, Json | undefined>;
+    dryRun?: boolean;
+  }
+): Promise<void> {
+  if (entry.dryRun) return;
+  try {
+    const { error } = await supabase.from('system_logs').insert({
+      level: entry.level,
+      category: entry.category,
+      action: entry.action,
+      message: entry.message,
+      actor_id: null,
+      metadata: (entry.metadata ?? {}) as Json,
+    });
+    if (error) {
+      console.warn(`[SeedLogger] Failed writing system_logs: ${error.message}`);
+    }
+  } catch (err) {
+    console.warn('[SeedLogger] Unexpected error writing system_logs:', err);
+  }
+}
 
 // Load .env.local when running locally (never overwrites existing env vars from CI/CLI)
 export function loadLocalEnv(): void {
@@ -383,15 +414,41 @@ export async function withSystemStateLock(
   await setSystemState(supabase, 'Updating', options.updatingMessage);
   lockAcquired = true;
   console.log('System status set to "Updating" (manual ingestion locked).');
+  await writeSeedLog(supabase, {
+    level: 'info',
+    category: 'system',
+    action: 'system.lock_acquired',
+    message: options.updatingMessage,
+    metadata: { source: options.interruptLabel },
+  });
 
   let succeeded = false;
   try {
     await task();
     succeeded = true;
+  } catch (err) {
+    await writeSeedLog(supabase, {
+      level: 'error',
+      category: 'sync',
+      action: 'sync.task_failed',
+      message: `Error during ${options.interruptLabel}: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+      metadata: { source: options.interruptLabel },
+    });
+    throw err;
   } finally {
     process.off('SIGINT', handleSigInt);
     process.off('SIGTERM', handleSigTerm);
-    await releaseLock(succeeded ? options.successMessage : options.errorMessage);
+    const releaseMsg = succeeded ? options.successMessage : options.errorMessage;
+    await releaseLock(releaseMsg);
+    await writeSeedLog(supabase, {
+      level: succeeded ? 'info' : 'warn',
+      category: 'system',
+      action: 'system.lock_released',
+      message: releaseMsg,
+      metadata: { source: options.interruptLabel, succeeded },
+    });
   }
 }
 
@@ -828,4 +885,18 @@ export async function seedNewMediaItems(
     }
     console.log(`Linked ${mediaGenresToInsert.length} media_genre associations.`);
   }
+
+  await writeSeedLog(supabase, {
+    level: 'info',
+    category: 'db',
+    action: 'db.sync_media_inserted',
+    message: `Inserted ${insertedItems.length} new media items and linked ${mediaGenresToInsert.length} genre relations.`,
+    metadata: {
+      insertedCount: insertedItems.length,
+      genreLinksCount: mediaGenresToInsert.length,
+      moviesCount: insertedItems.filter((r) => r.media_type === 'movie').length,
+      tvCount: insertedItems.filter((r) => r.media_type === 'tv').length,
+    },
+    dryRun,
+  });
 }

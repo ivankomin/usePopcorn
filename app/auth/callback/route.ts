@@ -1,5 +1,6 @@
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { logSystemEvent } from "@/lib/logger";
 import { NextResponse, type NextRequest } from "next/server";
 
 const ALLOWED_OTP_TYPES = new Set<EmailOtpType>([
@@ -28,22 +29,52 @@ export async function GET(request: NextRequest) {
   const supabase = await createClient();
 
   if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
+      await logSystemEvent({
+        level: "info",
+        category: "auth",
+        action: "auth.callback_verified",
+        message: `Auth PKCE callback verified (redirecting to ${destination}).`,
+        actorId: data?.user?.id ?? null,
+        metadata: { flow: "pkce", destination },
+      });
       return NextResponse.redirect(new URL(destination, requestUrl.origin));
     }
+    await logSystemEvent({
+      level: "warn",
+      category: "auth",
+      action: "auth.callback_failed",
+      message: `Auth PKCE callback failed: ${error.message}`,
+      metadata: { flow: "pkce", destination },
+    });
   } else if (
     tokenHash &&
     typeParam &&
     ALLOWED_OTP_TYPES.has(typeParam as EmailOtpType)
   ) {
-    const { error } = await supabase.auth.verifyOtp({
+    const { data, error } = await supabase.auth.verifyOtp({
       type: typeParam as EmailOtpType,
       token_hash: tokenHash,
     });
     if (!error) {
+      await logSystemEvent({
+        level: "info",
+        category: "auth",
+        action: "auth.callback_verified",
+        message: `Verified ${typeParam} OTP callback (redirecting to ${destination}).`,
+        actorId: data?.user?.id ?? null,
+        metadata: { flow: "otp", otpType: typeParam, destination },
+      });
       return NextResponse.redirect(new URL(destination, requestUrl.origin));
     }
+    await logSystemEvent({
+      level: "warn",
+      category: "auth",
+      action: "auth.callback_failed",
+      message: `OTP callback verification failed (${typeParam}): ${error.message}`,
+      metadata: { flow: "otp", otpType: typeParam, destination },
+    });
   }
 
   const isPasswordRecovery =

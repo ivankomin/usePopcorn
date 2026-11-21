@@ -9,6 +9,7 @@ import {
   syncGenres,
   tmdbFetch,
   withSystemStateLock,
+  writeSeedLog,
   type MediaSeedData,
   type TMDBListResponse,
   type TMDBMovieListItem,
@@ -172,11 +173,32 @@ async function main(): Promise<void> {
 
       const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
       console.log(`Seeding complete in ${durationSec}s!`);
+      await writeSeedLog(supabase, {
+        level: 'info',
+        category: 'sync',
+        action: 'sync.seed_completed',
+        message: `Offline TMDB catalog seeding completed in ${durationSec}s (fetched ${movies.length} movies, ${tvSeries.length} TV series).`,
+        metadata: {
+          fetchedMovies: movies.length,
+          fetchedTv: tvSeries.length,
+          durationSec: Number(durationSec),
+        },
+        dryRun,
+      });
     }
   );
 }
 
-main().catch((err) => {
+main().catch(async (err) => {
   console.error('Fatal seeding error:', err);
+  await writeSeedLog(supabase, {
+    level: 'critical',
+    category: 'sync',
+    action: 'sync.seed_fatal',
+    message: `Fatal offline TMDB seeding error: ${
+      err instanceof Error ? err.message : String(err)
+    }`,
+    dryRun,
+  });
   process.exit(1);
 });

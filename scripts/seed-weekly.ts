@@ -10,6 +10,7 @@ import {
   syncGenres,
   tmdbFetch,
   withSystemStateLock,
+  writeSeedLog,
   type MediaSeedData,
   type TMDBListResponse,
   type TMDBMovieListItem,
@@ -245,11 +246,34 @@ async function main(): Promise<void> {
 
       const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
       console.log(`Weekly TMDB sync finished in ${durationSec}s.`);
+      await writeSeedLog(supabase, {
+        level: 'info',
+        category: 'sync',
+        action: 'sync.weekly_completed',
+        message: `Weekly TMDB sync completed in ${durationSec}s (prepared ${movies.length} movies, ${tvSeries.length} TV series).`,
+        metadata: {
+          fromDate: window.fromDate,
+          toDate: window.toDate,
+          preparedMovies: movies.length,
+          preparedTv: tvSeries.length,
+          durationSec: Number(durationSec),
+        },
+        dryRun,
+      });
     }
   );
 }
 
-main().catch((err) => {
+main().catch(async (err) => {
   console.error('Fatal weekly seeding error:', err);
+  await writeSeedLog(supabase, {
+    level: 'critical',
+    category: 'sync',
+    action: 'sync.weekly_fatal',
+    message: `Fatal weekly TMDB sync error: ${
+      err instanceof Error ? err.message : String(err)
+    }`,
+    dryRun,
+  });
   process.exit(1);
 });

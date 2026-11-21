@@ -33,7 +33,7 @@
     * Add a `"Forgot?"` link next to the password label in `app/login/page.tsx`.
     * Add `/forgot-password` (calls `supabase.auth.resetPasswordForEmail`) and `/reset-password` (calls `supabase.auth.updateUser({ password })` after callback verification).
 
-- [ ] **4. Structured Text Logs (`.log` / `.txt`) & Admin Logs / Platform Analytics View**
+- [x] **4. Structured Text Logs (`.log` / `.txt`) & Admin Logs / Platform Analytics View**
   * **Source:** ТЗ — *«Вимоги до вихідних даних»* & Fig. 4.9 (*«перегляду системних логів та аналітики платформи»*)
   * **Required:** Structured logs exportable as `.log` or `.txt` containing system events, critical errors, user session monitoring, and DB transaction reports; admin interface for viewing logs and platform analytics.
   * **Current State:** Only `console.log`/`console.error` calls exist; no persistent structured logs, `.log`/`.txt` export, or admin analytics dashboard.

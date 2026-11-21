@@ -2,14 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Film, MessageSquareText, Users } from "lucide-react";
+import { Film, MessageSquareText, Users, ScrollText } from "lucide-react";
 
 export function AdminNavTabs() {
   const pathname = usePathname();
 
   const isReviews = pathname.startsWith("/admin/reviews");
   const isUsers = pathname.startsWith("/admin/users");
-  const isCatalog = pathname === "/admin" || (!isReviews && !isUsers);
+  const isLogs = pathname.startsWith("/admin/logs");
+  const isCatalog =
+    pathname === "/admin" || (!isReviews && !isUsers && !isLogs);
 
   return (
     <div className="border-b border-neutral-800 mb-8">
@@ -51,6 +53,18 @@ export function AdminNavTabs() {
         >
           <Users className="w-4 h-4 shrink-0" />
           <span>User Management</span>
+        </Link>
+
+        <Link
+          href="/admin/logs"
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${
+            isLogs
+              ? "bg-brand-surface text-brand-lime shadow-md border border-brand-lime/20"
+              : "text-neutral-400 hover:text-white hover:bg-neutral-900/60"
+          }`}
+        >
+          <ScrollText className="w-4 h-4 shrink-0" />
+          <span>Logs</span>
         </Link>
       </nav>
     </div>

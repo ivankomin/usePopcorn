@@ -52,7 +52,7 @@
 
 ## Tier B — Feature Tweaks & Missing Details (Medium Priority)
 
-- [ ] **6. Enforce 5 MB File Size Limit on Poster Uploads (Client, Server & Storage Bucket)**
+- [x] **6. Enforce 5 MB File Size Limit on Poster Uploads (Client, Server & Storage Bucket)**
   * **Source:** ТЗ — *«Вимоги до вхідних даних»* (`.jpg`, `.jpeg`, `.png`, `.webp`; max **5 MB** per file)
   * **Current State:**
     * Avatars enforce 2 MB client-side and on the `avatars` bucket (compliant: ≤ 5 MB).
@@ -62,7 +62,7 @@
     * Add client-side size (`≤ 5 MB`) and MIME (`image/jpeg`, `image/png`, `image/webp`) validation in `components/admin/AddMediaForm.tsx`.
     * Update the Supabase `posters` bucket with `file_size_limit = 5242880` and `allowed_mime_types = ['image/jpeg', 'image/png', 'image/webp']`.
 
-- [ ] **7. Admin Add Media: Poster via File Upload OR Image URL**
+- [x] **7. Admin Add Media: Poster via File Upload OR Image URL**
   * **Source:** ТЗ — Fig. 4.10 (*«завантаження медіа-постерів шляхом прямого завантаження або через URL»*)
   * **Current State:** `components/admin/AddMediaForm.tsx` only supports file uploads.
   * **Recommended Implementation:** Add a toggle (*Upload File* / *Image URL*) in the poster section of `AddMediaForm.tsx` with URL validation and live thumbnail preview.
@@ -95,17 +95,17 @@
   * **Current State:** `components/admin/ReviewModerationCard.tsx` supports *Approve*, *Mark Pending*, *Flag*, and *Delete*, but no *"Warn Author"* action.
   * **Recommended Implementation:** Add a *"Warn Author"* action that saves a moderation warning notice (e.g., `user_warnings` table or moderation note) displayed in the author's profile/cabinet.
 
-- [ ] **13. Small Validation, Redirect & Bug Fixes**
-  * [ ] **Explicit email validation on signup** *(ТЗ + ПЗ FR-3)*: Call `validateEmail(trimmedEmail)` from `lib/validation.ts` in `app/signup/page.tsx` instead of relying only on HTML `type="email"`.
-  * [ ] **Post-auth default redirect** *(ПЗ BPMN 1.3, UC-01, UC-02)*: Change default redirect (when `?next=` is absent) from `/` to `/profile` in `app/login/page.tsx` and `app/signup/page.tsx`.
-  * [ ] **DB-level review length constraint** *(ПЗ BPMN 1.5, UC-04)*: Add `CHECK (char_length(content) <= 1000)` to `public.reviews` in Supabase so the server/DB enforces max length alongside `maxLength={1000}` in `ReviewForm.tsx`.
-  * [ ] **Fix inline review edit refresh bug**: In `components/profile/UserReviewsArchive.tsx`, sync local `reviewsList` state after inline editing (currently `reviewsList` is initialized once via `useState(initialReviews)` and does not visually update until a full reload).
+- [x] **13. Small Validation, Redirect & Bug Fixes**
+  * [x] **Explicit email validation on signup** *(ТЗ + ПЗ FR-3)*: Call `validateEmail(trimmedEmail)` from `lib/validation.ts` in `app/signup/page.tsx` instead of relying only on HTML `type="email"`.
+  * [x] **Post-auth default redirect** *(ПЗ BPMN 1.3, UC-01, UC-02)*: Change default redirect (when `?next=` is absent) from `/` to `/profile` in `app/login/page.tsx` and `app/signup/page.tsx`.
+  * [x] **DB-level review length constraint** *(ПЗ BPMN 1.5, UC-04)*: Add `CHECK (char_length(content) <= 1000)` to `public.reviews` in Supabase so the server/DB enforces max length alongside `maxLength={1000}` in `ReviewForm.tsx`.
+  * [x] **Fix inline review edit refresh bug**: In `components/profile/UserReviewsArchive.tsx`, sync local `reviewsList` state after inline editing (currently `reviewsList` is initialized once via `useState(initialReviews)` and does not visually update until a full reload).
 
 ---
 
 ## Tier C — Engineering, Documentation & Testing Deliverables
 
-- [ ] **14. Production `README.md` & `.env.example`**
+- [x] **14. Production `README.md` & `.env.example`**
   * **Source:** ТЗ — *«Вимоги до представленню вихідних кодів»* (*«містити файл інструкції README.md для розгортання та всі необхідні конфігураційні файли для запуску в середовищі Node.js»*)
   * **Current State:** `README.md` is still the default `create-next-app` boilerplate; `.env.example` does not exist.
   * **Recommended Implementation:** Write a clear `README.md` (architecture, tech stack, prerequisites, environment variables, Supabase setup, seeding & weekly GitHub Actions automation, local dev/build commands) and add `.env.example`.

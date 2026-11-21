@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Star,
   Pencil,
@@ -27,7 +28,10 @@ type SortOption = "date_desc" | "date_asc" | "rating_desc" | "rating_asc";
 export function UserReviewsArchive({
   initialReviews,
 }: UserReviewsArchiveProps) {
+  const router = useRouter();
   const { deleteReview } = useRatings();
+  const [prevInitialReviews, setPrevInitialReviews] =
+    useState<UserReviewArchiveItem[]>(initialReviews);
   const [reviewsList, setReviewsList] =
     useState<UserReviewArchiveItem[]>(initialReviews);
   const [editingMediaId, setEditingMediaId] = useState<string | null>(null);
@@ -35,6 +39,12 @@ export function UserReviewsArchive({
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("date_desc");
   const [filterWithTextOnly, setFilterWithTextOnly] = useState(false);
+
+  // Sync local list whenever server-provided archive refreshes
+  if (prevInitialReviews !== initialReviews) {
+    setPrevInitialReviews(initialReviews);
+    setReviewsList(initialReviews);
+  }
 
   // Sorting and Filtering
   const displayedReviews = useMemo(() => {
@@ -84,9 +94,26 @@ export function UserReviewsArchive({
     }
   };
 
-  const handleEditSuccess = () => {
+  const handleEditSuccess = (
+    mediaId: string,
+    updated?: { rating: number | null; content: string | null },
+  ) => {
+    if (updated) {
+      setReviewsList((prev) =>
+        prev.map((item) =>
+          item.media_id === mediaId
+            ? {
+                ...item,
+                rating: updated.rating,
+                content: updated.content,
+                updated_at: new Date().toISOString(),
+              }
+            : item,
+        ),
+      );
+    }
     setEditingMediaId(null);
-    // Reload or refresh can happen via router, but local UI updates smoothly
+    router.refresh();
   };
 
   return (
@@ -270,7 +297,9 @@ export function UserReviewsArchive({
                       initialRating={review.rating}
                       initialContent={review.content}
                       isEditing={true}
-                      onSuccess={handleEditSuccess}
+                      onSuccess={(updated) =>
+                        handleEditSuccess(review.media_id, updated)
+                      }
                       onCancel={() => setEditingMediaId(null)}
                     />
                   </div>

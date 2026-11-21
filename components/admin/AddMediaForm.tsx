@@ -7,6 +7,8 @@ import {
   Film,
   Tv,
   Upload,
+  Link2,
+  X,
   AlertTriangle,
   CheckCircle2,
   Lock,
@@ -47,6 +49,23 @@ const AGE_RATINGS = [
   "TV-MA",
 ];
 
+const MAX_POSTER_SIZE_BYTES = 5 * 1024 * 1024;
+const ALLOWED_POSTER_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+function validatePosterUrl(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return "Poster URL must start with http:// or https://.";
+    }
+    return null;
+  } catch {
+    return "Please enter a valid image URL (e.g. https://example.com/poster.jpg).";
+  }
+}
+
 function formatBudgetBand(budgetNum?: number): string | null {
   if (!budgetNum || budgetNum <= 0) return null;
   if (budgetNum < 15_000_000) return "Low (< $15M)";
@@ -84,10 +103,24 @@ export function AddMediaForm({
   const [country, setCountry] = useState("United States");
 
   // Poster State
+  const [posterMode, setPosterMode] = useState<"file" | "url">("file");
   const [posterFile, setPosterFile] = useState<File | null>(null);
+  const [posterUrl, setPosterUrl] = useState("");
   const [posterPreview, setPosterPreview] = useState<string | null>(null);
+  const [posterError, setPosterError] = useState<string | null>(null);
+  const [posterUrlLoadError, setPosterUrlLoadError] = useState(false);
   const [isUploadingPoster, setIsUploadingPoster] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const objectUrlRef = useRef<string | null>(null);
+
+  // Revoke any object URL on unmount
+  useEffect(() => {
+    return () => {
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+      }
+    };
+  }, []);
 
   // Duplicate Check State (FR-17)
   const [duplicateWarning, setDuplicateWarning] = useState<{
@@ -138,12 +171,86 @@ export function AddMediaForm({
     );
   };
 
-  // Handle File Selection for Poster
+  // Handle Poster Source Mode Switch
+  const handlePosterModeChange = (mode: "file" | "url") => {
+    if (mode === posterMode) return;
+    setPosterMode(mode);
+    setPosterError(null);
+    setPosterUrlLoadError(false);
+
+    if (mode === "file") {
+      setPosterPreview(objectUrlRef.current);
+    } else {
+      const trimmed = posterUrl.trim();
+      setPosterPreview(
+        trimmed && !validatePosterUrl(trimmed) ? trimmed : null,
+      );
+    }
+  };
+
+  // Handle File Selection for Poster (max 5 MB, JPG/PNG/WebP)
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setPosterFile(file);
-      setPosterPreview(URL.createObjectURL(file));
+    if (!file) return;
+
+    if (!ALLOWED_POSTER_MIME_TYPES.includes(file.type)) {
+      setPosterError(
+        "Unsupported image format. Only JPG, PNG, and WebP files are allowed.",
+      );
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    if (file.size > MAX_POSTER_SIZE_BYTES) {
+      setPosterError(
+        "Poster file size exceeds the 5 MB limit. Please choose a smaller image.",
+      );
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    setPosterError(null);
+    setPosterUrlLoadError(false);
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+    }
+    const nextObjectUrl = URL.createObjectURL(file);
+    objectUrlRef.current = nextObjectUrl;
+    setPosterFile(file);
+    setPosterPreview(nextObjectUrl);
+  };
+
+  // Handle Direct Image URL Input
+  const handlePosterUrlChange = (value: string) => {
+    setPosterUrl(value);
+    setPosterUrlLoadError(false);
+
+    const trimmed = value.trim();
+    if (!trimmed) {
+      setPosterError(null);
+      setPosterPreview(null);
+      return;
+    }
+
+    const urlErr = validatePosterUrl(trimmed);
+    setPosterError(urlErr);
+    setPosterPreview(urlErr ? null : trimmed);
+  };
+
+  const clearPosterSelection = () => {
+    setPosterError(null);
+    setPosterUrlLoadError(false);
+    if (posterMode === "file") {
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
+      }
+      setPosterFile(null);
+      setPosterPreview(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } else {
+      setPosterUrl("");
+      setPosterPreview(null);
     }
   };
 
@@ -182,11 +289,20 @@ export function AddMediaForm({
       return;
     }
 
-    startTransition(async () => {
-      let uploadedPosterUrl: string | null = null;
+    if (posterMode === "url" && posterUrl.trim()) {
+      const urlErr = validatePosterUrl(posterUrl);
+      if (urlErr) {
+        setPosterError(urlErr);
+        setErrorMessage(urlErr);
+        return;
+      }
+    }
 
-      // 1. Upload poster if file selected (FR-20)
-      if (posterFile) {
+    startTransition(async () => {
+      let resolvedPosterUrl: string | null = null;
+
+      // 1. Resolve poster via file upload or direct image URL (FR-20)
+      if (posterMode === "file" && posterFile) {
         setIsUploadingPoster(true);
         const formData = new FormData();
         formData.append("file", posterFile);
@@ -197,7 +313,9 @@ export function AddMediaForm({
           setErrorMessage(uploadRes.error || "Failed to upload poster image.");
           return;
         }
-        uploadedPosterUrl = uploadRes.data.url;
+        resolvedPosterUrl = uploadRes.data.url;
+      } else if (posterMode === "url" && posterUrl.trim()) {
+        resolvedPosterUrl = posterUrl.trim();
       }
 
       // 2. Prepare payload (FR-16, UC-03)
@@ -226,7 +344,7 @@ export function AddMediaForm({
             ? episodesCount
             : null,
         overview: overview.trim() || null,
-        poster_path: uploadedPosterUrl,
+        poster_path: resolvedPosterUrl,
         budget: typeof budget === "number" ? budget : null,
         revenue: typeof revenue === "number" ? revenue : null,
         age_rating: ageRating || null,
@@ -260,8 +378,15 @@ export function AddMediaForm({
         setSelectedGenreIds([]);
         setBudget("");
         setRevenue("");
+        if (objectUrlRef.current) {
+          URL.revokeObjectURL(objectUrlRef.current);
+          objectUrlRef.current = null;
+        }
         setPosterFile(null);
+        setPosterUrl("");
         setPosterPreview(null);
+        setPosterError(null);
+        setPosterUrlLoadError(false);
         if (fileInputRef.current) fileInputRef.current.value = "";
       }
     });
@@ -679,61 +804,154 @@ export function AddMediaForm({
         </div>
       </div>
 
-      {/* Section 5: Poster Upload (FR-20, UC-03) */}
+      {/* Section 5: Poster Upload or Image URL (FR-20, UC-03) */}
       <div className="space-y-3">
-        <label className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-          Poster Upload
-        </label>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <label className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+            Poster Artwork
+          </label>
+
+          {/* Source Mode Toggle */}
+          <div className="flex items-center bg-neutral-900 border border-neutral-700/60 rounded-xl p-1 gap-1">
+            <button
+              type="button"
+              onClick={() => handlePosterModeChange("file")}
+              disabled={isLocked}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer disabled:opacity-50 ${
+                posterMode === "file"
+                  ? "bg-brand-lime text-black"
+                  : "text-neutral-400 hover:text-white"
+              }`}
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>Upload File</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handlePosterModeChange("url")}
+              disabled={isLocked}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer disabled:opacity-50 ${
+                posterMode === "url"
+                  ? "bg-brand-lime text-black"
+                  : "text-neutral-400 hover:text-white"
+              }`}
+            >
+              <Link2 className="w-3.5 h-3.5" />
+              <span>Image URL</span>
+            </button>
+          </div>
+        </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-6 p-4 bg-neutral-900/60 border border-neutral-800 rounded-xl">
           {/* Thumbnail Preview */}
           <div className="w-24 h-36 relative bg-neutral-800 rounded-lg overflow-hidden border border-neutral-700 flex items-center justify-center shrink-0">
-            {posterPreview ? (
+            {posterPreview && !posterUrlLoadError ? (
               <Image
                 src={posterPreview}
                 alt="Poster preview"
                 fill
                 className="object-cover"
                 unoptimized
+                onError={() => setPosterUrlLoadError(true)}
               />
             ) : (
               <Film className="w-8 h-8 text-neutral-600" />
             )}
           </div>
 
-          <div className="flex-1 space-y-2 text-center sm:text-left">
-            <p className="text-xs text-neutral-300 font-medium">
-              Upload poster artwork (.jpg, .png, .webp).
-            </p>
+          {posterMode === "file" ? (
+            <div className="flex-1 space-y-2 text-center sm:text-left w-full">
+              <p className="text-xs text-neutral-300 font-medium">
+                Upload poster artwork (.jpg, .jpeg, .png, .webp — max 5 MB).
+              </p>
 
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={handleFileChange}
-              disabled={isLocked}
-              className="hidden"
-              id="admin-poster-upload"
-            />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleFileChange}
+                disabled={isLocked}
+                className="hidden"
+                id="admin-poster-upload"
+              />
 
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isLocked}
-              className="text-xs mt-2"
-            >
-              <Upload className="w-3.5 h-3.5 mr-1.5" />
-              <span>
-                {posterFile ? "Change Selected Image" : "Choose Image File"}
-              </span>
-            </Button>
-            {posterFile && (
-              <span className="ml-2 text-xs text-brand-lime font-mono">
-                {posterFile.name} ({(posterFile.size / 1024).toFixed(0)} KB)
-              </span>
-            )}
-          </div>
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isLocked}
+                  className="text-xs"
+                >
+                  <Upload className="w-3.5 h-3.5 mr-1.5" />
+                  <span>
+                    {posterFile ? "Change Selected Image" : "Choose Image File"}
+                  </span>
+                </Button>
+
+                {posterFile && (
+                  <button
+                    type="button"
+                    onClick={clearPosterSelection}
+                    disabled={isLocked}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-neutral-400 hover:text-white bg-neutral-800/80 border border-neutral-700 transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    <span>Clear</span>
+                  </button>
+                )}
+              </div>
+
+              {posterFile && (
+                <p className="text-xs text-brand-lime font-mono">
+                  {posterFile.name} ({(posterFile.size / 1024).toFixed(0)} KB)
+                </p>
+              )}
+
+              {posterError && (
+                <p className="text-xs text-rose-400">{posterError}</p>
+              )}
+            </div>
+          ) : (
+            <div className="flex-1 space-y-2 w-full">
+              <p className="text-xs text-neutral-300 font-medium">
+                Paste a direct image URL (https://...) for live thumbnail
+                preview.
+              </p>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="url"
+                  value={posterUrl}
+                  onChange={(e) => handlePosterUrlChange(e.target.value)}
+                  disabled={isLocked}
+                  placeholder="https://image.tmdb.org/t/p/w500/..."
+                  className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-lime transition-colors disabled:opacity-50"
+                />
+                {posterUrl && (
+                  <button
+                    type="button"
+                    onClick={clearPosterSelection}
+                    disabled={isLocked}
+                    title="Clear poster URL"
+                    className="p-2.5 rounded-xl text-neutral-400 hover:text-white bg-neutral-800/80 border border-neutral-700 transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              {posterError && (
+                <p className="text-xs text-rose-400">{posterError}</p>
+              )}
+              {!posterError && posterUrlLoadError && (
+                <p className="text-xs text-amber-400">
+                  Preview could not be loaded from this URL. Verify that the
+                  link points directly to an accessible image.
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

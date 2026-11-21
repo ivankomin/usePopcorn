@@ -19,7 +19,8 @@ import { useAuth } from "@/hooks/useAuth";
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextParam = searchParams.get("next") || "/";
+  const rawNext = searchParams.get("next");
+  const nextParam = rawNext || "/profile";
   const urlError = searchParams.get("error");
   const resetStatus = searchParams.get("reset");
 
@@ -68,7 +69,7 @@ function LoginForm() {
       }
 
       // Smooth client navigation while cookies and auth state are already synchronized
-      const destination = nextParam.startsWith("/") ? nextParam : "/";
+      const destination = nextParam.startsWith("/") ? nextParam : "/profile";
       startNavigation(() => {
         router.push(destination);
         router.refresh();
@@ -224,8 +225,8 @@ function LoginForm() {
         Don&apos;t have an account?{" "}
         <Link
           href={
-            nextParam && nextParam !== "/"
-              ? `/signup?next=${encodeURIComponent(nextParam)}`
+            rawNext && rawNext !== "/"
+              ? `/signup?next=${encodeURIComponent(rawNext)}`
               : "/signup"
           }
           className="text-brand-lime hover:underline font-medium"

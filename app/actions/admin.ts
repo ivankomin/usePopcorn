@@ -220,14 +220,14 @@ export async function uploadMediaPosterAction(formData: FormData): Promise<Actio
     return { success: false, error: "No image file provided" };
   }
 
-  // Validate format and size (max 8MB)
+  // Validate format and size (max 5 MB)
   const allowedMime = ["image/jpeg", "image/png", "image/webp"];
   if (!allowedMime.includes(file.type)) {
     return { success: false, error: "Invalid image format. Allowed formats: JPG, PNG, WEBP." };
   }
 
-  if (file.size > 8 * 1024 * 1024) {
-    return { success: false, error: "Poster file size exceeds the 8MB limit." };
+  if (file.size > 5 * 1024 * 1024) {
+    return { success: false, error: "Poster file size exceeds the 5 MB limit." };
   }
 
   try {
@@ -316,6 +316,31 @@ export async function createMediaItemAction(
     };
   }
 
+  // 3b. Validate optional poster_path (relative TMDB path or http/https URL)
+  let sanitizedPosterPath: string | null = null;
+  if (input.poster_path && input.poster_path.trim()) {
+    const rawPoster = input.poster_path.trim();
+    if (rawPoster.startsWith("/")) {
+      sanitizedPosterPath = rawPoster;
+    } else {
+      try {
+        const parsed = new URL(rawPoster);
+        if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+          return {
+            success: false,
+            error: "Poster URL must start with http:// or https://.",
+          };
+        }
+        sanitizedPosterPath = parsed.toString();
+      } catch {
+        return {
+          success: false,
+          error: "Invalid poster image URL. Please provide a valid http(s) URL.",
+        };
+      }
+    }
+  }
+
   // 4. Metadata Structure
   const metadata: MediaMetadata = {
     tagline: input.tagline?.trim() || null,
@@ -342,7 +367,7 @@ export async function createMediaItemAction(
         episodes_count: input.media_type === "tv" ? (input.episodes_count || null) : null,
         overview: input.overview?.trim() || null,
         status: input.status || "Released",
-        poster_path: input.poster_path || null,
+        poster_path: sanitizedPosterPath,
         budget: input.budget || null,
         budget_category: budgetCategory,
         revenue: input.revenue || null,

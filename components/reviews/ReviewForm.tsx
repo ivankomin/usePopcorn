@@ -24,7 +24,10 @@ export interface ReviewFormProps {
   initialRating?: number | null;
   initialContent?: string | null;
   isEditing?: boolean;
-  onSuccess?: () => void;
+  onSuccess?: (updated?: {
+    rating: number | null;
+    content: string | null;
+  }) => void;
   onCancel?: () => void;
 }
 
@@ -61,9 +64,12 @@ export function ReviewForm({
     setErrorMessage(null);
 
     try {
+      const normalizedRating = rating !== null ? rating : null;
+      const normalizedContent = content.trim() ? content.trim() : null;
+
       const success = await submitReview(mediaId, {
-        rating: rating !== null ? rating : null,
-        content: content.trim() ? content.trim() : null,
+        rating: normalizedRating,
+        content: normalizedContent,
       });
 
       if (!success) {
@@ -71,7 +77,10 @@ export function ReviewForm({
       } else {
         setContent("");
         if (onSuccess) {
-          onSuccess();
+          onSuccess({
+            rating: normalizedRating,
+            content: normalizedContent,
+          });
         }
       }
     } catch {

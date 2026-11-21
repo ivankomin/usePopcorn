@@ -17,6 +17,7 @@ import Button from "@/components/Button";
 import { useAuth } from "@/hooks/useAuth";
 import {
   getPasswordValidationError,
+  validateEmail,
   PASSWORD_REQUIREMENTS_HINT,
   PASSWORD_MIN_LENGTH,
 } from "@/lib/validation";
@@ -24,7 +25,8 @@ import {
 function SignUpForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextParam = searchParams.get("next") || "/";
+  const rawNext = searchParams.get("next");
+  const nextParam = rawNext || "/profile";
 
   const { signUp } = useAuth();
 
@@ -75,6 +77,12 @@ function SignUpForm() {
       return;
     }
 
+    const emailError = validateEmail(trimmedEmail);
+    if (emailError) {
+      setError(emailError);
+      return;
+    }
+
     const passwordError = getPasswordValidationError(password);
     if (passwordError) {
       setError(passwordError);
@@ -109,7 +117,7 @@ function SignUpForm() {
       }
 
       // If auto-confirmed/logged-in immediately
-      const destination = nextParam.startsWith("/") ? nextParam : "/";
+      const destination = nextParam.startsWith("/") ? nextParam : "/profile";
       startNavigation(() => {
         router.push(destination);
         router.refresh();
@@ -294,8 +302,8 @@ function SignUpForm() {
         Already have an account?{" "}
         <Link
           href={
-            nextParam && nextParam !== "/"
-              ? `/login?next=${encodeURIComponent(nextParam)}`
+            rawNext && rawNext !== "/"
+              ? `/login?next=${encodeURIComponent(rawNext)}`
               : "/login"
           }
           className="text-brand-lime hover:underline font-medium"

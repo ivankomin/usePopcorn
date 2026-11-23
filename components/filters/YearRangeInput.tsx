@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/hooks/useI18n";
 
 export interface YearRangeInputProps {
   minYear: number;
@@ -21,6 +22,7 @@ export function YearRangeInput({
   minLimit = 1900,
   maxLimit = 2026,
 }: YearRangeInputProps) {
+  const { t } = useI18n();
   // Temporary draft state only while the user is actively typing into the field
   const [minDraft, setMinDraft] = useState<string | null>(null);
   const [maxDraft, setMaxDraft] = useState<string | null>(null);
@@ -70,7 +72,7 @@ export function YearRangeInput({
           htmlFor="min-year-input"
           className="text-xs font-bold tracking-wider text-neutral-300 uppercase select-none"
         >
-          MIN YEAR
+          {t("catalog.minYear")}
         </label>
         <div
           className={cn(
@@ -124,7 +126,7 @@ export function YearRangeInput({
           htmlFor="max-year-input"
           className="text-xs font-bold tracking-wider text-neutral-300 uppercase select-none"
         >
-          MAX YEAR
+          {t("catalog.maxYear")}
         </label>
         <div
           className={cn(

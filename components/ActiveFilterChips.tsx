@@ -5,6 +5,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buildUrlWithParams } from "@/lib/navigation";
+import { useI18n } from "@/hooks/useI18n";
 
 export type ChipVariant = "lime" | "blue" | "yellow" | "purple" | "orange" | "neutral";
 
@@ -28,6 +29,7 @@ function ActiveFilterChipsInner() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { t, tGenre, tFilter } = useI18n();
   const [, startTransition] = useTransition();
 
   const updateUrl = (params: URLSearchParams) => {
@@ -46,7 +48,7 @@ function ActiveFilterChipsInner() {
   if (searchQuery && searchQuery.trim()) {
     chips.push({
       id: "search",
-      label: `SEARCH: "${searchQuery.trim()}"`,
+      label: `${t("catalog.chipSearch")}: "${searchQuery.trim()}"`,
       variant: "lime",
       onRemove: () => {
         const params = new URLSearchParams(searchParams.toString());
@@ -61,7 +63,7 @@ function ActiveFilterChipsInner() {
   if (pathname.startsWith("/watchlist") && mediaType && mediaType !== "all") {
     chips.push({
       id: "mediaType",
-      label: `TYPE: ${mediaType === "tv" ? "SERIES" : "MOVIES"}`,
+      label: `${t("catalog.chipType")}: ${(mediaType === "tv" ? t("catalog.mediaSeries") : t("catalog.mediaMovies")).toUpperCase()}`,
       variant: "yellow",
       onRemove: () => {
         const params = new URLSearchParams(searchParams.toString());
@@ -82,7 +84,7 @@ function ActiveFilterChipsInner() {
     genresList.forEach((genre) => {
       chips.push({
         id: `genre-${genre}`,
-        label: genre.toUpperCase(),
+        label: tGenre(genre).toUpperCase(),
         variant: "blue",
         onRemove: () => {
           const params = new URLSearchParams(searchParams.toString());
@@ -104,7 +106,7 @@ function ActiveFilterChipsInner() {
   if (seasons && seasons !== "All Seasons") {
     chips.push({
       id: "seasons",
-      label: seasons.toUpperCase(),
+      label: tFilter(seasons).toUpperCase(),
       variant: "yellow",
       onRemove: () => {
         const params = new URLSearchParams(searchParams.toString());
@@ -119,7 +121,7 @@ function ActiveFilterChipsInner() {
   if (runtime && runtime !== "All Runtimes") {
     chips.push({
       id: "runtime",
-      label: runtime.toUpperCase(),
+      label: tFilter(runtime).toUpperCase(),
       variant: "yellow",
       onRemove: () => {
         const params = new URLSearchParams(searchParams.toString());
@@ -134,7 +136,7 @@ function ActiveFilterChipsInner() {
   if (country && country !== "All Countries") {
     chips.push({
       id: "country",
-      label: `COUNTRY: ${country.toUpperCase()}`,
+      label: `${t("catalog.chipCountry")}: ${tFilter(country).toUpperCase()}`,
       variant: "purple",
       onRemove: () => {
         const params = new URLSearchParams(searchParams.toString());
@@ -149,7 +151,7 @@ function ActiveFilterChipsInner() {
   if (budget && budget !== "All Budgets") {
     chips.push({
       id: "budget",
-      label: `BUDGET: ${budget.toUpperCase()}`,
+      label: `${t("catalog.chipBudget")}: ${tFilter(budget).toUpperCase()}`,
       variant: "orange",
       onRemove: () => {
         const params = new URLSearchParams(searchParams.toString());
@@ -164,7 +166,7 @@ function ActiveFilterChipsInner() {
   if (ageRating && ageRating !== "All Age Ratings" && ageRating !== "All Ratings") {
     chips.push({
       id: "ageRating",
-      label: `AGE: ${ageRating.toUpperCase()}`,
+      label: `${t("catalog.chipAge")}: ${tFilter(ageRating).toUpperCase()}`,
       variant: "purple",
       onRemove: () => {
         const params = new URLSearchParams(searchParams.toString());
@@ -214,13 +216,14 @@ function ActiveFilterChipsInner() {
     : undefined;
 
   if (minYear !== undefined || maxYear !== undefined) {
-    let label = "YEAR";
+    const yearPrefix = t("catalog.chipYear");
+    let label = yearPrefix;
     if (minYear !== undefined && maxYear !== undefined) {
-      label = `YEAR: ${minYear}-${maxYear}`;
+      label = `${yearPrefix}: ${minYear}-${maxYear}`;
     } else if (minYear !== undefined) {
-      label = `YEAR: ≥ ${minYear}`;
+      label = `${yearPrefix}: ≥ ${minYear}`;
     } else if (maxYear !== undefined) {
-      label = `YEAR: ≤ ${maxYear}`;
+      label = `${yearPrefix}: ≤ ${maxYear}`;
     }
 
     chips.push({
@@ -273,7 +276,7 @@ function ActiveFilterChipsInner() {
               "group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all shadow-sm cursor-pointer",
               VARIANT_STYLES[chip.variant]
             )}
-            title={`Remove filter: ${chip.label}`}
+            title={chip.label}
           >
             <span>{chip.label}</span>
             <X className="w-3.5 h-3.5 stroke-[2.5] opacity-70 group-hover:opacity-100 transition-opacity" />
@@ -286,7 +289,7 @@ function ActiveFilterChipsInner() {
         onClick={handleClearAll}
         className="text-xs sm:text-sm text-neutral-400 hover:text-white underline underline-offset-4 decoration-neutral-600 hover:decoration-white transition-colors cursor-pointer shrink-0 ml-auto"
       >
-        Clear all filters
+        {t("catalog.clearAllFilters")}
       </button>
     </div>
   );

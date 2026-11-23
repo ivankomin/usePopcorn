@@ -10,6 +10,7 @@ import type {
 } from "@/types/media";
 import { ProfileMovieCard } from "./ProfileMovieCard";
 import { CabinetCollections } from "./CabinetCollections";
+import { useI18n } from "@/hooks/useI18n";
 
 export interface CabinetWatchlistProps {
   entries: WatchlistEntry[];
@@ -20,6 +21,7 @@ export function CabinetWatchlist({
   entries,
   collections = [],
 }: CabinetWatchlistProps) {
+  const { t } = useI18n();
   const [selectedStatus, setSelectedStatus] = useState<WatchlistStatus | "all">(
     "all",
   );
@@ -46,14 +48,18 @@ export function CabinetWatchlist({
     label: string;
     count: number;
   }> = [
-    { id: "all", label: "All Items", count: counts.all },
+    { id: "all", label: t("watchlist.allItems"), count: counts.all },
     {
       id: "plan_to_watch",
-      label: "Plan to Watch",
+      label: t("movieDetails.planToWatch"),
       count: counts.plan_to_watch,
     },
-    { id: "watched", label: "Watched", count: counts.watched },
-    { id: "favorite", label: "Favorites", count: counts.favorite },
+    { id: "watched", label: t("movieDetails.watched"), count: counts.watched },
+    {
+      id: "favorite",
+      label: t("movieDetails.favorites"),
+      count: counts.favorite,
+    },
   ];
 
   return (
@@ -93,7 +99,7 @@ export function CabinetWatchlist({
           href="/watchlist"
           className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-xs text-neutral-300 hover:text-white transition-colors shrink-0"
         >
-          <span>Advanced Filters & Search</span>
+          <span>{t("profile.advancedFilters")}</span>
           <ExternalLink className="w-3 h-3 text-neutral-500" />
         </Link>
       </div>
@@ -102,17 +108,17 @@ export function CabinetWatchlist({
       {filteredEntries.length === 0 ? (
         <div className="bg-brand-surface border border-neutral-800/80 rounded-2xl p-12 text-center flex flex-col items-center justify-center gap-3">
           <Bookmark className="w-10 h-10 text-neutral-600" />
-          <h3 className="text-base font-bold text-white">No items found</h3>
+          <h3 className="text-base font-bold text-white">
+            {t("watchlist.noTitlesFound")}
+          </h3>
           <p className="text-xs text-neutral-400 max-w-sm">
-            {selectedStatus === "all"
-              ? "You haven't added any movies or series to your watchlist yet."
-              : `You have no titles categorized under "${statusOptions.find((s) => s.id === selectedStatus)?.label}".`}
+            {t("watchlist.noWatchlistMatch")}
           </p>
           <Link
             href="/catalog"
             className="mt-2 px-4 py-2 rounded-xl bg-brand-lime text-black text-xs font-semibold hover:bg-brand-lime/90 transition-colors"
           >
-            Explore Catalog
+            {t("watchlist.browseCatalog")}
           </Link>
         </div>
       ) : (

@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Film, MessageSquareText, Users, ScrollText } from "lucide-react";
+import { useI18n } from "@/hooks/useI18n";
 
 export function AdminNavTabs() {
   const pathname = usePathname();
+  const { t } = useI18n();
 
   const isReviews = pathname.startsWith("/admin/reviews");
   const isUsers = pathname.startsWith("/admin/users");
@@ -28,7 +30,7 @@ export function AdminNavTabs() {
           }`}
         >
           <Film className="w-4 h-4 shrink-0" />
-          <span>Catalog Management</span>
+          <span>{t("admin.tabCatalog")}</span>
         </Link>
 
         <Link
@@ -40,7 +42,7 @@ export function AdminNavTabs() {
           }`}
         >
           <MessageSquareText className="w-4 h-4 shrink-0" />
-          <span>Review Moderation</span>
+          <span>{t("admin.tabReviews")}</span>
         </Link>
 
         <Link
@@ -52,7 +54,7 @@ export function AdminNavTabs() {
           }`}
         >
           <Users className="w-4 h-4 shrink-0" />
-          <span>User Management</span>
+          <span>{t("admin.tabUsers")}</span>
         </Link>
 
         <Link
@@ -64,7 +66,7 @@ export function AdminNavTabs() {
           }`}
         >
           <ScrollText className="w-4 h-4 shrink-0" />
-          <span>Logs</span>
+          <span>{t("admin.tabLogs")}</span>
         </Link>
       </nav>
     </div>

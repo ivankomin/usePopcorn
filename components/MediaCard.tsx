@@ -9,6 +9,7 @@ import { cn, formatMediaDuration, getPosterUrl } from "@/lib/utils";
 import { useWatchlist } from "@/hooks/useWatchlist";
 import { useAuth } from "@/hooks/useAuth";
 import { useRatings } from "@/hooks/useRatings";
+import { useI18n } from "@/hooks/useI18n";
 import { StarRating } from "./StarRating";
 import { MediaPoster } from "./MediaPoster";
 
@@ -53,6 +54,7 @@ export default function MediaCard({
     isLoading: isWatchlistLoading,
   } = useWatchlist();
   const { getUserRating, rateMedia } = useRatings();
+  const { t, tGenre } = useI18n();
 
   // If watchlist is still loading on mount and initialInWatchlist was provided by SSR, trust it
   const isSaved = isInWatchlist(media.id);
@@ -80,7 +82,7 @@ export default function MediaCard({
   // Format genres list
   const genreText =
     media.genres && media.genres.length > 0
-      ? media.genres.map((g) => g.name).join(", ")
+      ? media.genres.map((g) => tGenre(g.name)).join(", ")
       : null;
 
   const runtimeText = formatMediaDuration(media);
@@ -212,7 +214,9 @@ export default function MediaCard({
           {showRatingBlock && (
             <div className="flex items-center gap-1.5 mr-2">
               <span className="font-semibold text-white">
-                {hasUserReviews ? "Rating:" : "IMDb:"}
+                {hasUserReviews
+                  ? t("mediaCard.ratingLabel")
+                  : t("mediaCard.imdbLabel")}
               </span>
               <StarRating
                 value={ratingStars}
@@ -243,7 +247,9 @@ export default function MediaCard({
                 <div className="h-3.5 w-px bg-neutral-700 mx-3 sm:mx-4 hidden xs:block" />
               )}
               <div className="flex items-center gap-1.5">
-                <span className="font-semibold text-white">Your rating:</span>
+                <span className="font-semibold text-white">
+                  {t("mediaCard.yourRatingLabel")}
+                </span>
                 <StarRating
                   value={userStars}
                   precision={0.5}
@@ -273,7 +279,9 @@ export default function MediaCard({
                 <div className="h-3.5 w-px bg-neutral-700 mx-3 sm:mx-4 hidden xs:block" />
               )}
               <div className="flex items-center gap-1.5 animate-fadeIn">
-                <span className="font-semibold text-white">Rate:</span>
+                <span className="font-semibold text-white">
+                  {t("mediaCard.rateLabel")}
+                </span>
                 <StarRating
                   value={0}
                   precision={0.5}
@@ -303,10 +311,10 @@ export default function MediaCard({
                 type="button"
                 onClick={() => setIsRatingOpen(true)}
                 className="text-xs text-neutral-400 hover:text-brand-lime flex items-center gap-1 transition-colors cursor-pointer py-0.5 px-1.5 rounded hover:bg-white/5"
-                title="Add your rating"
+                title={t("mediaCard.addYourRating")}
               >
                 <Star className="w-3.5 h-3.5 text-neutral-500 hover:text-brand-lime" />
-                <span>Rate</span>
+                <span>{t("mediaCard.rateButton")}</span>
               </button>
             </>
           ) : null}
@@ -321,9 +329,15 @@ export default function MediaCard({
           type="button"
           onClick={handleToggleWatchlist}
           aria-label={
-            inWatchlist ? "Remove from watchlist" : "Add to watchlist"
+            inWatchlist
+              ? t("mediaCard.removeFromWatchlist")
+              : t("mediaCard.addToWatchlist")
           }
-          title={inWatchlist ? "In Watchlist" : "Add to Watchlist"}
+          title={
+            inWatchlist
+              ? t("mediaCard.inWatchlist")
+              : t("mediaCard.addToWatchlist")
+          }
           className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${
             inWatchlist
               ? "bg-brand-lime text-black"

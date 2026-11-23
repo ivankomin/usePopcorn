@@ -1,3 +1,5 @@
+"use client";
+
 import type { MediaItem } from "@/types/media";
 import { Star } from "lucide-react";
 import {
@@ -7,12 +9,14 @@ import {
   isMatureRating,
   cn,
 } from "@/lib/utils";
+import { useI18n } from "@/hooks/useI18n";
 
 export interface MovieDetailsMetadataProps {
   media: MediaItem;
 }
 
 export function MovieDetailsMetadata({ media }: MovieDetailsMetadataProps) {
+  const { t, tFilter } = useI18n();
   const isTV = media.media_type === "tv";
   const runtimeText = formatMediaDuration(media);
 
@@ -36,20 +40,23 @@ export function MovieDetailsMetadata({ media }: MovieDetailsMetadataProps) {
       ? metadata.cast.slice(0, 5).join(", ")
       : null;
 
-  const countryDisplay =
+  const rawCountry =
     media.country || (media.countries && media.countries[0]) || "USA";
+  const countryDisplay = tFilter(rawCountry);
 
   return (
     <div className="w-full rounded-2xl border border-neutral-700/60 bg-[#181818]/70 p-5 sm:p-6 flex flex-col gap-2.5 text-sm mt-1">
       <div className="flex items-baseline gap-2">
-        <span className="text-neutral-400 font-medium">Country:</span>
+        <span className="text-neutral-400 font-medium">
+          {t("movieDetails.country")}
+        </span>
         <span className="text-white font-medium">{countryDisplay}</span>
       </div>
 
       {runtimeText && (
         <div className="flex items-baseline gap-2">
           <span className="text-neutral-400 font-medium">
-            {isTV ? "Seasons:" : "Runtime:"}
+            {isTV ? t("movieDetails.seasons") : t("movieDetails.runtime")}
           </span>
           <span className="text-white font-medium">{runtimeText}</span>
         </div>
@@ -57,14 +64,18 @@ export function MovieDetailsMetadata({ media }: MovieDetailsMetadataProps) {
 
       {formattedBudget && !isTV && (
         <div className="flex items-baseline gap-2">
-          <span className="text-neutral-400 font-medium">Budget:</span>
+          <span className="text-neutral-400 font-medium">
+            {t("movieDetails.budget")}
+          </span>
           <span className="text-white font-medium">{formattedBudget}</span>
         </div>
       )}
 
       {formattedRevenue && !isTV && (
         <div className="flex items-baseline gap-2">
-          <span className="text-neutral-400 font-medium">Box Office:</span>
+          <span className="text-neutral-400 font-medium">
+            {t("movieDetails.boxOffice")}
+          </span>
           <span className="text-[#8ce648] font-semibold">
             {formattedRevenue}
           </span>
@@ -73,24 +84,32 @@ export function MovieDetailsMetadata({ media }: MovieDetailsMetadataProps) {
 
       {isTV && media.episodes_count && (
         <div className="flex items-baseline gap-2">
-          <span className="text-neutral-400 font-medium">Episodes:</span>
+          <span className="text-neutral-400 font-medium">
+            {t("movieDetails.episodes")}
+          </span>
           <span className="text-white font-medium">
             {media.episodes_count}{" "}
-            {media.episodes_count === 1 ? "episode" : "episodes"}
+            {media.episodes_count === 1
+              ? t("movieDetails.episodeSingular")
+              : t("movieDetails.episodePlural")}
           </span>
         </div>
       )}
 
       {isTV && media.status && (
         <div className="flex items-baseline gap-2">
-          <span className="text-neutral-400 font-medium">Status:</span>
+          <span className="text-neutral-400 font-medium">
+            {t("movieDetails.status")}
+          </span>
           <span className="text-white font-medium">{media.status}</span>
         </div>
       )}
 
       {media.age_rating && (
         <div className="flex items-baseline gap-2">
-          <span className="text-neutral-400 font-medium">Age rating:</span>
+          <span className="text-neutral-400 font-medium">
+            {t("movieDetails.ageRating")}
+          </span>
           <span
             className={cn(
               "font-semibold",
@@ -104,7 +123,9 @@ export function MovieDetailsMetadata({ media }: MovieDetailsMetadataProps) {
 
       {media.imdb_rating && (
         <div className="flex items-baseline gap-2">
-          <span className="text-neutral-400 font-medium">IMDb rating:</span>
+          <span className="text-neutral-400 font-medium">
+            {t("movieDetails.imdbRating")}
+          </span>
           <div className="flex items-center gap-1.5 font-semibold text-white">
             <span>{Number(media.imdb_rating).toFixed(1)}</span>
             <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
@@ -114,7 +135,9 @@ export function MovieDetailsMetadata({ media }: MovieDetailsMetadataProps) {
 
       {formattedDate && (
         <div className="flex items-baseline gap-2">
-          <span className="text-neutral-400 font-medium">Premiered on:</span>
+          <span className="text-neutral-400 font-medium">
+            {t("movieDetails.premieredOn")}
+          </span>
           <span className="text-white font-medium">
             {formattedDate}
             {countryDisplay ? ` (${countryDisplay})` : ""}
@@ -125,7 +148,7 @@ export function MovieDetailsMetadata({ media }: MovieDetailsMetadataProps) {
       {crewNames && (
         <div className="flex items-baseline gap-2">
           <span className="text-neutral-400 font-medium">
-            {isTV ? "Creator:" : "Director:"}
+            {isTV ? t("movieDetails.creator") : t("movieDetails.director")}
           </span>
           <span className="text-white font-medium">{crewNames}</span>
         </div>
@@ -133,7 +156,9 @@ export function MovieDetailsMetadata({ media }: MovieDetailsMetadataProps) {
 
       {castNames && (
         <div className="flex items-baseline gap-2">
-          <span className="text-neutral-400 font-medium">Stars:</span>
+          <span className="text-neutral-400 font-medium">
+            {t("movieDetails.stars")}
+          </span>
           <span className="text-white font-medium">{castNames}</span>
         </div>
       )}

@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import type { MediaItem } from "@/types/media";
+import { useI18n } from "@/hooks/useI18n";
 import MediaCard from "./MediaCard";
 import Pagination from "./Pagination";
 import SortDropdown from "./SortDropdown";
@@ -22,6 +25,7 @@ export default function MediaList({
   totalPages,
   currentSort,
 }: MediaListProps) {
+  const { t } = useI18n();
   const count = totalFound !== undefined ? totalFound : items.length;
   const query = searchQuery?.trim();
 
@@ -33,17 +37,17 @@ export default function MediaList({
             <h1 className="text-2xl sm:text-3xl md:text-[32px] font-bold text-white tracking-tight leading-tight">
               {query ? (
                 <>
-                  Results for:{" "}
+                  {t("catalog.resultsFor")}{" "}
                   <span className="text-white">
                     {query.startsWith('"') ? query : `"${query}"`}
                   </span>
                 </>
               ) : (
-                "Browse the catalog"
+                t("catalog.browseTitle")
               )}
             </h1>
             <span className="text-neutral-400 font-normal italic text-lg sm:text-xl ml-1">
-              {query && `(${count} Found)`}
+              {query && `(${t("catalog.found", { count })})`}
             </span>
           </div>
 
@@ -65,16 +69,17 @@ export default function MediaList({
         </div>
       ) : (
         <div className="bg-[#181818] border border-neutral-800 rounded-2xl p-12 text-center flex flex-col items-center justify-center my-8">
-          <h2 className="text-xl font-bold text-white mb-2">No media found</h2>
+          <h2 className="text-xl font-bold text-white mb-2">
+            {t("catalog.noMediaTitle")}
+          </h2>
           <p className="text-sm text-neutral-400 max-w-md mb-6">
-            We couldn&apos;t find any movies or TV series matching your query.
-            Try adjusting your search or clearing active filters.
+            {t("catalog.noMediaDescription")}
           </p>
           <Link
             href="/catalog"
             className="px-5 py-2.5 rounded-md bg-brand-lime text-black font-semibold text-sm hover:bg-[#a8e63e] transition-colors"
           >
-            Reset Filters
+            {t("catalog.resetFilters")}
           </Link>
         </div>
       )}

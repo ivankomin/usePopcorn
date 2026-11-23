@@ -119,7 +119,7 @@
 
 ## Tier D — Spec-vs-Code Conflicts (Choose: Implement OR Update the `.docx` Text)
 
-- [ ] **16. Ukrainian Localization / Dynamic JSON Dictionaries (`i18n`)**
+- [x] **16. Ukrainian Localization / Dynamic JSON Dictionaries (`i18n`)**
   * **Source:** ПЗ — Table 1.1 (*«Повна підтримка української мови»*), NFR 2.3 & Section 3.2 (*«винесенням усіх текстових констант у незалежні JSON-словники»*)
   * **Conflict:** `AGENTS.md` standardizes the entire application to English, and all UI text/DB metadata is currently English-only with no JSON dictionaries.
   * **Options:**

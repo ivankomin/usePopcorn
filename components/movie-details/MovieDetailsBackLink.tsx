@@ -4,6 +4,7 @@ import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
+import { useI18n } from "@/hooks/useI18n";
 
 export interface MovieDetailsBackLinkProps {
   initialFrom?: "catalog" | "watchlist" | "recommendations";
@@ -69,6 +70,7 @@ export function MovieDetailsBackLink({
 }: MovieDetailsBackLinkProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useI18n();
 
   const isWatchlist =
     initialFrom === "watchlist" ||
@@ -102,7 +104,11 @@ export function MovieDetailsBackLink({
     : isRecommendations
       ? "/recommendations"
       : resolvedCatalogHref;
-  const backLabel = isRecommendations ? "Back to recommendations" : "Back to media";
+  const backLabel = isWatchlist
+    ? t("movieDetails.backToWatchlist")
+    : isRecommendations
+      ? t("movieDetails.backToRecommendations")
+      : t("movieDetails.backToCatalog");
 
   const handleBackClick = (e: React.MouseEvent) => {
     if (typeof window !== "undefined" && window.history.length > 1) {

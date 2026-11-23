@@ -1,7 +1,12 @@
+"use client";
+
 import Image from "next/image";
 import Button from "@/components/Button";
+import { useI18n } from "@/hooks/useI18n";
 
 export default function HomePage() {
+  const { t } = useI18n();
+
   return (
     <div className="relative flex-1 flex flex-col items-center justify-center bg-black px-4 py-8 sm:py-12 overflow-hidden">
       <div className="w-full max-w-237.5 flex flex-col items-center -translate-y-8 sm:-translate-y-12">
@@ -32,16 +37,16 @@ export default function HomePage() {
             </h1>
 
             <p className="mt-2 text-lg sm:text-xl md:text-[24px] font-bold text-neutral-300 tracking-normal leading-snug drop-shadow-md max-w-xl">
-              All your favorite movies & series in
+              {t("home.subtitleLine1")}
               <br />
-              one place!
+              {t("home.subtitleLine2")}
             </p>
           </div>
         </div>
 
         <div className="mt-8 sm:mt-10 flex justify-center z-10">
           <Button href="/catalog" size="lg">
-            GET STARTED NOW
+            {t("home.cta")}
           </Button>
         </div>
       </div>

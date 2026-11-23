@@ -6,7 +6,15 @@ import { Bookmark, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buildUrlWithParams } from "@/lib/navigation";
 import { WATCHLIST_STATUS_OPTIONS } from "@/lib/watchlist-status";
+import { useI18n } from "@/hooks/useI18n";
+import type { TranslationKey } from "@/lib/i18n";
 import type { WatchlistStatus, WatchlistStatusCounts } from "@/types/media";
+
+const STATUS_TAB_KEYS: Record<WatchlistStatus, TranslationKey> = {
+  plan_to_watch: "movieDetails.planToWatch",
+  watched: "movieDetails.watched",
+  favorite: "movieDetails.favorites",
+};
 
 export interface WatchlistStatusTabsProps {
   statusCounts: WatchlistStatusCounts;
@@ -29,18 +37,19 @@ export default function WatchlistStatusTabs({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { t } = useI18n();
   const [isPending, startTransition] = useTransition();
 
   const tabs: TabConfig[] = [
     {
       value: "all",
-      label: "All Items",
+      label: t("watchlist.allItems"),
       icon: Bookmark,
       count: statusCounts.all,
     },
     ...WATCHLIST_STATUS_OPTIONS.map((opt) => ({
       value: opt.value,
-      label: opt.pluralLabel,
+      label: t(STATUS_TAB_KEYS[opt.value]),
       icon: opt.icon,
       count: statusCounts[opt.value],
     })),

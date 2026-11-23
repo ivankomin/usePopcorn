@@ -15,10 +15,12 @@ import {
 import Loader from "@/components/Loader";
 import Button from "@/components/Button";
 import { useAuth } from "@/hooks/useAuth";
+import { useI18n } from "@/hooks/useI18n";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useI18n();
   const rawNext = searchParams.get("next");
   const nextParam = rawNext || "/profile";
   const urlError = searchParams.get("error");
@@ -100,10 +102,10 @@ function LoginForm() {
       {/* Header */}
       <div className="flex flex-col items-center text-center mb-8">
         <h1 className="text-2xl font-bold text-white tracking-tight">
-          Welcome back
+          {t("auth.welcomeBack")}
         </h1>
         <p className="text-sm text-neutral-400 mt-1">
-          Sign in to access your personal watchlists and reviews
+          {t("auth.loginSubtitle")}
         </p>
       </div>
 
@@ -136,7 +138,7 @@ function LoginForm() {
             htmlFor="email"
             className="block text-xs font-semibold uppercase tracking-wider text-neutral-300 mb-2"
           >
-            Email Address
+            {t("auth.email")}
           </label>
           <div className="relative flex items-center">
             <Mail className="w-4 h-4 text-neutral-400 absolute left-3.5 pointer-events-none" />
@@ -160,13 +162,13 @@ function LoginForm() {
               htmlFor="password"
               className="block text-xs font-semibold uppercase tracking-wider text-neutral-300"
             >
-              Password
+              {t("auth.password")}
             </label>
             <Link
               href="/forgot-password"
               className="text-xs font-medium text-brand-lime hover:underline transition-colors"
             >
-              Forgot?
+              {t("auth.forgot")}
             </Link>
           </div>
           <div className="relative flex items-center">
@@ -206,12 +208,12 @@ function LoginForm() {
           {isSubmitting ? (
             <>
               <Loader size="sm" />
-              <span>Signing in...</span>
+              <span>{t("auth.signingIn")}</span>
             </>
           ) : (
             <>
               <LogIn className="w-4 h-4 stroke-[2.5]" />
-              <span>Sign In</span>
+              <span>{t("auth.signInButton")}</span>
             </>
           )}
         </Button>
@@ -219,7 +221,7 @@ function LoginForm() {
 
       {/* Switch to Sign Up */}
       <div className="mt-8 pt-6 border-t border-neutral-800/80 text-center text-sm text-neutral-400">
-        Don&apos;t have an account?{" "}
+        {t("auth.noAccount")}{" "}
         <Link
           href={
             rawNext && rawNext !== "/"
@@ -228,7 +230,7 @@ function LoginForm() {
           }
           className="text-brand-lime hover:underline font-medium"
         >
-          Sign up
+          {t("auth.signUpLink")}
         </Link>
       </div>
     </div>

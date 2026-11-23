@@ -1,6 +1,7 @@
 "use client";
 
 import type { RecommendedMediaItem } from "@/types/media";
+import { useI18n } from "@/hooks/useI18n";
 import MediaCard from "@/components/MediaCard";
 
 export interface RecommendationCardProps {
@@ -12,6 +13,7 @@ export function RecommendationCard({
   item,
   onUserInteraction,
 }: RecommendationCardProps) {
+  const { t } = useI18n();
   const { media, matchReasons } = item;
 
   return (
@@ -26,7 +28,9 @@ export function RecommendationCard({
       headerSlot={
         <div className="flex items-center flex-wrap gap-2 mb-2.5">
           <span className="px-2 py-0.5 rounded-full text-[11px] font-medium uppercase tracking-wide bg-neutral-900 text-neutral-400 border border-neutral-800">
-            {media.media_type === "tv" ? "Series" : "Movie"}
+            {media.media_type === "tv"
+              ? t("mediaCard.series")
+              : t("mediaCard.movie")}
           </span>
 
           {matchReasons.map((reason) => (

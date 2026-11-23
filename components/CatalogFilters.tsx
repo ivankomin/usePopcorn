@@ -10,7 +10,7 @@ import {
   YearRangeInput,
   FILTER_OPTIONS,
 } from "@/components/filters";
-import { useCatalogFilters } from "@/hooks";
+import { useCatalogFilters, useI18n } from "@/hooks";
 
 export interface CatalogFiltersProps {
   genres?: string[];
@@ -23,6 +23,7 @@ function CatalogFiltersInner({
   mediaType,
   showMediaTypeFilter = false,
 }: CatalogFiltersProps) {
+  const { t, tGenre, tFilter } = useI18n();
   const {
     isTV,
     isAll,
@@ -69,7 +70,7 @@ function CatalogFiltersInner({
         >
           <span className="flex items-center gap-2">
             <SlidersHorizontal className="w-4 h-4 text-brand-lime" />
-            Filters
+            {t("catalog.filtersTitle")}
             {hasActiveFilters && (
               <span className="w-2 h-2 rounded-full bg-brand-lime" />
             )}
@@ -94,7 +95,7 @@ function CatalogFiltersInner({
         {/* Header */}
         <div className="relative flex items-center justify-center min-h-7">
           <h2 className="text-xl font-semibold text-white tracking-tight">
-            Filters
+            {t("catalog.filtersTitle")}
           </h2>
         </div>
 
@@ -111,7 +112,7 @@ function CatalogFiltersInner({
                   : "text-neutral-400 hover:text-white hover:bg-neutral-800/40",
               )}
             >
-              All
+              {t("catalog.mediaAll")}
             </button>
             <button
               type="button"
@@ -123,7 +124,7 @@ function CatalogFiltersInner({
                   : "text-neutral-400 hover:text-white hover:bg-neutral-800/40",
               )}
             >
-              Movies
+              {t("catalog.mediaMovies")}
             </button>
             <button
               type="button"
@@ -135,7 +136,7 @@ function CatalogFiltersInner({
                   : "text-neutral-400 hover:text-white hover:bg-neutral-800/40",
               )}
             >
-              Series
+              {t("catalog.mediaSeries")}
             </button>
           </div>
         )}
@@ -143,7 +144,7 @@ function CatalogFiltersInner({
         {/* 1. Genre (Multi-select) */}
         <MultiSelectDropdown
           id="genre"
-          label="Genre"
+          label={t("catalog.genre")}
           options={genreOptions}
           selected={selectedGenres}
           onChange={handleGenresChange}
@@ -151,6 +152,8 @@ function CatalogFiltersInner({
           onToggle={() => toggleDropdown("genre")}
           onClose={closeDropdown}
           align="top"
+          formatOption={tGenre}
+          clearLabel={t("catalog.clear")}
         />
 
         {/* 2. Runtime (Movies) vs Seasons (TV Series) */}
@@ -158,7 +161,7 @@ function CatalogFiltersInner({
           <>
             <FilterDropdown
               id="runtime"
-              label="Runtime"
+              label={t("catalog.runtime")}
               options={FILTER_OPTIONS.runtime}
               value={runtime}
               onChange={handleRuntimeChange}
@@ -166,10 +169,11 @@ function CatalogFiltersInner({
               onToggle={() => toggleDropdown("runtime")}
               onClose={closeDropdown}
               align="top"
+              formatOption={tFilter}
             />
             <FilterDropdown
               id="seasons"
-              label="Seasons"
+              label={t("catalog.seasons")}
               options={FILTER_OPTIONS.seasons}
               value={seasons}
               onChange={handleSeasonsChange}
@@ -177,12 +181,13 @@ function CatalogFiltersInner({
               onToggle={() => toggleDropdown("seasons")}
               onClose={closeDropdown}
               align="top"
+              formatOption={tFilter}
             />
           </>
         ) : isTV ? (
           <FilterDropdown
             id="seasons"
-            label="Seasons"
+            label={t("catalog.seasons")}
             options={FILTER_OPTIONS.seasons}
             value={seasons}
             onChange={handleSeasonsChange}
@@ -190,11 +195,12 @@ function CatalogFiltersInner({
             onToggle={() => toggleDropdown("seasons")}
             onClose={closeDropdown}
             align="top"
+            formatOption={tFilter}
           />
         ) : (
           <FilterDropdown
             id="runtime"
-            label="Runtime"
+            label={t("catalog.runtime")}
             options={FILTER_OPTIONS.runtime}
             value={runtime}
             onChange={handleRuntimeChange}
@@ -202,13 +208,14 @@ function CatalogFiltersInner({
             onToggle={() => toggleDropdown("runtime")}
             onClose={closeDropdown}
             align="top"
+            formatOption={tFilter}
           />
         )}
 
         {/* 3. Country */}
         <FilterDropdown
           id="country"
-          label="Country"
+          label={t("catalog.country")}
           options={FILTER_OPTIONS.country}
           value={country}
           onChange={handleCountryChange}
@@ -216,13 +223,14 @@ function CatalogFiltersInner({
           onToggle={() => toggleDropdown("country")}
           onClose={closeDropdown}
           align="top"
+          formatOption={tFilter}
         />
 
         {/* 4. Budget (Movies only - TV series do not have budgets) */}
         {!isTV && (
           <FilterDropdown
             id="budget"
-            label="Budget"
+            label={t("catalog.budget")}
             options={FILTER_OPTIONS.budget}
             value={budget}
             onChange={handleBudgetChange}
@@ -230,13 +238,14 @@ function CatalogFiltersInner({
             onToggle={() => toggleDropdown("budget")}
             onClose={closeDropdown}
             align="bottom"
+            formatOption={tFilter}
           />
         )}
 
         {/* 5. Age Rating (TV Parental Guidelines for TV, Movie Ratings for Movies) */}
         <FilterDropdown
           id="ageRating"
-          label="Age Rating"
+          label={t("catalog.ageRating")}
           options={ageRatingOptions}
           value={ageRating}
           onChange={handleAgeRatingChange}
@@ -244,6 +253,7 @@ function CatalogFiltersInner({
           onToggle={() => toggleDropdown("ageRating")}
           onClose={closeDropdown}
           align="bottom"
+          formatOption={tFilter}
         />
 
         {/* 6. Rating Range Sliders (Min Rating & Max Rating) */}

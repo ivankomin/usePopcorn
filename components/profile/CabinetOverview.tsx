@@ -10,6 +10,7 @@ import type {
 import { ProfileMovieCard } from "./ProfileMovieCard";
 import type { CabinetTabId } from "./CabinetTabs";
 import { formatDate } from "@/lib/utils";
+import { useI18n } from "@/hooks/useI18n";
 
 export interface CabinetOverviewProps {
   stats: UserCabinetStats;
@@ -24,6 +25,7 @@ export function CabinetOverview({
   recentReviews,
   onTabChange,
 }: CabinetOverviewProps) {
+  const { t } = useI18n();
   return (
     <div className="flex flex-col gap-10">
       {/* 4 Stats Cards */}
@@ -32,7 +34,7 @@ export function CabinetOverview({
         <div className="bg-brand-surface border border-neutral-800 rounded-2xl p-5 flex flex-col justify-between gap-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
-              Watchlist Total
+              {t("profile.statWatchlistTotal")}
             </span>
             <div className="text-blue-400">
               <Bookmark className="w-5 h-5" />
@@ -43,7 +45,10 @@ export function CabinetOverview({
               {stats.watchlistTotal}
             </div>
             <p className="text-xs text-neutral-500 mt-1">
-              {stats.planToWatchCount} planned • {stats.watchedCount} watched
+              {t("profile.statPlannedWatched", {
+                planned: stats.planToWatchCount,
+                watched: stats.watchedCount,
+              })}
             </p>
           </div>
         </div>
@@ -52,7 +57,7 @@ export function CabinetOverview({
         <div className="bg-brand-surface border border-neutral-800 rounded-2xl p-5 flex flex-col justify-between gap-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
-              Favorites
+              {t("profile.statFavorites")}
             </span>
             <div className="text-pink-400 ">
               <Award className="w-5 h-5" />
@@ -63,7 +68,7 @@ export function CabinetOverview({
               {stats.favoriteCount}
             </div>
             <p className="text-xs text-neutral-500 mt-1">
-              Top-tier personal picks
+              {t("profile.statFavoritesDesc")}
             </p>
           </div>
         </div>
@@ -72,7 +77,7 @@ export function CabinetOverview({
         <div className="bg-brand-surface border border-neutral-800 rounded-2xl p-5 flex flex-col justify-between gap-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
-              Reviews & Ratings
+              {t("profile.statReviews")}
             </span>
             <div className=" text-brand-lime ">
               <Star className="w-5 h-5" />
@@ -83,7 +88,7 @@ export function CabinetOverview({
               {stats.reviewsCount}
             </div>
             <p className="text-xs text-neutral-500 mt-1">
-              Films scored or evaluated
+              {t("profile.statReviewsDesc")}
             </p>
           </div>
         </div>
@@ -92,7 +97,7 @@ export function CabinetOverview({
         <div className="bg-brand-surface border border-neutral-800 rounded-2xl p-5 flex flex-col justify-between gap-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
-              Avg Rating Given
+              {t("profile.statAvgRating")}
             </span>
             <div className="text-yellow-400">
               <Star className="w-5 h-5 fill-yellow-400" />
@@ -108,7 +113,7 @@ export function CabinetOverview({
               </span>
             </div>
             <p className="text-xs text-neutral-500 mt-1">
-              Personal score average
+              {t("profile.statAvgRatingDesc")}
             </p>
           </div>
         </div>
@@ -119,7 +124,7 @@ export function CabinetOverview({
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-white">
-              Recently saved movies and series
+              {t("profile.recentlySaved")}
             </h2>
 
           </div>
@@ -128,7 +133,9 @@ export function CabinetOverview({
             onClick={() => onTabChange("watchlist")}
             className="flex items-center gap-1.5 text-xs font-semibold text-brand-lime hover:underline cursor-pointer"
           >
-            <span>View All ({stats.watchlistTotal})</span>
+            <span>
+              {t("profile.viewAll", { count: stats.watchlistTotal })}
+            </span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -137,13 +144,13 @@ export function CabinetOverview({
           <div className="bg-brand-surface border border-neutral-800/80 rounded-2xl p-8 text-center flex flex-col items-center justify-center gap-3">
             <Bookmark className="w-8 h-8 text-neutral-600" />
             <p className="text-sm text-neutral-400">
-              Your watchlist is currently empty.
+              {t("watchlist.emptyTitle")}
             </p>
             <Link
               href="/catalog"
               className="text-xs font-semibold text-brand-lime hover:underline flex items-center gap-1"
             >
-              Browse catalog to discover movies{" "}
+              {t("watchlist.browseCatalog")}{" "}
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -167,7 +174,7 @@ export function CabinetOverview({
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-white">
-              Recent Ratings & Reviews
+              {t("profile.recentReviews")}
             </h2>
           </div>
           <button
@@ -175,7 +182,7 @@ export function CabinetOverview({
             onClick={() => onTabChange("reviews")}
             className="flex items-center gap-1.5 text-xs font-semibold text-brand-lime hover:underline cursor-pointer"
           >
-            <span>View All ({stats.reviewsCount})</span>
+            <span>{t("profile.viewAll", { count: stats.reviewsCount })}</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -184,13 +191,13 @@ export function CabinetOverview({
           <div className="bg-brand-surface border border-neutral-800/80 rounded-2xl p-8 text-center flex flex-col items-center justify-center gap-3">
             <Star className="w-8 h-8 text-neutral-600" />
             <p className="text-sm text-neutral-400">
-              You haven&apos;t reviewed or rated any movies yet.
+              {t("reviews.noOtherReviews")}
             </p>
             <Link
               href="/catalog"
               className="text-xs font-semibold text-brand-lime hover:underline flex items-center gap-1"
             >
-              Start rating movies from the catalog{" "}
+              {t("watchlist.browseCatalog")}{" "}
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -216,7 +223,9 @@ export function CabinetOverview({
                       </Link>
                       <span className="text-xs text-neutral-400">
                         {media?.release_year} •{" "}
-                        {media?.media_type === "tv" ? "TV Series" : "Movie"}
+                        {media?.media_type === "tv"
+                          ? t("mediaCard.series")
+                          : t("mediaCard.movie")}
                       </span>
                     </div>
 
@@ -244,7 +253,7 @@ export function CabinetOverview({
                       href={media ? `/movie/${media.id}` : "#"}
                       className="text-brand-lime hover:underline flex items-center gap-1 font-semibold"
                     >
-                      <span>Movie page</span>
+                      <span>{t("profile.moviePage")}</span>
                       <ArrowRight className="w-3 h-3" />
                     </Link>
                   </div>

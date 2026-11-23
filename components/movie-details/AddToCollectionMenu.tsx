@@ -6,6 +6,7 @@ import { ListPlus, Check, Plus, Folder, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCollections } from "@/hooks/useCollections";
 import { useOutsideClick } from "@/hooks/useOutsideClick";
+import { useI18n } from "@/hooks/useI18n";
 import { redirectToLogin } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +17,7 @@ export interface AddToCollectionMenuProps {
 export function AddToCollectionMenu({ mediaId }: AddToCollectionMenuProps) {
   const router = useRouter();
   const { user } = useAuth();
+  const { t } = useI18n();
   const {
     collections,
     getCollectionsForMedia,
@@ -89,10 +91,14 @@ export function AddToCollectionMenu({ mediaId }: AddToCollectionMenuProps) {
           />
           <span className="truncate">
             {assignedCount === 0
-              ? "Add to Custom List"
+              ? t("movieDetails.addToCustomList")
               : assignedCount === 1
-                ? `In "${assignedCollections[0].name}"`
-                : `In ${assignedCount} Custom Lists`}
+                ? t("movieDetails.inOneCustomList", {
+                    name: assignedCollections[0].name,
+                  })
+                : t("movieDetails.inMultipleCustomLists", {
+                    count: assignedCount,
+                  })}
           </span>
         </div>
 
@@ -106,12 +112,12 @@ export function AddToCollectionMenu({ mediaId }: AddToCollectionMenuProps) {
       {isOpen && (
         <div className="absolute top-full left-0 mt-1.5 w-full rounded-xl bg-[#1c1c1c] border border-neutral-700/90 shadow-2xl p-2 z-30 flex flex-col gap-1.5 backdrop-blur-md animate-in fade-in zoom-in-95 duration-100">
           <div className="px-2 py-1 text-[10px] font-semibold text-neutral-400 uppercase tracking-wider border-b border-neutral-800 pb-1.5">
-            Save to Custom Lists
+            {t("movieDetails.saveToCustomLists")}
           </div>
 
           {collections.length === 0 ? (
             <p className="px-2 py-2 text-xs text-neutral-500 italic">
-              You don&apos;t have any custom lists yet.
+              {t("movieDetails.noCustomListsYet")}
             </p>
           ) : (
             <div className="max-h-48 overflow-y-auto flex flex-col gap-0.5">
@@ -166,7 +172,7 @@ export function AddToCollectionMenu({ mediaId }: AddToCollectionMenuProps) {
                   maxLength={80}
                   autoFocus
                   disabled={isSubmittingNew}
-                  placeholder="New list name..."
+                  placeholder={t("movieDetails.newListPlaceholder")}
                   className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-brand-lime"
                 />
                 {inlineError && (
@@ -183,7 +189,7 @@ export function AddToCollectionMenu({ mediaId }: AddToCollectionMenuProps) {
                     disabled={isSubmittingNew}
                     className="px-2.5 py-1 rounded-lg text-[11px] text-neutral-400 hover:text-white cursor-pointer"
                   >
-                    Cancel
+                    {t("watchlist.cancel")}
                   </button>
                   <button
                     type="submit"
@@ -193,7 +199,7 @@ export function AddToCollectionMenu({ mediaId }: AddToCollectionMenuProps) {
                     {isSubmittingNew && (
                       <Loader2 className="w-3 h-3 animate-spin" />
                     )}
-                    <span>Create &amp; Add</span>
+                    <span>{t("movieDetails.createAndAdd")}</span>
                   </button>
                 </div>
               </form>
@@ -204,7 +210,7 @@ export function AddToCollectionMenu({ mediaId }: AddToCollectionMenuProps) {
                 className="flex items-center gap-2 w-full px-2.5 py-2 rounded-lg text-xs font-semibold text-brand-lime hover:bg-neutral-800/80 transition-colors cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Create new list</span>
+                <span>{t("movieDetails.createNewList")}</span>
               </button>
             )}
           </div>

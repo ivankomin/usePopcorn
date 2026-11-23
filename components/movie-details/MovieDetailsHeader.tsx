@@ -5,6 +5,7 @@ import { Star } from "lucide-react";
 import type { MediaItem } from "@/types/media";
 import { formatVoteCount, isMatureRating, cn } from "@/lib/utils";
 import { useRatings } from "@/hooks/useRatings";
+import { useI18n } from "@/hooks/useI18n";
 
 export interface MovieDetailsHeaderProps {
   media: MediaItem;
@@ -16,6 +17,7 @@ export function MovieDetailsHeader({
   initialUserRating = null,
 }: MovieDetailsHeaderProps) {
   const { getUserRating, isLoading: isRatingsLoading } = useRatings();
+  const { t, tGenre } = useI18n();
 
   const liveRating = getUserRating(media.id);
   const userRating = isRatingsLoading
@@ -73,7 +75,7 @@ export function MovieDetailsHeader({
               <>
                 <div className="flex items-center gap-2">
                   <span className="text-sm sm:text-base italic text-neutral-300 font-normal">
-                    You rated:
+                    {t("movieDetails.youRated")}
                   </span>
                   <span className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
                     {userRating.toFixed(1)}
@@ -86,7 +88,7 @@ export function MovieDetailsHeader({
                       •
                     </span>
                     <div className="flex items-center gap-1.5 text-xs sm:text-sm text-neutral-400">
-                      <span className="italic">Rating:</span>
+                      <span className="italic">{t("movieDetails.rating")}</span>
                       <span className="font-semibold text-neutral-200">
                         {ratingStr}
                       </span>
@@ -107,7 +109,7 @@ export function MovieDetailsHeader({
                   <Star className="w-6 h-6 sm:w-7 sm:h-7 fill-amber-400 text-amber-400" />
                 </div>
                 <span className="text-xs text-neutral-400 font-medium">
-                  ({votesStr} reviews)
+                  ({t("movieDetails.reviewsCount", { count: votesStr })})
                 </span>
               </div>
             )}
@@ -130,9 +132,9 @@ export function MovieDetailsHeader({
               key={genre.id}
               href={`/catalog?genres=${encodeURIComponent(genre.name)}`}
               className="px-3 py-1 bg-[#85c355] hover:bg-[#9ded5b] text-black font-bold text-xs rounded-lg uppercase tracking-wide shadow-sm transition-all hover:scale-102 cursor-pointer"
-              title={`Browse all ${genre.name} movies`}
+              title={tGenre(genre.name)}
             >
-              {genre.name}
+              {tGenre(genre.name)}
             </Link>
           ))}
         {isTopRated && (

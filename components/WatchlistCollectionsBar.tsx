@@ -6,6 +6,7 @@ import { Folder, FolderPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buildUrlWithParams } from "@/lib/navigation";
 import { useCollections } from "@/hooks/useCollections";
+import { useI18n } from "@/hooks/useI18n";
 import { CollectionFormModal } from "@/components/CollectionFormModal";
 import type { CollectionWithMedia } from "@/types/media";
 
@@ -24,6 +25,7 @@ export function WatchlistCollectionsBar({
   const [isPending, startTransition] = useTransition();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const { createCollection } = useCollections();
+  const { t } = useI18n();
 
   const handleSelectCollection = (collectionId: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -60,7 +62,7 @@ export function WatchlistCollectionsBar({
   return (
     <div className="w-full flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none select-none">
       <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500 shrink-0 mr-1">
-        My Lists:
+        {t("watchlist.myLists")}
       </span>
 
       {collections.map((col) => {
@@ -101,7 +103,7 @@ export function WatchlistCollectionsBar({
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-dashed border-neutral-700 text-neutral-300 hover:text-brand-lime hover:border-brand-lime/70 transition-colors cursor-pointer shrink-0"
       >
         <FolderPlus className="w-3.5 h-3.5" />
-        <span>New List</span>
+        <span>{t("watchlist.newList")}</span>
       </button>
 
       {isCreateOpen && (

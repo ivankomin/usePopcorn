@@ -7,7 +7,21 @@ import Loader from "@/components/Loader";
 import { cn } from "@/lib/utils";
 import { buildUrlWithParams } from "@/lib/navigation";
 import { useOutsideClick } from "@/hooks/useOutsideClick";
+import { useI18n } from "@/hooks/useI18n";
+import type { TranslationKey } from "@/lib/i18n";
 import type { SortOption } from "@/types/media";
+
+const SORT_LABEL_KEYS: Record<string, TranslationKey> = {
+  popularity: "catalog.sortPopularity",
+  vote_average_desc: "catalog.sortRatingDesc",
+  vote_average_asc: "catalog.sortRatingAsc",
+  release_year_desc: "catalog.sortYearDesc",
+  release_year_asc: "catalog.sortYearAsc",
+  title_asc: "catalog.sortTitleAsc",
+  title_desc: "catalog.sortTitleDesc",
+  added_desc: "catalog.sortAddedDesc",
+  added_asc: "catalog.sortAddedAsc",
+};
 
 export interface SortOptionItem {
   value: SortOption;
@@ -48,9 +62,15 @@ export default function SortDropdown({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const getOptionLabel = (opt: SortOptionItem) => {
+    const key = SORT_LABEL_KEYS[opt.value];
+    return key ? t(key) : opt.label;
+  };
 
   const fallbackDefault = defaultSort || options[0]?.value || "popularity";
   const activeSort = currentSort || fallbackDefault;
@@ -107,10 +127,10 @@ export default function SortDropdown({
         )}
       >
         <span className="text-neutral-400 font-normal hidden sm:inline">
-          Sort by:
+          {t("catalog.sortLabel")}
         </span>
         <span className="text-white font-medium truncate max-w-40 sm:max-w-none">
-          {currentOption.label}
+          {getOptionLabel(currentOption)}
         </span>
 
         {isPending ? (
@@ -136,7 +156,7 @@ export default function SortDropdown({
           )}
         >
           <div className="px-3.5 py-1.5 mb-1 border-b border-neutral-800 text-[11px] font-bold uppercase tracking-wider text-neutral-400 select-none">
-            Sort By
+            {t("catalog.sortByHeader")}
           </div>
           {options.map((opt) => {
             const isSelected = opt.value === normalizedSort;
@@ -154,7 +174,7 @@ export default function SortDropdown({
                     : "text-neutral-300 hover:bg-neutral-800 hover:text-white",
                 )}
               >
-                <span className="truncate">{opt.label}</span>
+                <span className="truncate">{getOptionLabel(opt)}</span>
                 {isSelected && (
                   <Check className="w-3.5 h-3.5 stroke-[2.5] text-brand-lime shrink-0 ml-2" />
                 )}

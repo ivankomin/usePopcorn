@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "@/hooks/useI18n";
+
 export interface RatingRangeSliderProps {
   minRating: number;
   maxRating: number;
@@ -13,6 +15,7 @@ export function RatingRangeSlider({
   onMinRatingChange,
   onMaxRatingChange,
 }: RatingRangeSliderProps) {
+  const { t } = useI18n();
   const handleMinChange = (val: number) => {
     const rounded = Math.round(val * 10) / 10;
     onMinRatingChange(Math.min(rounded, maxRating));
@@ -27,7 +30,9 @@ export function RatingRangeSlider({
     <div className="flex flex-col gap-4 w-full px-1 py-1">
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between text-xs font-bold tracking-wider">
-          <span className="text-neutral-300 font-semibold">MIN RATING</span>
+          <span className="text-neutral-300 font-semibold">
+            {t("catalog.minRating")}
+          </span>
           <span className="text-brand-lime font-mono font-bold text-sm">
             {minRating.toFixed(1)}
           </span>
@@ -47,7 +52,7 @@ export function RatingRangeSlider({
             step="0.1"
             value={minRating}
             onChange={(e) => handleMinChange(parseFloat(e.target.value))}
-            aria-label="Min Rating"
+            aria-label={t("catalog.minRating")}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           />
         </div>
@@ -55,7 +60,9 @@ export function RatingRangeSlider({
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between text-xs font-bold tracking-wider">
-          <span className="text-neutral-300 font-semibold">MAX RATING</span>
+          <span className="text-neutral-300 font-semibold">
+            {t("catalog.maxRating")}
+          </span>
           <span className="text-brand-lime font-mono font-bold text-sm">
             {maxRating.toFixed(1)}
           </span>
@@ -74,7 +81,7 @@ export function RatingRangeSlider({
             step="0.1"
             value={maxRating}
             onChange={(e) => handleMaxChange(parseFloat(e.target.value))}
-            aria-label="Max Rating"
+            aria-label={t("catalog.maxRating")}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           />
         </div>

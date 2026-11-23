@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { X, ExternalLink, Play } from "lucide-react";
 import { getYouTubeEmbedUrl } from "@/lib/utils";
+import { useI18n } from "@/hooks/useI18n";
 
 export interface TrailerModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ export function TrailerModal({
   videoId,
   onClose,
 }: TrailerModalProps) {
+  const { t } = useI18n();
   useEffect(() => {
     if (!isOpen) return;
 
@@ -60,7 +62,7 @@ export function TrailerModal({
               <Play className="w-3.5 h-3.5 fill-current" />
             </span>
             <h2 className="text-sm sm:text-base font-bold text-white truncate">
-              {title} — Official Trailer
+              {title} — {t("movieDetails.officialTrailer")}
             </h2>
           </div>
 
@@ -78,7 +80,7 @@ export function TrailerModal({
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close trailer"
+              aria-label={t("movieDetails.closeTrailer")}
               className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />

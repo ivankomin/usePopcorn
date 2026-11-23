@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/hooks/useI18n";
 
 export interface PaginationProps {
   currentPage: number;
@@ -55,6 +56,7 @@ export default function Pagination({
 }: PaginationProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { t } = useI18n();
 
   if (totalPages <= 1) {
     return null;
@@ -92,7 +94,7 @@ export default function Pagination({
           aria-label="Go to previous page"
         >
           <ChevronLeft className="w-4 h-4" />
-          <span className="hidden sm:inline">Prev</span>
+          <span className="hidden sm:inline">{t("catalog.prev")}</span>
         </Link>
       ) : (
         <span
@@ -100,7 +102,7 @@ export default function Pagination({
           className="inline-flex items-center gap-1 px-3 h-10 rounded-lg text-xs sm:text-sm font-medium bg-brand-surface text-neutral-600 cursor-not-allowed opacity-50"
         >
           <ChevronLeft className="w-4 h-4" />
-          <span className="hidden sm:inline">Prev</span>
+          <span className="hidden sm:inline">{t("catalog.prev")}</span>
         </span>
       )}
 
@@ -150,7 +152,7 @@ export default function Pagination({
           className="inline-flex items-center gap-1 px-3 h-10 rounded-lg text-xs sm:text-sm font-medium bg-brand-surface text-neutral-300 hover:bg-[#252525] hover:text-white hover:border-neutral-700 transition-colors"
           aria-label="Go to next page"
         >
-          <span className="hidden sm:inline">Next</span>
+          <span className="hidden sm:inline">{t("catalog.next")}</span>
           <ChevronRight className="w-4 h-4" />
         </Link>
       ) : (
@@ -158,7 +160,7 @@ export default function Pagination({
           aria-disabled="true"
           className="inline-flex items-center gap-1 px-3 h-10 rounded-lg text-xs sm:text-sm font-medium bg-brand-surface text-neutral-600 cursor-not-allowed opacity-50"
         >
-          <span className="hidden sm:inline">Next</span>
+          <span className="hidden sm:inline">{t("catalog.next")}</span>
           <ChevronRight className="w-4 h-4" />
         </span>
       )}

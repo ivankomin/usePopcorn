@@ -5,6 +5,7 @@ import { Star } from "lucide-react";
 import type { SimilarMediaItem } from "@/types/media";
 import { getPosterUrl } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { useI18n } from "@/hooks/useI18n";
 import { MediaPoster } from "@/components/MediaPoster";
 
 interface SimilarMediaSectionProps {
@@ -12,6 +13,7 @@ interface SimilarMediaSectionProps {
 }
 
 function SimilarMediaCard({ item }: { item: SimilarMediaItem }) {
+  const { t } = useI18n();
   const { media } = item;
 
   const posterSrc = getPosterUrl(media.poster_path, "w500");
@@ -46,7 +48,9 @@ function SimilarMediaCard({ item }: { item: SimilarMediaItem }) {
           <div className="flex items-center justify-between text-xs text-neutral-400">
             <span>
               {media.release_year} &middot;{" "}
-              {media.media_type === "tv" ? "Series" : "Movie"}
+              {media.media_type === "tv"
+                ? t("mediaCard.series")
+                : t("mediaCard.movie")}
             </span>
             {ratingValue !== null && ratingValue > 0 && (
               <span className="inline-flex items-center gap-1 text-neutral-200 font-semibold">
@@ -63,6 +67,7 @@ function SimilarMediaCard({ item }: { item: SimilarMediaItem }) {
 
 export function SimilarMediaSection({ items }: SimilarMediaSectionProps) {
   const { user } = useAuth();
+  const { t } = useI18n();
 
   if (items.length === 0) return null;
 
@@ -71,7 +76,7 @@ export function SimilarMediaSection({ items }: SimilarMediaSectionProps) {
       <div className="flex items-center justify-between gap-4 mb-5">
         <div className="space-y-1">
           <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-            Similar Titles
+            {t("movieDetails.similarTitles")}
           </h2>
         </div>
 
@@ -80,7 +85,7 @@ export function SimilarMediaSection({ items }: SimilarMediaSectionProps) {
             href="/recommendations"
             className="text-xs sm:text-sm font-medium text-neutral-400 hover:text-brand-lime transition-colors shrink-0"
           >
-            See your For You picks &rarr;
+            {t("movieDetails.seeForYou")} &rarr;
           </Link>
         )}
       </div>

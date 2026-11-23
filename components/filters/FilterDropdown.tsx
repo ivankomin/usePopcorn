@@ -15,6 +15,7 @@ export interface FilterDropdownProps {
   onToggle: () => void;
   onClose: () => void;
   align?: "top" | "bottom";
+  formatOption?: (option: string) => string;
 }
 
 export function FilterDropdown({
@@ -26,7 +27,10 @@ export function FilterDropdown({
   onToggle,
   onClose,
   align = "top",
+  formatOption,
 }: FilterDropdownProps) {
+  const displayOption = (opt: string) =>
+    formatOption ? formatOption(opt) : opt;
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown on outside click or Escape key
@@ -50,7 +54,9 @@ export function FilterDropdown({
               : "border-neutral-700/60 text-neutral-400",
         )}
       >
-        <span className="truncate">{hasSelected ? value : label}</span>
+        <span className="truncate">
+          {hasSelected ? displayOption(value) : label}
+        </span>
         <ChevronDown
           className={cn(
             "w-4 h-4 transition-transform duration-200 shrink-0 ml-2",
@@ -90,7 +96,7 @@ export function FilterDropdown({
                     : "text-neutral-300 hover:bg-neutral-800 hover:text-white",
                 )}
               >
-                <span className="truncate">{opt}</span>
+                <span className="truncate">{displayOption(opt)}</span>
                 {isSelected && (
                   <span className="w-1.5 h-1.5 rounded-full bg-brand-lime shrink-0 ml-2" />
                 )}

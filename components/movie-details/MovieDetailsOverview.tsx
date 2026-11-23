@@ -1,4 +1,7 @@
+"use client";
+
 import { formatAddedAtDate } from "@/lib/utils";
+import { useI18n } from "@/hooks/useI18n";
 
 export interface MovieDetailsOverviewProps {
   overview?: string | null;
@@ -11,6 +14,7 @@ export function MovieDetailsOverview({
   inWatchlist,
   addedAt,
 }: MovieDetailsOverviewProps) {
+  const { t } = useI18n();
   const formattedAddedOn = formatAddedAtDate(addedAt);
 
   if (!overview && (!inWatchlist || !formattedAddedOn)) {
@@ -28,7 +32,7 @@ export function MovieDetailsOverview({
       {inWatchlist && formattedAddedOn && (
         <div className="pt-2">
           <span className="text-neutral-400 text-sm font-normal">
-            Added on: {formattedAddedOn}
+            {t("movieDetails.addedOn")} {formattedAddedOn}
           </span>
         </div>
       )}

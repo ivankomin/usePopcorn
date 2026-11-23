@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { CollectionWithMedia } from "@/types/media";
 import { useCollections } from "@/hooks/useCollections";
+import { useI18n } from "@/hooks/useI18n";
 import { CollectionFormModal } from "@/components/CollectionFormModal";
 import { ProfileMovieCard } from "./ProfileMovieCard";
 
@@ -24,6 +25,7 @@ export function CabinetCollections({
   initialCollections,
 }: CabinetCollectionsProps) {
   const router = useRouter();
+  const { t } = useI18n();
   const {
     createCollection,
     updateCollection,
@@ -140,13 +142,13 @@ export function CabinetCollections({
         <div>
           <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
             <Folder className="w-5 h-5 text-brand-lime" />
-            <span>Custom Collections</span>
+            <span>{t("profile.customCollections")}</span>
             <span className="text-xs font-mono font-normal text-neutral-400">
               ({collections.length})
             </span>
           </h2>
           <p className="text-xs text-neutral-400 mt-0.5">
-            Organize movies and series into your own themed lists.
+            {t("profile.customCollectionsDesc")}
           </p>
         </div>
 
@@ -159,7 +161,7 @@ export function CabinetCollections({
           className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-brand-lime text-black text-xs font-semibold hover:bg-brand-lime/90 transition-colors cursor-pointer self-start sm:self-auto"
         >
           <FolderPlus className="w-3.5 h-3.5" />
-          <span>New List</span>
+          <span>{t("watchlist.newList")}</span>
         </button>
       </div>
 
@@ -167,11 +169,10 @@ export function CabinetCollections({
         <div className="bg-brand-surface border border-neutral-800/80 rounded-2xl p-10 text-center flex flex-col items-center justify-center gap-3">
           <Folder className="w-9 h-9 text-neutral-600" />
           <h3 className="text-base font-bold text-white">
-            No custom lists yet
+            {t("profile.noCustomLists")}
           </h3>
           <p className="text-xs text-neutral-400 max-w-sm">
-            Create your first custom collection (e.g. &ldquo;Weekend Sci-Fi&rdquo; or
-            &ldquo;Cozy Comedies&rdquo;) and add titles from any movie or series page.
+            {t("profile.customCollectionsDesc")}
           </p>
           <button
             type="button"
@@ -182,7 +183,7 @@ export function CabinetCollections({
             className="mt-1 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-lime text-black text-xs font-semibold hover:bg-brand-lime/90 transition-colors cursor-pointer"
           >
             <FolderPlus className="w-3.5 h-3.5" />
-            <span>Create First List</span>
+            <span>{t("profile.createFirstList")}</span>
           </button>
         </div>
       ) : (
@@ -241,7 +242,7 @@ export function CabinetCollections({
                     href={`/watchlist?collection=${selectedCollection.id}`}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-xs text-neutral-300 hover:text-white transition-colors"
                   >
-                    <span>Open in Watchlist</span>
+                    <span>{t("profile.openInWatchlist")}</span>
                     <ExternalLink className="w-3 h-3 text-neutral-500" />
                   </Link>
 
@@ -251,7 +252,7 @@ export function CabinetCollections({
                       setEditingCollection(selectedCollection);
                       setModalMode("edit");
                     }}
-                    title="Edit list"
+                    title={t("watchlist.editList")}
                     className="p-2 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-neutral-400 hover:text-white transition-colors cursor-pointer"
                   >
                     <Pencil className="w-3.5 h-3.5" />
@@ -266,21 +267,21 @@ export function CabinetCollections({
                         }
                         className="px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold cursor-pointer"
                       >
-                        Confirm Delete
+                        {t("watchlist.confirmDelete")}
                       </button>
                       <button
                         type="button"
                         onClick={() => setConfirmDeleteId(null)}
                         className="px-2.5 py-1.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 cursor-pointer"
                       >
-                        Cancel
+                        {t("watchlist.cancel")}
                       </button>
                     </div>
                   ) : (
                     <button
                       type="button"
                       onClick={() => setConfirmDeleteId(selectedCollection.id)}
-                      title="Delete list"
+                      title={t("watchlist.deleteList")}
                       className="p-2 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-rose-500/40 text-neutral-400 hover:text-rose-400 transition-colors cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -292,20 +293,16 @@ export function CabinetCollections({
               {selectedCollection.items.length === 0 ? (
                 <div className="py-10 text-center flex flex-col items-center gap-2.5">
                   <p className="text-sm font-semibold text-white">
-                    This list is empty
+                    {t("watchlist.listEmptyTitle")}
                   </p>
                   <p className="text-xs text-neutral-400 max-w-sm">
-                    Open any movie or TV series page and click{" "}
-                    <strong className="text-neutral-200">
-                      Add to Custom List
-                    </strong>{" "}
-                    to add it here.
+                    {t("watchlist.listEmptyBody")}
                   </p>
                   <Link
                     href="/catalog"
                     className="mt-1 px-4 py-2 rounded-xl bg-brand-lime text-black text-xs font-semibold hover:bg-brand-lime/90 transition-colors"
                   >
-                    Browse Catalog
+                    {t("watchlist.browseCatalog")}
                   </Link>
                 </div>
               ) : (

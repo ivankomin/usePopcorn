@@ -11,10 +11,12 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useI18n } from "@/hooks/useI18n";
 import { useOutsideClick } from "@/hooks/useOutsideClick";
 
 export default function UserMenu() {
   const { user, profile, signOut } = useAuth();
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -91,7 +93,7 @@ export default function UserMenu() {
                 className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-brand-lime hover:bg-brand-lime/10 transition-colors font-semibold"
               >
                 <ShieldCheck className="w-4 h-4 text-brand-lime shrink-0" />
-                <span>Admin Dashboard</span>
+                <span>{t("nav.adminDashboard")}</span>
               </Link>
             )}
 
@@ -101,7 +103,7 @@ export default function UserMenu() {
               className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-neutral-300 hover:bg-neutral-800 hover:text-white transition-colors"
             >
               <UserIcon className="w-4 h-4 text-neutral-400" />
-              <span>Profile</span>
+              <span>{t("nav.profile")}</span>
             </Link>
 
             <Link
@@ -110,7 +112,7 @@ export default function UserMenu() {
               className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-neutral-300 hover:bg-neutral-800 hover:text-white transition-colors"
             >
               <Bookmark className="w-4 h-4 text-neutral-400" />
-              <span>Watchlist</span>
+              <span>{t("nav.watchlist")}</span>
             </Link>
           </div>
 
@@ -124,7 +126,9 @@ export default function UserMenu() {
             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors cursor-pointer text-left disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <LogOut className="w-4 h-4" />
-            <span>{isSigningOut ? "Signing out..." : "Sign Out"}</span>
+            <span>
+              {isSigningOut ? t("nav.signingOut") : t("nav.signOut")}
+            </span>
           </button>
         </div>
       )}

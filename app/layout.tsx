@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { I18nProvider } from "@/components/I18nProvider";
 import { AuthProvider } from "@/components/AuthProvider";
 import { WatchlistProvider } from "@/components/WatchlistProvider";
 import { CollectionsProvider } from "@/components/CollectionsProvider";
@@ -35,17 +36,19 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
     >
       <body className="min-h-full flex flex-col bg-brand-bg text-white">
-        <AuthProvider>
-          <WatchlistProvider>
-            <CollectionsProvider>
-              <RatingProvider>
-                <Navbar />
-                <main className="flex-1 flex flex-col">{children}</main>
-                <Footer />
-              </RatingProvider>
-            </CollectionsProvider>
-          </WatchlistProvider>
-        </AuthProvider>
+        <I18nProvider>
+          <AuthProvider>
+            <WatchlistProvider>
+              <CollectionsProvider>
+                <RatingProvider>
+                  <Navbar />
+                  <main className="flex-1 flex flex-col">{children}</main>
+                  <Footer />
+                </RatingProvider>
+              </CollectionsProvider>
+            </WatchlistProvider>
+          </AuthProvider>
+        </I18nProvider>
       </body>
     </html>
   );

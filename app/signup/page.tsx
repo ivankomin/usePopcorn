@@ -15,6 +15,7 @@ import {
 import Loader from "@/components/Loader";
 import Button from "@/components/Button";
 import { useAuth } from "@/hooks/useAuth";
+import { useI18n } from "@/hooks/useI18n";
 import {
   getPasswordValidationError,
   validateEmail,
@@ -25,6 +26,7 @@ import {
 function SignUpForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useI18n();
   const rawNext = searchParams.get("next");
   const nextParam = rawNext || "/profile";
 
@@ -136,10 +138,10 @@ function SignUpForm() {
       {/* Header */}
       <div className="flex flex-col items-center text-center mb-8">
         <h1 className="text-2xl font-bold text-white tracking-tight">
-          Create an account
+          {t("auth.createAccount")}
         </h1>
         <p className="text-sm text-neutral-400 mt-1">
-          Join usePopcorn to track watchlists and review movies
+          {t("auth.signupSubtitle")}
         </p>
       </div>
 
@@ -161,7 +163,7 @@ function SignUpForm() {
             htmlFor="username"
             className="block text-xs font-semibold uppercase tracking-wider text-neutral-300 mb-2"
           >
-            Username
+            {t("auth.username")}
           </label>
           <div className="relative flex items-center">
             <User className="w-4 h-4 text-neutral-400 absolute left-3.5 pointer-events-none" />
@@ -188,7 +190,7 @@ function SignUpForm() {
             htmlFor="email"
             className="block text-xs font-semibold uppercase tracking-wider text-neutral-300 mb-2"
           >
-            Email Address
+            {t("auth.email")}
           </label>
           <div className="relative flex items-center">
             <Mail className="w-4 h-4 text-neutral-400 absolute left-3.5 pointer-events-none" />
@@ -211,7 +213,7 @@ function SignUpForm() {
             htmlFor="password"
             className="block text-xs font-semibold uppercase tracking-wider text-neutral-300 mb-2"
           >
-            Password
+            {t("auth.password")}
           </label>
           <div className="relative flex items-center">
             <Lock className="w-4 h-4 text-neutral-400 absolute left-3.5 pointer-events-none" />
@@ -250,7 +252,7 @@ function SignUpForm() {
             htmlFor="confirmPassword"
             className="block text-xs font-semibold uppercase tracking-wider text-neutral-300 mb-2"
           >
-            Confirm Password
+            {t("auth.confirmPassword")}
           </label>
           <div className="relative flex items-center">
             <Lock className="w-4 h-4 text-neutral-400 absolute left-3.5 pointer-events-none" />
@@ -286,12 +288,12 @@ function SignUpForm() {
           {isSubmitting ? (
             <>
               <Loader size="sm" />
-              <span>Creating account...</span>
+              <span>{t("auth.creatingAccount")}</span>
             </>
           ) : (
             <>
               <UserPlus className="w-4 h-4 stroke-[2.5]" />
-              <span>Create Account</span>
+              <span>{t("auth.createAccountButton")}</span>
             </>
           )}
         </Button>
@@ -299,7 +301,7 @@ function SignUpForm() {
 
       {/* Switch to Sign In */}
       <div className="mt-8 pt-6 border-t border-neutral-800/80 text-center text-sm text-neutral-400">
-        Already have an account?{" "}
+        {t("auth.haveAccount")}{" "}
         <Link
           href={
             rawNext && rawNext !== "/"
@@ -308,7 +310,7 @@ function SignUpForm() {
           }
           className="text-brand-lime hover:underline font-medium"
         >
-          Sign in
+          {t("auth.signInLink")}
         </Link>
       </div>
     </div>

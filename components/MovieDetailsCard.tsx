@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Play } from "lucide-react";
 import type { MediaItem, WatchlistStatus } from "@/types/media";
 import { extractYouTubeVideoId, getPosterUrl } from "@/lib/utils";
+import { useI18n } from "@/hooks/useI18n";
 import {
   MovieDetailsBackLink,
   MovieDetailsPoster,
@@ -37,6 +38,7 @@ export default function MovieDetailsCard({
   onWatchlistToggle,
   onStatusChange,
 }: MovieDetailsCardProps) {
+  const { t } = useI18n();
   const [imageError, setImageError] = useState(false);
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
 
@@ -105,7 +107,7 @@ export default function MovieDetailsCard({
                 className="w-full h-11 px-4 rounded-xl bg-[#181818] border border-neutral-700/80 hover:border-brand-lime hover:text-brand-lime text-white font-medium text-sm flex items-center justify-center gap-2 transition-all cursor-pointer select-none group"
               >
                 <Play className="w-4 h-4 fill-current text-brand-lime transition-transform group-hover:scale-110" />
-                <span>Watch Trailer</span>
+                <span>{t("movieDetails.watchTrailer")}</span>
               </button>
             )}
           </div>

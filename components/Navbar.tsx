@@ -8,19 +8,24 @@ import { useState, useTransition, Suspense } from "react";
 import Loader from "./Loader";
 import UserMenu from "./UserMenu";
 import Button from "./Button";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useAuth } from "@/hooks/useAuth";
+import { useI18n } from "@/hooks/useI18n";
 import { buildUrlWithParams } from "@/lib/navigation";
 
 function NavLinks({ isAuthenticated }: { isAuthenticated: boolean }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { t } = useI18n();
   const currentMediaType = searchParams.get("mediaType") || "movie";
 
   const navLinks = [
-    { label: "Home", href: "/" },
-    { label: "Movies", href: "/catalog?mediaType=movie" },
-    { label: "Series", href: "/catalog?mediaType=tv" },
-    ...(isAuthenticated ? [{ label: "For You", href: "/recommendations" }] : []),
+    { key: "home", label: t("nav.home"), href: "/" },
+    { key: "movies", label: t("nav.movies"), href: "/catalog?mediaType=movie" },
+    { key: "series", label: t("nav.series"), href: "/catalog?mediaType=tv" },
+    ...(isAuthenticated
+      ? [{ key: "forYou", label: t("nav.forYou"), href: "/recommendations" }]
+      : []),
   ];
 
   return (
@@ -40,7 +45,7 @@ function NavLinks({ isAuthenticated }: { isAuthenticated: boolean }) {
         }
 
         return (
-          <div key={link.label} className="relative py-1">
+          <div key={link.key} className="relative py-1">
             <Link
               href={link.href}
               className={`text-base font-medium transition-colors ${
@@ -72,6 +77,7 @@ function SearchInput({
   onSearch,
   onClear,
 }: SearchInputProps) {
+  const { t } = useI18n();
   const [searchQuery, setSearchQuery] = useState(initialQuery);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -98,7 +104,7 @@ function SearchInput({
       )}
       <input
         type="text"
-        placeholder="Search..."
+        placeholder={t("nav.searchPlaceholder")}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         className="bg-brand-input text-sm text-white placeholder:text-brand-muted rounded-md pl-10 pr-9 py-2 w-48 sm:w-64 md:w-72 focus:outline-none focus:ring-1 focus:ring-brand-lime focus:border-brand-lime transition-all border border-transparent"
@@ -107,7 +113,7 @@ function SearchInput({
         <button
           type="button"
           onClick={handleClearClick}
-          aria-label="Clear search"
+          aria-label={t("nav.clearSearch")}
           className="absolute right-2.5 p-1 text-brand-muted hover:text-white transition-colors cursor-pointer rounded-full flex items-center justify-center"
         >
           <X className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -175,6 +181,7 @@ function SearchBar() {
 
 export default function Navbar() {
   const { user } = useAuth();
+  const { t } = useI18n();
 
   return (
     <header className="w-full bg-brand-surface z-50 shadow-md">
@@ -277,15 +284,17 @@ export default function Navbar() {
               <line x1="9" y1="3" x2="9" y2="7" />
             </svg>
             <span className="text-sm font-medium hidden lg:inline">
-              Watchlist
+              {t("nav.watchlist")}
             </span>
           </Link>
+
+          <LanguageSwitcher />
 
           {user ? (
             <UserMenu />
           ) : (
             <Button href="/login" size="sm">
-              Sign In
+              {t("nav.signIn")}
             </Button>
           )}
         </div>

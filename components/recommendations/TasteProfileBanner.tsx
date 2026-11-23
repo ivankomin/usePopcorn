@@ -13,6 +13,7 @@ import {
 import Button from "@/components/Button";
 import { useWatchlist } from "@/hooks/useWatchlist";
 import { useRatings } from "@/hooks/useRatings";
+import { useI18n } from "@/hooks/useI18n";
 import type { UserTasteProfile } from "@/types/media";
 
 interface TasteProfileBannerProps {
@@ -21,6 +22,7 @@ interface TasteProfileBannerProps {
 
 export function TasteProfileBanner({ profile }: TasteProfileBannerProps) {
   const router = useRouter();
+  const { tGenre } = useI18n();
   const [isRefreshing, startRefreshing] = useTransition();
   const { watchlistIds, isLoading: isWatchlistLoading } = useWatchlist();
   const { userRatings, userReviews, isLoading: isRatingsLoading } =
@@ -162,10 +164,10 @@ export function TasteProfileBanner({ profile }: TasteProfileBannerProps) {
               <Link
                 key={genre}
                 href={`/catalog?genres=${encodeURIComponent(genre)}`}
-                title={`Browse all ${genre} titles`}
+                title={tGenre(genre)}
                 className="px-3 py-1 bg-[#85c355] hover:bg-[#9ded5b] text-black font-bold text-xs rounded-lg uppercase tracking-wide shadow-sm transition-all hover:scale-102 cursor-pointer"
               >
-                {genre}
+                {tGenre(genre)}
               </Link>
             ))}
           </div>
@@ -209,10 +211,10 @@ export function TasteProfileBanner({ profile }: TasteProfileBannerProps) {
                 <Link
                   key={genre}
                   href={`/catalog?genres=${encodeURIComponent(genre)}`}
-                  title={`Browse all ${genre} titles`}
+                  title={tGenre(genre)}
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#85c355] hover:bg-[#9ded5b] text-black font-bold text-xs rounded-lg uppercase tracking-wide shadow-sm transition-all hover:scale-102 cursor-pointer"
                 >
-                  <span>{genre}</span>
+                  <span>{tGenre(genre)}</span>
                 </Link>
               ))
             ) : (

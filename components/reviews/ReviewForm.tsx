@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import { useRatings } from "@/hooks/useRatings";
+import { useI18n } from "@/hooks/useI18n";
 import { cn } from "@/lib/utils";
 import { StarRating } from "@/components/StarRating";
 
@@ -28,6 +29,7 @@ export function ReviewForm({
   onCancel,
 }: ReviewFormProps) {
   const { submitReview } = useRatings();
+  const { t } = useI18n();
   const [rating, setRating] = useState<number | null>(initialRating);
   const [content, setContent] = useState(initialContent || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -87,9 +89,7 @@ export function ReviewForm({
       <div className="flex items-center justify-between flex-wrap gap-2 border-b border-neutral-800/80 pb-4">
         <div className="flex items-center gap-2">
           <h3 className="text-lg font-bold text-white tracking-tight">
-            {isEditing
-              ? "Edit Your Rating & Review"
-              : "Add Your Rating & Review"}
+            {isEditing ? t("reviews.editTitle") : t("reviews.addTitle")}
           </h3>
         </div>
       </div>
@@ -98,7 +98,7 @@ export function ReviewForm({
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <label className="text-xs font-semibold text-neutral-300 uppercase tracking-wider">
-            Your Rating
+            {t("reviews.yourRating")}
           </label>
           {rating !== null && (
             <div className="flex items-center gap-2">
@@ -109,10 +109,10 @@ export function ReviewForm({
                 type="button"
                 onClick={() => setRating(null)}
                 className="text-xs text-neutral-400 hover:text-white flex items-center gap-1 transition-colors cursor-pointer py-0.5 px-1.5 rounded hover:bg-neutral-800"
-                title="Clear rating"
+                title={t("reviews.clear")}
               >
                 <X className="w-3 h-3" />
-                <span>Clear</span>
+                <span>{t("reviews.clear")}</span>
               </button>
             </div>
           )}
@@ -142,7 +142,7 @@ export function ReviewForm({
           />
           {rating === null && (
             <span className="text-xs text-neutral-500 italic">
-              Tap stars to rate (optional)
+              {t("reviews.tapStarsHint")}
             </span>
           )}
         </div>
@@ -154,7 +154,7 @@ export function ReviewForm({
           htmlFor="review-content"
           className="text-xs font-semibold text-neutral-300 uppercase tracking-wider"
         >
-          Your Review
+          {t("reviews.yourReview")}
         </label>
         <textarea
           id="review-content"
@@ -162,7 +162,7 @@ export function ReviewForm({
           value={content}
           maxLength={1000}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="Share your thoughts, favorite moments, or critique with the community..."
+          placeholder={t("reviews.placeholder")}
           className="w-full bg-[#121212] border border-neutral-700/80 rounded-xl p-4 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500 focus:ring-1 focus:ring-neutral-500 transition-all resize-y min-h-24 leading-relaxed"
         />
       </div>
@@ -187,9 +187,11 @@ export function ReviewForm({
             )}
           >
             {isSubmitting ? (
-              <span>Saving...</span>
+              <span>{t("reviews.saving")}</span>
             ) : (
-              <span>{isEditing ? "Update Review" : "Submit Review"}</span>
+              <span>
+                {isEditing ? t("reviews.update") : t("reviews.submit")}
+              </span>
             )}
           </button>
 
@@ -200,7 +202,7 @@ export function ReviewForm({
               onClick={onCancel}
               className="h-10 px-4 rounded-xl font-semibold text-xs text-neutral-400 hover:text-white hover:bg-neutral-800/80 border border-neutral-700/80 transition-all cursor-pointer"
             >
-              Cancel
+              {t("reviews.cancel")}
             </button>
           )}
         </div>

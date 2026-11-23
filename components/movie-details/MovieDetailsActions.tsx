@@ -4,8 +4,16 @@ import { useState, useRef } from "react";
 import { PlusCircle, Check, Trash2, Share2, ChevronDown } from "lucide-react";
 import type { WatchlistStatus } from "@/types/media";
 import { useOutsideClick } from "@/hooks/useOutsideClick";
+import { useI18n } from "@/hooks/useI18n";
 import { cn } from "@/lib/utils";
+import type { TranslationKey } from "@/lib/i18n";
 import { STATUS_OPTIONS } from "./constants";
+
+const STATUS_LABEL_KEYS: Record<WatchlistStatus, TranslationKey> = {
+  plan_to_watch: "movieDetails.planToWatch",
+  watched: "movieDetails.watched",
+  favorite: "movieDetails.favorite",
+};
 
 export interface MovieDetailsActionsProps {
   inWatchlist: boolean;
@@ -24,6 +32,7 @@ export function MovieDetailsActions({
   onStatusSelect,
   onRemoveFromWatchlist,
 }: MovieDetailsActionsProps) {
+  const { t } = useI18n();
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -60,7 +69,7 @@ export function MovieDetailsActions({
               <Check className="w-3.5 h-3.5 text-black stroke-3" />
             </span>
             <span className="text-[#8ce648] font-medium text-sm">
-              In Watchlist
+              {t("movieDetails.inWatchlist")}
             </span>
           </div>
 
@@ -69,8 +78,8 @@ export function MovieDetailsActions({
               type="button"
               onClick={onRemoveFromWatchlist}
               disabled={isPending}
-              title="Remove from Watchlist"
-              aria-label="Remove from Watchlist"
+              title={t("movieDetails.removeFromWatchlist")}
+              aria-label={t("movieDetails.removeFromWatchlist")}
               className="p-1 text-red-500 hover:text-red-400 hover:scale-110 active:scale-95 transition-all cursor-pointer select-none"
             >
               <Trash2 className="w-5 h-5" />
@@ -79,14 +88,14 @@ export function MovieDetailsActions({
             <button
               type="button"
               onClick={handleShare}
-              title={copied ? "Link copied to clipboard!" : "Share link"}
-              aria-label="Share"
+              title={copied ? t("movieDetails.copied") : t("movieDetails.share")}
+              aria-label={t("movieDetails.share")}
               className="relative p-1 text-white hover:text-neutral-300 hover:scale-110 active:scale-95 transition-all cursor-pointer select-none"
             >
               <Share2 className="w-5 h-5" />
               {copied && (
                 <span className="absolute -top-8 -right-2 px-2 py-1 rounded bg-neutral-900 border border-neutral-700 text-[10px] text-white font-bold shadow-lg animate-in fade-in">
-                  Copied!
+                  {t("movieDetails.copied")}
                 </span>
               )}
             </button>
@@ -101,15 +110,17 @@ export function MovieDetailsActions({
             className="w-full h-10 px-3.5 rounded-xl bg-[#181818] border border-neutral-700/80 hover:border-neutral-500 hover:bg-neutral-800/60 text-white flex items-center justify-between text-xs font-medium transition-all cursor-pointer select-none group"
             aria-expanded={isStatusMenuOpen}
             aria-haspopup="true"
-            title="Change watchlist status"
+            title={t("movieDetails.watchlistStatus")}
           >
             <div className="flex items-center gap-2">
-              <span className="text-neutral-400 font-normal">Status:</span>
+              <span className="text-neutral-400 font-normal">
+                {t("movieDetails.statusLabel")}
+              </span>
               <div className="flex items-center gap-1.5 font-semibold text-white">
                 <CurrentStatusIcon
                   className={cn("w-3.5 h-3.5", currentStatusConfig.iconColor)}
                 />
-                <span>{currentStatusConfig.label}</span>
+                <span>{t(STATUS_LABEL_KEYS[currentStatusConfig.value])}</span>
               </div>
             </div>
             <ChevronDown
@@ -124,7 +135,7 @@ export function MovieDetailsActions({
           {isStatusMenuOpen && (
             <div className="absolute top-full left-0 mt-1.5 w-full rounded-xl bg-[#1c1c1c] border border-neutral-700/90 shadow-2xl p-1.5 z-30 flex flex-col gap-1 backdrop-blur-md animate-in fade-in zoom-in-95 duration-100">
               <div className="px-2.5 py-1 text-[10px] font-semibold text-neutral-400 uppercase tracking-wider border-b border-neutral-800 pb-1.5">
-                Watchlist Status
+                {t("movieDetails.watchlistStatus")}
               </div>
               {STATUS_OPTIONS.map((opt) => {
                 const Icon = opt.icon;
@@ -146,7 +157,7 @@ export function MovieDetailsActions({
                   >
                     <div className="flex items-center gap-2">
                       <Icon className={cn("w-4 h-4", opt.iconColor)} />
-                      <span>{opt.label}</span>
+                      <span>{t(STATUS_LABEL_KEYS[opt.value])}</span>
                     </div>
                     {isSelected && (
                       <Check className="w-3.5 h-3.5 text-[#8ce648]" />
@@ -170,20 +181,20 @@ export function MovieDetailsActions({
         className="flex-1 h-11 px-4 rounded-xl bg-transparent border border-neutral-700/80 hover:border-neutral-500 hover:bg-neutral-800/60 text-white font-medium text-sm flex items-center justify-center gap-2 transition-all cursor-pointer select-none"
       >
         <PlusCircle className="w-4 h-4 text-neutral-300" />
-        <span>Add to Watchlist</span>
+        <span>{t("movieDetails.addToWatchlist")}</span>
       </button>
 
       <button
         type="button"
         onClick={handleShare}
-        title={copied ? "Link copied to clipboard!" : "Share link"}
-        aria-label="Share"
+        title={copied ? t("movieDetails.copied") : t("movieDetails.share")}
+        aria-label={t("movieDetails.share")}
         className="relative w-11 h-11 shrink-0 rounded-xl bg-transparent border border-neutral-700/80 hover:border-neutral-500 hover:bg-neutral-800/60 text-neutral-300 hover:text-white flex items-center justify-center transition-all cursor-pointer select-none"
       >
         <Share2 className="w-4 h-4" />
         {copied && (
           <span className="absolute -top-8 px-2 py-1 rounded bg-neutral-900 border border-neutral-700 text-[10px] text-white font-bold shadow-lg animate-in fade-in">
-            Copied!
+            {t("movieDetails.copied")}
           </span>
         )}
       </button>

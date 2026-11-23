@@ -1,6 +1,7 @@
 "use client";
 
 import { LayoutGrid, Bookmark, Star, Settings } from "lucide-react";
+import { useI18n } from "@/hooks/useI18n";
 
 export type CabinetTabId = "overview" | "watchlist" | "reviews" | "settings";
 
@@ -17,6 +18,7 @@ export function CabinetTabs({
   watchlistCount = 0,
   reviewsCount = 0,
 }: CabinetTabsProps) {
+  const { t } = useI18n();
   const tabs: Array<{
     id: CabinetTabId;
     label: string;
@@ -25,24 +27,24 @@ export function CabinetTabs({
   }> = [
     {
       id: "overview",
-      label: "Overview",
+      label: t("profile.tabOverview"),
       icon: LayoutGrid,
     },
     {
       id: "watchlist",
-      label: "Watchlists & Collections",
+      label: t("profile.tabWatchlist"),
       icon: Bookmark,
       badge: watchlistCount,
     },
     {
       id: "reviews",
-      label: "Ratings & Reviews",
+      label: t("profile.tabReviews"),
       icon: Star,
       badge: reviewsCount,
     },
     {
       id: "settings",
-      label: "Settings & Security",
+      label: t("profile.tabSettings"),
       icon: Settings,
     },
   ];

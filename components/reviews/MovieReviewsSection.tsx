@@ -6,6 +6,7 @@ import { MessageSquare, LogIn } from "lucide-react";
 import type { ReviewRow, ReviewWithAuthor } from "@/types/media";
 import { useAuth } from "@/hooks/useAuth";
 import { useRatings } from "@/hooks/useRatings";
+import { useI18n } from "@/hooks/useI18n";
 import { ReviewForm } from "./ReviewForm";
 import { UserReviewCard } from "./UserReviewCard";
 import { CommunityReviewList } from "./CommunityReviewList";
@@ -22,6 +23,7 @@ export function MovieReviewsSection({
   initialReviews = [],
 }: MovieReviewsSectionProps) {
   const { user, isLoading: isAuthLoading } = useAuth();
+  const { t } = useI18n();
   const {
     getUserReview,
     getUserRating,
@@ -73,7 +75,7 @@ export function MovieReviewsSection({
         <div className="flex items-center gap-3">
           <MessageSquare className="w-6 h-6 text-[#8ce648]" />
           <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-            Ratings & Reviews
+            {t("reviews.sectionTitle")}
           </h2>
           {totalReviewsCount > 0 && (
             <span className="px-2.5 py-0.5 rounded-full bg-neutral-800 border border-neutral-700 text-xs font-semibold text-neutral-300">
@@ -109,10 +111,10 @@ export function MovieReviewsSection({
         <div className="bg-[#181818] border border-neutral-800 rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <div className="flex flex-col gap-1">
             <h3 className="text-base sm:text-lg font-bold text-white">
-              Want to share your rating or review?
+              {t("reviews.signInPromptTitle")}
             </h3>
             <p className="text-xs sm:text-sm text-neutral-400">
-              Sign in to rate titles, write reviews, and keep track of your favorites.
+              {t("reviews.signInPromptBody")}
             </p>
           </div>
           <Link
@@ -120,7 +122,7 @@ export function MovieReviewsSection({
             className="h-10 px-5 rounded-xl bg-[#8ce648] hover:bg-[#9ded5b] text-black font-semibold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all hover:scale-102 cursor-pointer shrink-0"
           >
             <LogIn className="w-4 h-4" />
-            <span>Sign In to Review</span>
+            <span>{t("reviews.signInToReview")}</span>
           </Link>
         </div>
       ) : null}
@@ -128,7 +130,7 @@ export function MovieReviewsSection({
       {/* Community Reviews List */}
       <div className="flex flex-col gap-4 mt-2">
         <h3 className="text-sm font-semibold text-neutral-400 uppercase tracking-wider">
-          Community Reviews
+          {t("reviews.communityReviews")}
         </h3>
         <CommunityReviewList
           reviews={initialReviews}

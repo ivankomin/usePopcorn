@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { X, FolderPlus, Loader2 } from "lucide-react";
 import Button from "@/components/Button";
+import { useI18n } from "@/hooks/useI18n";
 
 export interface CollectionFormModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ export function CollectionFormModal({
   onClose,
   onSubmit,
 }: CollectionFormModalProps) {
+  const { t } = useI18n();
   const [name, setName] = useState(initialName);
   const [description, setDescription] = useState(initialDescription || "");
   const [error, setError] = useState<string | null>(null);
@@ -98,7 +100,9 @@ export function CollectionFormModal({
               <FolderPlus className="w-4 h-4" />
             </span>
             <h2 className="text-base font-bold text-white">
-              {mode === "create" ? "Create Custom List" : "Edit Custom List"}
+              {mode === "create"
+                ? t("watchlist.createModalTitle")
+                : t("watchlist.editModalTitle")}
             </h2>
           </div>
 
@@ -121,7 +125,8 @@ export function CollectionFormModal({
                 htmlFor="collection-name-input"
                 className="text-xs font-semibold text-neutral-300"
               >
-                List Name <span className="text-rose-400">*</span>
+                {t("watchlist.listNameLabel")}{" "}
+                <span className="text-rose-400">*</span>
               </label>
               <span className="text-[11px] font-mono text-neutral-500">
                 {name.length}/80
@@ -136,7 +141,7 @@ export function CollectionFormModal({
               required
               autoFocus
               disabled={isSubmitting}
-              placeholder="e.g. Weekend Sci-Fi Marathon"
+              placeholder={t("watchlist.listNamePlaceholder")}
               className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-brand-lime transition-colors disabled:opacity-50"
             />
           </div>
@@ -147,7 +152,7 @@ export function CollectionFormModal({
                 htmlFor="collection-description-input"
                 className="text-xs font-semibold text-neutral-300"
               >
-                Description (Optional)
+                {t("watchlist.descriptionLabel")}
               </label>
               <span className="text-[11px] font-mono text-neutral-500">
                 {description.length}/300
@@ -160,7 +165,7 @@ export function CollectionFormModal({
               onChange={(e) => setDescription(e.target.value)}
               maxLength={300}
               disabled={isSubmitting}
-              placeholder="What's the theme or mood of this collection?"
+              placeholder={t("watchlist.descriptionPlaceholder")}
               className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-brand-lime transition-colors resize-none disabled:opacity-50"
             />
           </div>
@@ -178,7 +183,7 @@ export function CollectionFormModal({
               disabled={isSubmitting}
               className="px-4 py-2 rounded-xl text-xs font-semibold text-neutral-300 hover:text-white bg-neutral-900 border border-neutral-700 hover:border-neutral-600 transition-colors cursor-pointer disabled:opacity-50"
             >
-              Cancel
+              {t("watchlist.cancel")}
             </button>
             <Button
               type="submit"
@@ -189,11 +194,13 @@ export function CollectionFormModal({
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
-                  <span>Saving...</span>
+                  <span>{t("watchlist.saving")}</span>
                 </>
               ) : (
                 <span>
-                  {mode === "create" ? "Create List" : "Save Changes"}
+                  {mode === "create"
+                    ? t("watchlist.createList")
+                    : t("watchlist.saveChanges")}
                 </span>
               )}
             </Button>

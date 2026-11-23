@@ -15,6 +15,8 @@ export interface MultiSelectDropdownProps {
   onToggle: () => void;
   onClose: () => void;
   align?: "top" | "bottom";
+  formatOption?: (option: string) => string;
+  clearLabel?: string;
 }
 
 export function MultiSelectDropdown({
@@ -26,7 +28,11 @@ export function MultiSelectDropdown({
   onToggle,
   onClose,
   align = "top",
+  formatOption,
+  clearLabel = "clear",
 }: MultiSelectDropdownProps) {
+  const displayOption = (opt: string) =>
+    formatOption ? formatOption(opt) : opt;
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown on outside click or Escape key
@@ -68,12 +74,12 @@ export function MultiSelectDropdown({
             <span className="truncate">{label}</span>
           ) : selected.length === 1 ? (
             <span className="truncate text-white font-medium">
-              {selected[0]}
+              {displayOption(selected[0])}
             </span>
           ) : (
             <div className="flex items-center gap-1.5 truncate">
               <span className="truncate text-white font-medium">
-                {selected[0]}
+                {displayOption(selected[0])}
               </span>
               <span className="shrink-0 px-1.5 py-0.5 text-[11px] font-bold rounded-full bg-brand-lime/20 text-brand-lime">
                 +{selected.length - 1}
@@ -121,7 +127,7 @@ export function MultiSelectDropdown({
                 onClick={clearAll}
                 className="text-[11px] lowercase tracking-normal text-brand-lime hover:underline cursor-pointer"
               >
-                clear
+                {clearLabel}
               </button>
             )}
           </div>
@@ -140,7 +146,7 @@ export function MultiSelectDropdown({
                     : "text-neutral-300 hover:bg-neutral-800 hover:text-white",
                 )}
               >
-                <span className="truncate mr-2">{opt}</span>
+                <span className="truncate mr-2">{displayOption(opt)}</span>
                 <span
                   className={cn(
                     "w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors",

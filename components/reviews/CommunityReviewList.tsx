@@ -1,7 +1,10 @@
+"use client";
+
 import Image from "next/image";
 import { Star, User, MessageCircle } from "lucide-react";
 import type { ReviewWithAuthor } from "@/types/media";
 import { formatDate } from "@/lib/utils";
+import { useI18n } from "@/hooks/useI18n";
 
 export interface CommunityReviewListProps {
   reviews: ReviewWithAuthor[];
@@ -12,6 +15,7 @@ export function CommunityReviewList({
   reviews,
   currentUserId,
 }: CommunityReviewListProps) {
+  const { t } = useI18n();
   // Filter out current user review if already displayed separately
   const otherReviews = currentUserId
     ? reviews.filter((r) => r.user_id !== currentUserId)
@@ -22,10 +26,10 @@ export function CommunityReviewList({
       <div className="bg-[#181818]/50 border border-neutral-800/80 rounded-2xl p-8 text-center flex flex-col items-center justify-center">
         <MessageCircle className="w-8 h-8 text-neutral-600 mb-2" />
         <p className="text-sm text-neutral-400 font-medium">
-          No other reviews yet.
+          {t("reviews.noOtherReviews")}
         </p>
         <span className="text-xs text-neutral-500 mt-1">
-          Be among the first to share your thoughts on this title!
+          {t("reviews.beFirstToReview")}
         </span>
       </div>
     );
@@ -34,7 +38,7 @@ export function CommunityReviewList({
   return (
     <div className="flex flex-col gap-4">
       {otherReviews.map((review) => {
-        const username = review.profile?.username || "Anonymous";
+        const username = review.profile?.username || t("reviews.anonymous");
         const avatarUrl = review.profile?.avatar_url;
         const hasRating = review.rating !== null && review.rating !== undefined;
         const formattedDate = formatDate(review.created_at);

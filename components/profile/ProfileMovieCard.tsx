@@ -5,15 +5,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Star } from "lucide-react";
-import type { MediaItem, WatchlistStatus } from "@/types/media";
-import { getPosterUrl, formatRuntime } from "@/lib/utils";
+import type { MediaItem } from "@/types/media";
+import { getPosterUrl, formatMediaDuration } from "@/lib/utils";
 import { useRatings } from "@/hooks/useRatings";
 
 export interface ProfileMovieCardProps {
   media: MediaItem;
-  watchlistStatus?: WatchlistStatus;
   initialUserRating?: number | null;
-  onRemove?: (mediaId: string) => void;
 }
 
 export function ProfileMovieCard({
@@ -28,11 +26,7 @@ export function ProfileMovieCard({
   const liveRating = getUserRating(media.id);
   const userRating = liveRating !== null ? liveRating : initialUserRating;
 
-  // Runtime / Seasons
-  const runtimeText =
-    media.media_type === "tv"
-      ? `${media.seasons_count || 1} ${(media.seasons_count || 1) === 1 ? "Season" : "Seasons"}`
-      : formatRuntime(media.runtime);
+  const runtimeText = formatMediaDuration(media);
 
   const posterSrc = getPosterUrl(media.poster_path, "w500");
 

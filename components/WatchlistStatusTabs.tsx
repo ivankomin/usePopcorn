@@ -76,7 +76,7 @@ export default function WatchlistStatusTabs({
             onClick={() => handleSelectTab(tab.value)}
             disabled={isPending}
             className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-200 cursor-pointer shrink-0 border",
+              "group flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-200 cursor-pointer shrink-0 border",
               isActive
                 ? "bg-[#7b9bf9] text-black border-[#7b9bf9] font-semibold shadow-md "
                 : "bg-[#181818] border-neutral-800 text-neutral-300 hover:text-white hover:border-neutral-700",

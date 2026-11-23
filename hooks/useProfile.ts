@@ -8,7 +8,7 @@ import {
   type UploadAvatarResult,
   type UpdateProfileDetailsResult,
 } from "@/lib/profile-api";
-import type { ProfileRow } from "@/types/media";
+import type { ProfileRow, UserRole } from "@/types/media";
 import type { User } from "@supabase/supabase-js";
 
 export interface UseProfileReturn {
@@ -17,7 +17,7 @@ export interface UseProfileReturn {
   username: string;
   email: string;
   avatarUrl: string | null;
-  role: string;
+  role: UserRole;
   isAdmin: boolean;
   isLoading: boolean;
   updateAvatar: (file: File) => Promise<UploadAvatarResult>;
@@ -39,12 +39,19 @@ export interface UseProfileReturn {
 export function useProfile(): UseProfileReturn {
   const { user, profile, isLoading, refreshProfile } = useAuth();
 
-  const username =
-    profile?.username || user?.user_metadata?.username || "";
+  const metaUsername =
+    typeof user?.user_metadata?.username === "string"
+      ? user.user_metadata.username
+      : "";
+  const metaAvatarUrl =
+    typeof user?.user_metadata?.avatar_url === "string"
+      ? user.user_metadata.avatar_url
+      : null;
+
+  const username = profile?.username || metaUsername;
   const email = user?.email || "";
-  const avatarUrl =
-    profile?.avatar_url || user?.user_metadata?.avatar_url || null;
-  const role = profile?.role || "user";
+  const avatarUrl = profile?.avatar_url || metaAvatarUrl;
+  const role: UserRole = profile?.role === "admin" ? "admin" : "user";
   const isAdmin = role === "admin";
 
   const updateAvatar = async (file: File): Promise<UploadAvatarResult> => {

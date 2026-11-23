@@ -89,23 +89,4 @@ export const FILTER_OPTIONS = {
     "TV-MA",
     "NR",
   ],
-  ageRating: [
-    "All Age Ratings",
-    "G",
-    "PG",
-    "PG-13",
-    "R",
-    "NC-17",
-    "TV-14",
-    "TV-MA",
-  ],
-  decade: [
-    "All Decades",
-    "2020s",
-    "2010s",
-    "2000s",
-    "1990s",
-    "1980s",
-    "1970s & earlier",
-  ],
 } as const;

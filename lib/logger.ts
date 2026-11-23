@@ -48,9 +48,9 @@ function sanitizeValue(value: unknown, depth = 0): Json {
  * and mirrors it to stdout/stderr. Never throws, so logging issues cannot break app flows.
  */
 export async function logSystemEvent(input: SystemLogInput): Promise<void> {
-  const safeMetadata = input.metadata
-    ? (sanitizeValue(input.metadata) as Json)
-    : ({} as Json);
+  const safeMetadata: Json = input.metadata
+    ? sanitizeValue(input.metadata)
+    : {};
 
   const prefix = `[${input.level.toUpperCase()}] [${input.category.toUpperCase()}] [${input.action}]`;
   if (input.level === "error" || input.level === "critical") {

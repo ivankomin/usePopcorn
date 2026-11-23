@@ -38,7 +38,6 @@ async function AdminDashboardContent() {
     <div className="max-w-5xl mx-auto">
       <AdminDashboardContainer
         initialSystemStatus={systemState.status}
-        initialMessage={systemState.message}
         updatedAt={systemState.updated_at}
         genres={genres}
         recentMedia={recentMedia}

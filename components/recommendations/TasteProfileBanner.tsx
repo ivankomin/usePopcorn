@@ -19,23 +19,6 @@ interface TasteProfileBannerProps {
   profile: UserTasteProfile;
 }
 
-function getGenreLabel(genre: unknown): string | null {
-  if (typeof genre === "string") {
-    const trimmed = genre.trim();
-    return trimmed.length > 0 ? trimmed : null;
-  }
-  if (
-    genre &&
-    typeof genre === "object" &&
-    "name" in genre &&
-    typeof (genre as { name?: unknown }).name === "string"
-  ) {
-    const trimmed = (genre as { name: string }).name.trim();
-    return trimmed.length > 0 ? trimmed : null;
-  }
-  return null;
-}
-
 export function TasteProfileBanner({ profile }: TasteProfileBannerProps) {
   const router = useRouter();
   const [isRefreshing, startRefreshing] = useTransition();
@@ -68,8 +51,8 @@ export function TasteProfileBanner({ profile }: TasteProfileBannerProps) {
   const topGenres = useMemo(
     () =>
       (profile.topGenres || [])
-        .map((genre) => getGenreLabel(genre))
-        .filter((name): name is string => name !== null),
+        .map((genre) => genre.trim())
+        .filter((name) => name.length > 0),
     [profile.topGenres],
   );
 

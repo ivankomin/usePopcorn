@@ -1,4 +1,11 @@
-import type { GenreRow, MediaItem, MediaItemRow, MediaMetadata } from "@/types/media";
+import type {
+  GenreRow,
+  MediaItem,
+  MediaItemRow,
+  MediaMetadata,
+  MediaType,
+  WatchlistStatus,
+} from "@/types/media";
 
 export interface MediaGenreJoin {
   genre_id?: number;
@@ -34,6 +41,15 @@ export function extractGenres(
   return result;
 }
 
+export function toMediaType(value: string): MediaType {
+  return value === "tv" ? "tv" : "movie";
+}
+
+export function toWatchlistStatus(value: string): WatchlistStatus {
+  if (value === "watched" || value === "favorite") return value;
+  return "plan_to_watch";
+}
+
 /**
  * Normalizes a Supabase media_items row (with joined genres) into a clean MediaItem domain object,
  * stripping internal join keys without leaving unused destructured bindings.
@@ -53,6 +69,7 @@ export function normalizeMediaRow(
 
   return {
     ...normalized,
+    media_type: toMediaType(normalized.media_type),
     metadata: normalized.metadata ?? null,
     genres,
   };

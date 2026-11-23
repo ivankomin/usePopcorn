@@ -42,8 +42,7 @@ export function getBudgetCategory(budget?: number | null): string | null {
 }
 
 /**
- * Formats runtime minutes into a readable duration string.
- * Supports 'long' format (e.g. 154 -> "2 hrs 34 min", matching Figma) and 'short' format (e.g. 154 -> "2h 34m").
+ * Formats runtime minutes into a readable duration string (e.g. 154 -> "2 h 34 min").
  */
 export function formatRuntime(
   minutes: number | null | undefined,
@@ -55,14 +54,6 @@ export function formatRuntime(
   const formattedMinutes = String(remainingMinutes).padStart(2, "0");
   if (hours === 0) return `${remainingMinutes} min`;
   return `${hours} h ${formattedMinutes} min`;
-}
-
-/**
- * Formats a numeric score to one decimal place.
- */
-export function formatRating(score: number | null | undefined): string {
-  if (score === null || score === undefined || isNaN(score)) return "0.0";
-  return score.toFixed(1);
 }
 
 /**

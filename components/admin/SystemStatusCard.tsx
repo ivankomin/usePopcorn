@@ -14,7 +14,6 @@ import { setSystemStateAction } from "@/app/actions/admin";
 
 export interface SystemStatusCardProps {
   status: "Free" | "Updating";
-  message?: string | null;
   updatedAt?: string | null;
   onStatusChange?: (newStatus: "Free" | "Updating") => void;
 }

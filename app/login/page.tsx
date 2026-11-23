@@ -52,9 +52,6 @@ function LoginForm() {
     const trimmedEmail = email.trim();
     if (!trimmedEmail || !password) {
       setError("Please enter your email and password.");
-      if (!password) {
-        setPassword("");
-      }
       return;
     }
 

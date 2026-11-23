@@ -11,7 +11,6 @@ import type { GenreRow, MediaItemRow } from "@/types/media";
 
 export interface AdminDashboardContainerProps {
   initialSystemStatus: "Free" | "Updating";
-  initialMessage?: string | null;
   updatedAt?: string | null;
   genres: GenreRow[];
   recentMedia: MediaItemRow[];
@@ -19,7 +18,6 @@ export interface AdminDashboardContainerProps {
 
 export function AdminDashboardContainer({
   initialSystemStatus,
-  initialMessage,
   updatedAt,
   genres,
   recentMedia,
@@ -63,7 +61,6 @@ export function AdminDashboardContainer({
 
       <SystemStatusCard
         status={systemStatus}
-        message={initialMessage}
         updatedAt={updatedAt}
         onStatusChange={(newStatus) => setSystemStatus(newStatus)}
       />

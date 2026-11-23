@@ -15,11 +15,13 @@ export function useCatalogFilters(options: UseCatalogFiltersOptions = {}) {
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
 
-  const urlMediaType = searchParams.get("mediaType") as
-    | "all"
-    | "movie"
-    | "tv"
-    | null;
+  const rawMediaType = searchParams.get("mediaType");
+  const urlMediaType: "all" | "movie" | "tv" | null =
+    rawMediaType === "all" ||
+    rawMediaType === "movie" ||
+    rawMediaType === "tv"
+      ? rawMediaType
+      : null;
   const defaultMediaType = pathname.startsWith("/catalog") ? "movie" : "all";
   const mediaType = urlMediaType || options.mediaType || defaultMediaType;
 

@@ -329,7 +329,7 @@ export async function fetchManagedUsers(
       username: p.username,
       email: authInfo?.email ?? null,
       avatar_url: p.avatar_url,
-      role: p.role,
+      role: p.role === "admin" ? "admin" : "user",
       is_blocked: Boolean(p.is_blocked || isAuthBanned),
       blocked_reason: p.blocked_reason,
       blocked_at: p.blocked_at,

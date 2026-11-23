@@ -6,6 +6,20 @@ export type WatchlistRow = Database["public"]["Tables"]["watchlists"]["Row"];
 export type ReviewRow = Database["public"]["Tables"]["reviews"]["Row"];
 export type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 
+export type MediaType = "movie" | "tv";
+export type UserRole = "user" | "admin";
+
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export interface PaginatedResult<T> extends PaginationMeta {
+  items: T[];
+}
+
 export interface MediaMetadata {
   tagline?: string | null;
   directors?: string[];
@@ -16,19 +30,24 @@ export interface MediaMetadata {
   [key: string]: unknown;
 }
 
-export interface MediaItem extends Omit<MediaItemRow, "metadata"> {
+export interface MediaItem extends Omit<MediaItemRow, "metadata" | "media_type"> {
+  media_type: MediaType;
   metadata?: MediaMetadata | null;
   genres?: GenreRow[];
 }
 
 export type WatchlistStatus = "plan_to_watch" | "watched" | "favorite";
 
-export interface WatchlistEntry extends WatchlistRow {
-  media?: MediaItem;
+export interface WatchlistEntry extends Omit<WatchlistRow, "status"> {
+  status: WatchlistStatus;
+  media?: MediaItem | null;
 }
 
-export interface ReviewWithAuthor extends ReviewRow {
-  profile?: Pick<ProfileRow, "id" | "username" | "avatar_url">;
+export type ReviewModerationStatus = "approved" | "pending" | "flagged";
+
+export interface ReviewWithAuthor extends Omit<ReviewRow, "status"> {
+  status: ReviewModerationStatus;
+  profile?: Pick<ProfileRow, "id" | "username" | "avatar_url"> | null;
 }
 
 export type SortOption =
@@ -56,7 +75,7 @@ export interface CatalogFilterParams {
   maxRating?: number;
   minYear?: number;
   maxYear?: number;
-  mediaType?: "all" | "movie" | "tv";
+  mediaType?: "all" | MediaType;
   sortBy?: SortOption;
   page?: number;
   pageSize?: number;
@@ -72,24 +91,10 @@ export type WatchlistSortOption =
   | "title_asc"
   | "title_desc";
 
-export interface WatchlistFilterParams {
+export interface WatchlistFilterParams
+  extends Omit<CatalogFilterParams, "sortBy"> {
   status?: WatchlistStatus | "all";
-  search?: string;
-  genreId?: number;
-  genres?: string[];
-  runtime?: string;
-  seasons?: string;
-  country?: string;
-  budget?: string;
-  ageRating?: string;
-  minRating?: number;
-  maxRating?: number;
-  minYear?: number;
-  maxYear?: number;
-  mediaType?: "all" | "movie" | "tv";
   sortBy?: WatchlistSortOption;
-  page?: number;
-  pageSize?: number;
 }
 
 export interface WatchlistStatusCounts {
@@ -99,12 +104,7 @@ export interface WatchlistStatusCounts {
   favorite: number;
 }
 
-export interface WatchlistQueryResult {
-  items: WatchlistEntry[];
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
+export interface WatchlistQueryResult extends PaginatedResult<WatchlistEntry> {
   statusCounts: WatchlistStatusCounts;
 }
 
@@ -121,9 +121,8 @@ export interface UserCabinetStats {
   averageRatingGiven: number | null;
 }
 
-export type ReviewModerationStatus = "approved" | "pending" | "flagged";
-
-export interface ModeratedReviewItem extends ReviewRow {
+export interface ModeratedReviewItem extends Omit<ReviewRow, "status"> {
+  status: ReviewModerationStatus;
   profile?: Pick<ProfileRow, "id" | "username" | "avatar_url" | "role"> | null;
   media?: Pick<
     MediaItemRow,
@@ -138,12 +137,8 @@ export interface ModeratedReviewsCounts {
   flagged: number;
 }
 
-export interface ModeratedReviewsResult {
+export interface ModeratedReviewsResult extends PaginationMeta {
   reviews: ModeratedReviewItem[];
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
   statusCounts: ModeratedReviewsCounts;
 }
 
@@ -183,7 +178,7 @@ export interface ManagedUserItem {
   username: string;
   email: string | null;
   avatar_url: string | null;
-  role: string;
+  role: UserRole;
   is_blocked: boolean;
   blocked_reason: string | null;
   blocked_at: string | null;
@@ -200,12 +195,8 @@ export interface ManagedUsersCounts {
   admin: number;
 }
 
-export interface ManagedUsersResult {
+export interface ManagedUsersResult extends PaginationMeta {
   users: ManagedUserItem[];
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
   counts: ManagedUsersCounts;
 }
 
@@ -228,11 +219,7 @@ export interface SystemLogLevelCounts {
   critical: number;
 }
 
-export interface SystemLogsResult {
+export interface SystemLogsResult extends PaginationMeta {
   logs: SystemLogItem[];
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
   levelCounts: SystemLogLevelCounts;
 }

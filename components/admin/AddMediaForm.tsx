@@ -59,7 +59,7 @@ interface MediaFormState {
   mediaType: "movie" | "tv";
   title: string;
   originalTitle: string;
-  releaseYear: number;
+  releaseYear: number | "";
   releaseDate: string;
   runtime: number | "";
   seasonsCount: number | "";
@@ -486,9 +486,7 @@ export function AddMediaForm({
               onChange={(e) =>
                 updateField(
                   "releaseYear",
-                  e.target.value
-                    ? Number(e.target.value)
-                    : (0 as unknown as number),
+                  e.target.value ? Number(e.target.value) : "",
                 )
               }
               required

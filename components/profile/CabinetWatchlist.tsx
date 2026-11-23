@@ -114,7 +114,6 @@ export function CabinetWatchlist({ entries }: CabinetWatchlistProps) {
               <ProfileMovieCard
                 key={item.id}
                 media={item.media}
-                watchlistStatus={item.status as WatchlistStatus}
               />
             );
           })}

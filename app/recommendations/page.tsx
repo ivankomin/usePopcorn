@@ -51,10 +51,6 @@ async function RecommendationsContent({
     <div className="flex flex-col gap-6">
       <TasteProfileBanner profile={result.tasteProfile} />
 
-      <div className="gap-4">
-
-      </div>
-
       <RecommendationsGrid
         items={result.items}
         mediaType={mediaType}

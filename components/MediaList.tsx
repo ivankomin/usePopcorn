@@ -8,7 +8,6 @@ import ActiveFilterChips from "./ActiveFilterChips";
 export interface MediaListProps {
   items: MediaItem[];
   totalFound?: number;
-  queryTitle?: string;
   searchQuery?: string;
   currentPage?: number;
   totalPages?: number;
@@ -18,14 +17,13 @@ export interface MediaListProps {
 export default function MediaList({
   items,
   totalFound,
-  queryTitle,
   searchQuery,
   currentPage = 1,
   totalPages,
   currentSort,
 }: MediaListProps) {
   const count = totalFound !== undefined ? totalFound : items.length;
-  const query = (searchQuery || queryTitle)?.trim();
+  const query = searchQuery?.trim();
 
   return (
     <div className="w-full flex flex-col">

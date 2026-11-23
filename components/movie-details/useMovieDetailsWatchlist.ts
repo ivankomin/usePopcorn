@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { WatchlistStatus } from "@/types/media";
-import { useWatchlist } from "@/components/WatchlistProvider";
+import { useWatchlist } from "@/hooks/useWatchlist";
 
 export interface UseMovieDetailsWatchlistOptions {
   mediaId: string;

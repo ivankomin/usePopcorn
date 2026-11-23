@@ -6,7 +6,6 @@ import type {
   WatchlistEntry,
   UserReviewArchiveItem,
   UserCabinetStats,
-  WatchlistStatus,
 } from "@/types/media";
 import { ProfileMovieCard } from "./ProfileMovieCard";
 import type { CabinetTabId } from "./CabinetTabs";
@@ -156,7 +155,6 @@ export function CabinetOverview({
                 <ProfileMovieCard
                   key={item.id}
                   media={item.media}
-                  watchlistStatus={item.status as WatchlistStatus}
                 />
               );
             })}

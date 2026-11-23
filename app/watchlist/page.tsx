@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { getWatchlistWithFilters, getGenres } from "@/lib/api";
 import {
@@ -12,12 +13,10 @@ import CatalogFilters from "@/components/CatalogFilters";
 import WatchlistMediaList from "@/components/WatchlistMediaList";
 import type { WatchlistSortOption, WatchlistStatus } from "@/types/media";
 
-export async function generateMetadata() {
-  return {
-    title: "My Watchlist - usePopcorn",
-    description: "View and manage your watchlist on usePopcorn.",
-  };
-}
+export const metadata: Metadata = {
+  title: "My Watchlist - usePopcorn",
+  description: "View and manage your watchlist on usePopcorn.",
+};
 
 export const instant = false;
 

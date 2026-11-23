@@ -44,8 +44,7 @@ export const PASSWORD_REQUIREMENTS: PasswordRequirementRule[] = [
   },
 ];
 
-export const PASSWORD_REQUIREMENTS_HINT =
-  "At least 8 characters, with uppercase, lowercase, a number, and a special character.";
+export const PASSWORD_REQUIREMENTS_HINT = `At least ${PASSWORD_MIN_LENGTH} characters, with uppercase, lowercase, a number, and a special character.`;
 
 export interface PasswordValidationResult {
   isValid: boolean;

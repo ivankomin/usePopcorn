@@ -58,13 +58,11 @@ async function CatalogContent({
   });
 
   const displayItems = result.items;
-  const queryTitle = parsed.search ? `"${parsed.search}"` : undefined;
 
   return (
     <MediaList
       items={displayItems}
       totalFound={result.total || displayItems.length}
-      queryTitle={queryTitle}
       searchQuery={parsed.search}
       currentPage={result.page}
       totalPages={result.totalPages}

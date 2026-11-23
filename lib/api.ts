@@ -7,6 +7,7 @@ import {
 } from "@/lib/filters";
 import {
   normalizeMediaRow,
+  toWatchlistStatus,
   type MediaRowWithGenres,
 } from "@/lib/media-mappers";
 import type {
@@ -14,7 +15,6 @@ import type {
   GenreRow,
   WatchlistRow,
   WatchlistEntry,
-  WatchlistStatus,
   ReviewWithAuthor,
   ProfileRow,
   CatalogFilterParams,
@@ -24,7 +24,10 @@ import type {
   WatchlistStatusCounts,
   UserReviewArchiveItem,
   UserCabinetStats,
+  PaginatedResult,
 } from "@/types/media";
+
+export type { PaginatedResult };
 
 interface WatchlistMediaJoinRow extends WatchlistRow {
   media: MediaRowWithGenres | null;
@@ -32,14 +35,6 @@ interface WatchlistMediaJoinRow extends WatchlistRow {
 
 interface ReviewMediaJoinRow extends ReviewRow {
   media: MediaRowWithGenres | null;
-}
-
-export interface PaginatedResult<T> {
-  items: T[];
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
 }
 
 /**
@@ -79,9 +74,17 @@ function countWatchlistStatuses(
 }
 
 function mapWatchlistJoinRow(entry: WatchlistMediaJoinRow): WatchlistEntry {
-  if (!entry.media) return entry as WatchlistEntry;
+  const status = toWatchlistStatus(entry.status);
+  if (!entry.media) {
+    return {
+      ...entry,
+      status,
+      media: null,
+    };
+  }
   return {
     ...entry,
+    status,
     media: normalizeMediaRow(entry.media),
   };
 }
@@ -284,37 +287,6 @@ export async function getUserWatchlistEntryForMedia(
   }
 
   return data;
-}
-
-/**
- * Fetches the authenticated user's curated watchlist entries.
- */
-export async function getUserWatchlist(
-  status?: WatchlistStatus,
-  userId?: string,
-): Promise<WatchlistEntry[]> {
-  const { supabase, userId: targetUserId } = await resolveServerUser(userId);
-  if (!targetUserId) return [];
-
-  let query = supabase
-    .from("watchlists")
-    .select("*, media:media_items(*, media_genres(genres(*)))")
-    .eq("user_id", targetUserId)
-    .order("created_at", { ascending: false });
-
-  if (status) {
-    query = query.eq("status", status);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error("Error fetching watchlist:", error);
-    throw error;
-  }
-
-  const rows = (data || []) as unknown as WatchlistMediaJoinRow[];
-  return rows.map(mapWatchlistJoinRow);
 }
 
 /**

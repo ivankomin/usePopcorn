@@ -240,9 +240,8 @@ export function matchesMediaFilters(
 
   // 9. Country
   if (filters.country && filters.country !== "All Countries") {
-    const meta = media.metadata as Record<string, unknown> | null;
     const isDirectMatch = media.country === filters.country;
-    const isMetaMatch = meta?.country === filters.country;
+    const isMetaMatch = media.metadata?.country === filters.country;
     if (!isDirectMatch && !isMetaMatch) {
       return false;
     }
@@ -315,15 +314,28 @@ export function compareMediaItems(
   }
 }
 
+export interface CatalogFilterQueryBuilder<TSelf> {
+  eq(column: string, value: string | number): TSelf;
+  in(column: string, values: readonly (string | number)[]): TSelf;
+  ilike(column: string, pattern: string): TSelf;
+  lt(column: string, value: number): TSelf;
+  lte(column: string, value: number): TSelf;
+  gt(column: string, value: number): TSelf;
+  gte(column: string, value: number): TSelf;
+  contains(column: string, value: readonly string[]): TSelf;
+}
+
+export interface CatalogSortQueryBuilder<TSelf> {
+  order(column: string, options?: { ascending?: boolean }): TSelf;
+}
+
 /**
  * Applies all catalog filter parameters to a Supabase PostgREST query builder.
  */
-export function applyCatalogQueryFilters<T>(
-  builder: T,
-  params: CatalogFilterParams,
-): T {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let query: any = builder;
+export function applyCatalogQueryFilters<
+  T extends CatalogFilterQueryBuilder<T>,
+>(builder: T, params: CatalogFilterParams): T {
+  let query = builder;
 
   // Filter: Media Type
   if (params.mediaType && params.mediaType !== "all") {
@@ -393,18 +405,17 @@ export function applyCatalogQueryFilters<T>(
     query = query.eq("age_rating", params.ageRating);
   }
 
-  return query as T;
+  return query;
 }
 
 /**
  * Applies sorting clauses to a Supabase PostgREST query builder.
  */
-export function applyCatalogQuerySorting<T>(
+export function applyCatalogQuerySorting<T extends CatalogSortQueryBuilder<T>>(
   builder: T,
   sortBy?: SortOption,
 ): T {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let query: any = builder;
+  let query = builder;
 
   switch (sortBy) {
     case "vote_average_desc":
@@ -444,5 +455,5 @@ export function applyCatalogQuerySorting<T>(
       break;
   }
 
-  return query as T;
+  return query;
 }

@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import {
   getCurrentUserProfile,
@@ -12,13 +13,11 @@ import { ProfileCabinetContainer } from "@/components/profile";
 import type { CabinetTabId } from "@/components/profile";
 import ProfileLoading from "./loading";
 
-export async function generateMetadata() {
-  return {
-    title: "User Cabinet & Profile - usePopcorn",
-    description:
-      "Manage your profile, collections, watchlists, ratings and reviews on usePopcorn.",
-  };
-}
+export const metadata: Metadata = {
+  title: "User Cabinet & Profile - usePopcorn",
+  description:
+    "Manage your profile, collections, watchlists, ratings and reviews on usePopcorn.",
+};
 
 export const instant = false;
 

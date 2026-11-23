@@ -9,7 +9,6 @@ import { useRatings } from "@/hooks/useRatings";
 export interface MovieDetailsHeaderProps {
   media: MediaItem;
   initialUserRating?: number | null;
-  onRateClick?: () => void;
 }
 
 export function MovieDetailsHeader({

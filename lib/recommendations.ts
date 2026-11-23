@@ -1,23 +1,17 @@
 import { createClient } from "@/lib/supabase/server";
+import {
+  extractGenres,
+  normalizeMediaRow,
+  type MediaGenreJoin,
+  type MediaRowWithGenres,
+} from "@/lib/media-mappers";
 import type {
-  GenreRow,
   MediaItem,
-  MediaItemRow,
-  MediaMetadata,
   RecommendedMediaItem,
   RecommendationsResult,
   SimilarMediaItem,
   UserTasteProfile,
 } from "@/types/media";
-
-interface MediaGenreJoin {
-  genres: GenreRow | null;
-}
-
-interface HydratedMediaRow extends Omit<MediaItemRow, "metadata"> {
-  metadata?: MediaMetadata | null;
-  media_genres?: MediaGenreJoin[] | null;
-}
 
 interface SignalMediaRow {
   id: string;
@@ -27,44 +21,6 @@ interface SignalMediaRow {
 }
 
 type ServerSupabaseClient = Awaited<ReturnType<typeof createClient>>;
-
-function formatHydratedRow(row: HydratedMediaRow): MediaItem {
-  const genres: GenreRow[] = (row.media_genres || [])
-    .map((mg) => mg.genres)
-    .filter((g): g is GenreRow => Boolean(g));
-
-  const mediaFields: Omit<HydratedMediaRow, "media_genres"> = {
-    id: row.id,
-    tmdb_id: row.tmdb_id,
-    media_type: row.media_type,
-    title: row.title,
-    original_title: row.original_title,
-    overview: row.overview,
-    release_year: row.release_year,
-    release_date: row.release_date,
-    runtime: row.runtime,
-    seasons_count: row.seasons_count,
-    episodes_count: row.episodes_count,
-    status: row.status,
-    poster_path: row.poster_path,
-    budget: row.budget,
-    revenue: row.revenue,
-    budget_category: row.budget_category,
-    country: row.country,
-    countries: row.countries,
-    age_rating: row.age_rating,
-    vote_average: row.vote_average,
-    vote_count: row.vote_count,
-    imdb_rating: row.imdb_rating,
-    metadata: row.metadata ?? null,
-    created_at: row.created_at,
-  };
-
-  return {
-    ...mediaFields,
-    genres,
-  };
-}
 
 async function hydrateMediaItemsByIds(
   supabase: ServerSupabaseClient,
@@ -83,12 +39,35 @@ async function hydrateMediaItemsByIds(
     return map;
   }
 
-  const rows = (data || []) as unknown as HydratedMediaRow[];
+  const rows = (data || []) as unknown as MediaRowWithGenres[];
   for (const row of rows) {
-    map.set(row.id, formatHydratedRow(row));
+    map.set(row.id, normalizeMediaRow(row));
   }
 
   return map;
+}
+
+async function hydrateOrderedRpcRows<
+  TRow extends { media_id: string },
+  TResult,
+>(
+  supabase: ServerSupabaseClient,
+  rows: TRow[],
+  mapItem: (media: MediaItem, row: TRow) => TResult,
+): Promise<TResult[]> {
+  if (rows.length === 0) return [];
+  const mediaMap = await hydrateMediaItemsByIds(
+    supabase,
+    rows.map((r) => r.media_id),
+  );
+
+  const items: TResult[] = [];
+  for (const row of rows) {
+    const media = mediaMap.get(row.media_id);
+    if (!media) continue;
+    items.push(mapItem(media, row));
+  }
+  return items;
 }
 
 function buildColdProfile(): UserTasteProfile {
@@ -185,18 +164,14 @@ async function computeUserTasteProfile(
     const media = mediaById.get(mediaId);
     if (!media) continue;
 
-    const genres = (media.media_genres || [])
-      .flatMap((mg) => {
-        const g = mg.genres as GenreRow | GenreRow[] | null;
-        if (!g) return [];
-        return Array.isArray(g) ? g.map((item) => item?.name) : [g.name];
-      })
+    const genreNames = extractGenres(media.media_genres)
+      .map((g) => g.name)
       .filter(
         (name): name is string =>
           typeof name === "string" && name.trim().length > 0,
       );
 
-    for (const genreName of genres) {
+    for (const genreName of genreNames) {
       genreWeights.set(genreName, (genreWeights.get(genreName) || 0) + weight);
     }
 
@@ -272,19 +247,13 @@ export async function getUserRecommendations(options?: {
     };
   }
 
-  const rows = rpcRows || [];
-  const orderedIds = rows.map((r) => r.media_id);
-  const mediaMap = await hydrateMediaItemsByIds(supabase, orderedIds);
-
-  const items: RecommendedMediaItem[] = [];
-  for (const row of rows) {
-    const media = mediaMap.get(row.media_id);
-    if (!media) continue;
-    items.push({
-      media,
-      matchReasons: row.match_reasons || [],
-    });
-  }
+  const items = await hydrateOrderedRpcRows<
+    NonNullable<typeof rpcRows>[number],
+    RecommendedMediaItem
+  >(supabase, rpcRows || [], (media, row) => ({
+    media,
+    matchReasons: row.match_reasons || [],
+  }));
 
   return {
     items,
@@ -314,18 +283,7 @@ export async function getSimilarMedia(
     return [];
   }
 
-  const rows = rpcRows || [];
-  const orderedIds = rows.map((r) => r.media_id);
-  const mediaMap = await hydrateMediaItemsByIds(supabase, orderedIds);
-
-  const items: SimilarMediaItem[] = [];
-  for (const row of rows) {
-    const media = mediaMap.get(row.media_id);
-    if (!media) continue;
-    items.push({
-      media,
-    });
-  }
-
-  return items;
+  return hydrateOrderedRpcRows(supabase, rpcRows || [], (media) => ({
+    media,
+  }));
 }

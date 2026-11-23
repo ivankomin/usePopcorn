@@ -3,6 +3,10 @@ import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getWatchlistWithFilters, getGenres } from "@/lib/api";
+import {
+  parseMediaFilterParams,
+  type RawMediaFilterSearchParams,
+} from "@/lib/filters";
 import Loader from "@/components/Loader";
 import CatalogFilters from "@/components/CatalogFilters";
 import WatchlistMediaList from "@/components/WatchlistMediaList";
@@ -18,24 +22,12 @@ export async function generateMetadata() {
 export const instant = false;
 
 interface WatchlistPageProps {
-  searchParams: Promise<{
-    status?: string;
-    search?: string;
-    mediaType?: "all" | "movie" | "tv";
-    genreId?: string;
-    genres?: string;
-    runtime?: string;
-    seasons?: string;
-    country?: string;
-    budget?: string;
-    ageRating?: string;
-    minRating?: string;
-    maxRating?: string;
-    minYear?: string;
-    maxYear?: string;
-    sortBy?: WatchlistSortOption;
-    page?: string;
-  }>;
+  searchParams: Promise<
+    RawMediaFilterSearchParams & {
+      status?: string;
+      sortBy?: WatchlistSortOption;
+    }
+  >;
 }
 
 function WatchlistLoadingFallback() {
@@ -61,57 +53,28 @@ async function WatchlistContent({
   }
 
   const resolvedParams = await searchParams;
+  const parsed = parseMediaFilterParams(resolvedParams, "all");
   const status = (resolvedParams.status || "all") as WatchlistStatus | "all";
-  const search = resolvedParams.search?.trim();
-  const mediaType = resolvedParams.mediaType || "all";
-  const genreId = resolvedParams.genreId
-    ? parseInt(resolvedParams.genreId, 10)
-    : undefined;
-  const genres = resolvedParams.genres
-    ? resolvedParams.genres
-        .split(",")
-        .map((g) => decodeURIComponent(g).trim())
-        .filter(Boolean)
-    : undefined;
-  const runtime = resolvedParams.runtime;
-  const seasons = resolvedParams.seasons;
-  const country = resolvedParams.country;
-  const budget = resolvedParams.budget;
-  const ageRating = resolvedParams.ageRating;
-  const minRating = resolvedParams.minRating
-    ? parseFloat(resolvedParams.minRating)
-    : undefined;
-  const maxRating = resolvedParams.maxRating
-    ? parseFloat(resolvedParams.maxRating)
-    : undefined;
-  const minYear = resolvedParams.minYear
-    ? parseInt(resolvedParams.minYear, 10)
-    : undefined;
-  const maxYear = resolvedParams.maxYear
-    ? parseInt(resolvedParams.maxYear, 10)
-    : undefined;
   const sortBy = resolvedParams.sortBy || "added_desc";
-  const page = resolvedParams.page ? parseInt(resolvedParams.page, 10) : 1;
 
-  // Query watchlist from internal Supabase table
   const result = await getWatchlistWithFilters(
     {
       status,
-      search,
-      mediaType,
-      genreId,
-      genres,
-      runtime: mediaType === "tv" ? undefined : runtime,
-      seasons: mediaType === "movie" ? undefined : seasons,
-      country,
-      budget: mediaType === "tv" ? undefined : budget,
-      ageRating,
-      minRating,
-      maxRating,
-      minYear,
-      maxYear,
+      search: parsed.search,
+      mediaType: parsed.mediaType,
+      genreId: parsed.genreId,
+      genres: parsed.genres,
+      runtime: parsed.mediaType === "tv" ? undefined : parsed.runtime,
+      seasons: parsed.mediaType === "movie" ? undefined : parsed.seasons,
+      country: parsed.country,
+      budget: parsed.mediaType === "tv" ? undefined : parsed.budget,
+      ageRating: parsed.ageRating,
+      minRating: parsed.minRating,
+      maxRating: parsed.maxRating,
+      minYear: parsed.minYear,
+      maxYear: parsed.maxYear,
       sortBy,
-      page,
+      page: parsed.page,
       pageSize: 20,
     },
     user.id,
@@ -127,7 +90,7 @@ async function WatchlistContent({
         currentPage={result.page}
         totalPages={result.totalPages}
         currentSort={sortBy}
-        searchQuery={search}
+        searchQuery={parsed.search}
         hasAnyWatchlistItems={result.statusCounts.all > 0}
       />
     </div>

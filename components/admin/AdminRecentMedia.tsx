@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Film, Tv, Star, Calendar, ExternalLink } from "lucide-react";
+import { getPosterUrl } from "@/lib/utils";
 import type { MediaItemRow } from "@/types/media";
 
 export interface AdminRecentMediaProps {
@@ -30,9 +31,7 @@ export function AdminRecentMedia({ items }: AdminRecentMediaProps) {
         {items.map((item) => {
           const isMovie = item.media_type === "movie";
           const posterUrl = item.poster_path
-            ? item.poster_path.startsWith("http")
-              ? item.poster_path
-              : `https://image.tmdb.org/t/p/w200${item.poster_path}`
+            ? getPosterUrl(item.poster_path, "w200")
             : null;
 
           return (

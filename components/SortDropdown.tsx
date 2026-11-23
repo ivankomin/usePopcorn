@@ -5,6 +5,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { ChevronDown, Check } from "lucide-react";
 import Loader from "@/components/Loader";
 import { cn } from "@/lib/utils";
+import { buildUrlWithParams } from "@/lib/navigation";
 import { useOutsideClick } from "@/hooks/useOutsideClick";
 import type { SortOption } from "@/types/media";
 
@@ -83,8 +84,7 @@ export default function SortDropdown({
     // Reset to page 1 upon changing sort order
     params.delete("page");
 
-    const queryString = params.toString();
-    const targetUrl = queryString ? `${pathname}?${queryString}` : pathname;
+    const targetUrl = buildUrlWithParams(pathname, params);
 
     startTransition(() => {
       router.push(targetUrl);

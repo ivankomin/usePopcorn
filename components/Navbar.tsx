@@ -9,6 +9,7 @@ import Loader from "./Loader";
 import UserMenu from "./UserMenu";
 import Button from "./Button";
 import { useAuth } from "@/hooks/useAuth";
+import { buildUrlWithParams } from "@/lib/navigation";
 
 function NavLinks({ isAuthenticated }: { isAuthenticated: boolean }) {
   const pathname = usePathname();
@@ -154,10 +155,7 @@ function SearchBar() {
       const params = new URLSearchParams(searchParams.toString());
       params.delete("search");
       params.delete("page");
-      const newQueryString = params.toString();
-      const target = newQueryString
-        ? `${pathname}?${newQueryString}`
-        : pathname;
+      const target = buildUrlWithParams(pathname, params);
       startSearching(() => {
         router.push(target);
       });

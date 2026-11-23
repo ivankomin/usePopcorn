@@ -2,8 +2,10 @@
 
 import { useTransition } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { Bookmark, Clock, CheckCircle2, Heart } from "lucide-react";
+import { Bookmark, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { buildUrlWithParams } from "@/lib/navigation";
+import { WATCHLIST_STATUS_OPTIONS } from "@/lib/watchlist-status";
 import type { WatchlistStatus, WatchlistStatusCounts } from "@/types/media";
 
 export interface WatchlistStatusTabsProps {
@@ -14,7 +16,7 @@ export interface WatchlistStatusTabsProps {
 interface TabConfig {
   value: WatchlistStatus | "all";
   label: string;
-  icon: typeof Bookmark;
+  icon: LucideIcon;
   count: number;
 }
 
@@ -34,24 +36,12 @@ export default function WatchlistStatusTabs({
       icon: Bookmark,
       count: statusCounts.all,
     },
-    {
-      value: "plan_to_watch",
-      label: "Plan to Watch",
-      icon: Clock,
-      count: statusCounts.plan_to_watch,
-    },
-    {
-      value: "watched",
-      label: "Watched",
-      icon: CheckCircle2,
-      count: statusCounts.watched,
-    },
-    {
-      value: "favorite",
-      label: "Favorites",
-      icon: Heart,
-      count: statusCounts.favorite,
-    },
+    ...WATCHLIST_STATUS_OPTIONS.map((opt) => ({
+      value: opt.value,
+      label: opt.pluralLabel,
+      icon: opt.icon,
+      count: statusCounts[opt.value],
+    })),
   ];
 
   const handleSelectTab = (tabValue: WatchlistStatus | "all") => {
@@ -66,8 +56,7 @@ export default function WatchlistStatusTabs({
     // Reset to page 1 on tab switch
     params.delete("page");
 
-    const query = params.toString();
-    const targetUrl = query ? `${pathname}?${query}` : pathname;
+    const targetUrl = buildUrlWithParams(pathname, params);
 
     startTransition(() => {
       router.push(targetUrl);

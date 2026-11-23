@@ -1,8 +1,7 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { redirect } from "next/navigation";
-import { createClient as createServerClient } from "@/lib/supabase/server";
-import { getManagedUsersAction } from "@/app/actions/admin";
+import { requireAdmin } from "@/lib/auth/admin";
+import { fetchManagedUsers } from "@/lib/admin-queries";
 import { UserManagementContainer } from "@/components/admin";
 import type {
   ManagedUserStatusFilter,
@@ -29,30 +28,8 @@ interface AdminUsersPageProps {
 
 async function AdminUsersContent({ searchParams }: AdminUsersPageProps) {
   await connection();
-  const supabase = await createServerClient();
+  const { user } = await requireAdmin("/admin/users");
 
-  // 1. Authenticate user
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    redirect("/login?next=/admin/users");
-  }
-
-  // 2. Authorize role: 'admin'
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (profile?.role !== "admin") {
-    redirect("/profile");
-  }
-
-  // 3. Resolve query params & load users
   const resolvedParams = await searchParams;
   const statusParam =
     (resolvedParams.status as ManagedUserStatusFilter) || "all";
@@ -61,25 +38,26 @@ async function AdminUsersContent({ searchParams }: AdminUsersPageProps) {
     (resolvedParams.sortBy as ManagedUserSortOption) || "newest";
   const pageParam = parseInt(resolvedParams.page || "1", 10) || 1;
 
-  const result = await getManagedUsersAction({
-    status: statusParam,
-    search: searchParam,
-    sortBy: sortParam,
-    page: pageParam,
+  let usersData = {
+    users: [] as Awaited<ReturnType<typeof fetchManagedUsers>>["users"],
+    total: 0,
+    page: 1,
     pageSize: 15,
-  });
+    totalPages: 1,
+    counts: { all: 0, active: 0, blocked: 0, admin: 0 },
+  };
 
-  const usersData =
-    result.success && result.data
-      ? result.data
-      : {
-          users: [],
-          total: 0,
-          page: 1,
-          pageSize: 15,
-          totalPages: 1,
-          counts: { all: 0, active: 0, blocked: 0, admin: 0 },
-        };
+  try {
+    usersData = await fetchManagedUsers({
+      status: statusParam,
+      search: searchParam,
+      sortBy: sortParam,
+      page: pageParam,
+      pageSize: 15,
+    });
+  } catch {
+    // Render empty state gracefully if query fails
+  }
 
   return (
     <div className="max-w-5xl mx-auto">

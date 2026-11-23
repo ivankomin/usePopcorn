@@ -15,6 +15,7 @@ import SortDropdown, { WATCHLIST_SORT_OPTIONS } from "./SortDropdown";
 import ActiveFilterChips from "./ActiveFilterChips";
 import WatchlistStatusTabs from "./WatchlistStatusTabs";
 import Button from "./Button";
+import { getWatchlistStatusLabel } from "@/lib/watchlist-status";
 
 export interface WatchlistMediaListProps {
   items: WatchlistEntry[];
@@ -87,17 +88,7 @@ export default function WatchlistMediaList({
 
   const getStatusLabel = () => {
     if (searchQuery) return `Results for "${searchQuery}"`;
-    switch (currentStatus) {
-      case "plan_to_watch":
-        return "Plan to Watch";
-      case "watched":
-        return "Watched";
-      case "favorite":
-        return "Favorites";
-      case "all":
-      default:
-        return "All Saved Titles";
-    }
+    return getWatchlistStatusLabel(currentStatus, true);
   };
 
   // 1. Completely empty watchlist (user has not saved anything at all yet)

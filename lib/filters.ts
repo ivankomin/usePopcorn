@@ -6,6 +6,66 @@ import type {
   WatchlistSortOption,
 } from "@/types/media";
 
+export interface NumericRangeRule {
+  eq?: number;
+  lt?: number;
+  lte?: number;
+  gt?: number;
+  gte?: number;
+}
+
+/**
+ * Parses a runtime filter bucket label into a declarative numeric range rule.
+ */
+export function parseRuntimeRange(filter?: string): NumericRangeRule | null {
+  if (!filter || filter === "All Runtimes") return null;
+
+  if (filter === "Under 90 min") return { lt: 90 };
+  if (filter === "90–120 min" || filter === "90-120 min") {
+    return { gte: 90, lte: 120 };
+  }
+  if (filter === "120–150 min" || filter === "120-150 min") {
+    return { gte: 120, lte: 150 };
+  }
+  if (filter === "Over 150 min") return { gt: 150 };
+
+  return null;
+}
+
+/**
+ * Parses a seasons filter bucket label into a declarative numeric range rule.
+ */
+export function parseSeasonsRange(filter?: string): NumericRangeRule | null {
+  if (!filter || filter === "All Seasons") return null;
+
+  if (filter === "1 Season" || filter.startsWith("1 Season")) {
+    return { eq: 1 };
+  }
+  if (filter === "2–3 Seasons" || filter === "2-3 Seasons") {
+    return { gte: 2, lte: 3 };
+  }
+  if (filter === "4–6 Seasons" || filter === "4-6 Seasons") {
+    return { gte: 4, lte: 6 };
+  }
+  if (filter === "7+ Seasons") return { gte: 7 };
+
+  return null;
+}
+
+function matchesNumericRange(
+  value: number | null | undefined,
+  rule: NumericRangeRule | null,
+): boolean {
+  if (!rule) return true;
+  if (value == null) return false;
+  if (rule.eq !== undefined && value !== rule.eq) return false;
+  if (rule.lt !== undefined && !(value < rule.lt)) return false;
+  if (rule.lte !== undefined && !(value <= rule.lte)) return false;
+  if (rule.gt !== undefined && !(value > rule.gt)) return false;
+  if (rule.gte !== undefined && !(value >= rule.gte)) return false;
+  return true;
+}
+
 /**
  * Checks whether a runtime value matches the selected runtime filter bucket.
  */
@@ -13,19 +73,7 @@ export function matchesRuntime(
   runtime: number | null | undefined,
   filter?: string,
 ): boolean {
-  if (!filter || filter === "All Runtimes") return true;
-  if (runtime == null) return false;
-
-  if (filter === "Under 90 min") return runtime < 90;
-  if (filter === "90–120 min" || filter === "90-120 min") {
-    return runtime >= 90 && runtime <= 120;
-  }
-  if (filter === "120–150 min" || filter === "120-150 min") {
-    return runtime >= 120 && runtime <= 150;
-  }
-  if (filter === "Over 150 min") return runtime > 150;
-
-  return true;
+  return matchesNumericRange(runtime, parseRuntimeRange(filter));
 }
 
 /**
@@ -35,23 +83,75 @@ export function matchesSeasons(
   seasons: number | null | undefined,
   filter?: string,
 ): boolean {
-  if (!filter || filter === "All Seasons") return true;
-  if (seasons == null) return false;
+  return matchesNumericRange(seasons, parseSeasonsRange(filter));
+}
 
-  if (filter === "1 Season" || filter.startsWith("1 Season")) {
-    return seasons === 1;
-  }
-  if (filter === "2–3 Seasons" || filter === "2-3 Seasons") {
-    return seasons >= 2 && seasons <= 3;
-  }
-  if (filter === "4–6 Seasons" || filter === "4-6 Seasons") {
-    return seasons >= 4 && seasons <= 6;
-  }
-  if (filter === "7+ Seasons") {
-    return seasons >= 7;
-  }
+export interface RawMediaFilterSearchParams {
+  search?: string;
+  mediaType?: "all" | "movie" | "tv";
+  genreId?: string;
+  genres?: string;
+  runtime?: string;
+  seasons?: string;
+  country?: string;
+  budget?: string;
+  ageRating?: string;
+  minRating?: string;
+  maxRating?: string;
+  minYear?: string;
+  maxYear?: string;
+  page?: string;
+}
 
-  return true;
+function parseOptionalInt(raw?: string): number | undefined {
+  if (!raw) return undefined;
+  const parsed = parseInt(raw, 10);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function parseOptionalFloat(raw?: string): number | undefined {
+  if (!raw) return undefined;
+  const parsed = parseFloat(raw);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+/**
+ * Parses shared URL search parameters used by both `/catalog` and `/watchlist`.
+ */
+export function parseMediaFilterParams(
+  raw: RawMediaFilterSearchParams,
+  defaultMediaType: "all" | "movie" | "tv",
+) {
+  const mediaType =
+    raw.mediaType === "all" || raw.mediaType === "movie" || raw.mediaType === "tv"
+      ? raw.mediaType
+      : defaultMediaType;
+
+  const genres = raw.genres
+    ? raw.genres
+        .split(",")
+        .map((g) => g.trim())
+        .filter(Boolean)
+    : undefined;
+
+  const parsedPage = parseOptionalInt(raw.page);
+
+  return {
+    search: raw.search?.trim() || undefined,
+    mediaType,
+    genreId: parseOptionalInt(raw.genreId),
+    genres,
+    runtime: raw.runtime,
+    seasons: raw.seasons,
+    country: raw.country,
+    budget: raw.budget,
+    ageRating: raw.ageRating,
+    minRating: parseOptionalFloat(raw.minRating),
+    maxRating: parseOptionalFloat(raw.maxRating),
+    minYear: parseOptionalInt(raw.minYear),
+    maxYear: parseOptionalInt(raw.maxYear),
+    page: parsedPage && parsedPage >= 1 ? parsedPage : 1,
+  };
 }
 
 /**
@@ -243,41 +343,23 @@ export function applyCatalogQueryFilters<T>(
   }
 
   // Filter: Runtime (movies)
-  if (params.runtime && params.runtime !== "All Runtimes") {
-    if (params.runtime === "Under 90 min") {
-      query = query.lt("runtime", 90);
-    } else if (
-      params.runtime === "90–120 min" ||
-      params.runtime === "90-120 min"
-    ) {
-      query = query.gte("runtime", 90).lte("runtime", 120);
-    } else if (
-      params.runtime === "120–150 min" ||
-      params.runtime === "120-150 min"
-    ) {
-      query = query.gte("runtime", 120).lte("runtime", 150);
-    } else if (params.runtime === "Over 150 min") {
-      query = query.gt("runtime", 150);
-    }
+  const runtimeRule = parseRuntimeRange(params.runtime);
+  if (runtimeRule) {
+    if (runtimeRule.eq !== undefined) query = query.eq("runtime", runtimeRule.eq);
+    if (runtimeRule.lt !== undefined) query = query.lt("runtime", runtimeRule.lt);
+    if (runtimeRule.lte !== undefined) query = query.lte("runtime", runtimeRule.lte);
+    if (runtimeRule.gt !== undefined) query = query.gt("runtime", runtimeRule.gt);
+    if (runtimeRule.gte !== undefined) query = query.gte("runtime", runtimeRule.gte);
   }
 
   // Filter: Seasons (TV series)
-  if (params.seasons && params.seasons !== "All Seasons") {
-    if (params.seasons === "1 Season" || params.seasons.startsWith("1 Season")) {
-      query = query.eq("seasons_count", 1);
-    } else if (
-      params.seasons === "2–3 Seasons" ||
-      params.seasons === "2-3 Seasons"
-    ) {
-      query = query.gte("seasons_count", 2).lte("seasons_count", 3);
-    } else if (
-      params.seasons === "4–6 Seasons" ||
-      params.seasons === "4-6 Seasons"
-    ) {
-      query = query.gte("seasons_count", 4).lte("seasons_count", 6);
-    } else if (params.seasons === "7+ Seasons") {
-      query = query.gte("seasons_count", 7);
-    }
+  const seasonsRule = parseSeasonsRange(params.seasons);
+  if (seasonsRule) {
+    if (seasonsRule.eq !== undefined) query = query.eq("seasons_count", seasonsRule.eq);
+    if (seasonsRule.lt !== undefined) query = query.lt("seasons_count", seasonsRule.lt);
+    if (seasonsRule.lte !== undefined) query = query.lte("seasons_count", seasonsRule.lte);
+    if (seasonsRule.gt !== undefined) query = query.gt("seasons_count", seasonsRule.gt);
+    if (seasonsRule.gte !== undefined) query = query.gte("seasons_count", seasonsRule.gte);
   }
 
   // Filter: Rating Range

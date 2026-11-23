@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { redirectToLogin } from "@/lib/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import type { ReviewRow } from "@/types/media";
 
@@ -33,6 +34,18 @@ const RatingContext = createContext<RatingContextType | undefined>(undefined);
 
 export interface RatingProviderProps {
   children: ReactNode;
+}
+
+function buildRatingsState(rows: ReadonlyArray<ReviewRow>) {
+  const ratings = new Map<string, number>();
+  const reviews = new Map<string, ReviewRow>();
+  for (const r of rows) {
+    reviews.set(r.media_id, r);
+    if (r.rating !== null && r.rating !== undefined) {
+      ratings.set(r.media_id, r.rating);
+    }
+  }
+  return { ratings, reviews };
 }
 
 export function RatingProvider({ children }: RatingProviderProps) {
@@ -58,97 +71,100 @@ export function RatingProvider({ children }: RatingProviderProps) {
 
   const supabase = useMemo(() => createClient(), []);
 
-  const fetchUserReviews = useCallback(
+  const loadUserReviewsState = useCallback(
     async (currentUserId: string) => {
-      try {
-        const { data, error } = await supabase
-          .from("reviews")
-          .select("*")
-          .eq("user_id", currentUserId);
+      const { data, error } = await supabase
+        .from("reviews")
+        .select("*")
+        .eq("user_id", currentUserId);
 
-        if (!error && data) {
-          const ratings = new Map<string, number>();
-          const reviews = new Map<string, ReviewRow>();
-          for (const r of data) {
-            reviews.set(r.media_id, r as ReviewRow);
-            if (r.rating !== null && r.rating !== undefined) {
-              ratings.set(r.media_id, r.rating);
-            }
-          }
-          setUserRatings(ratings);
-          setUserReviews(reviews);
-        }
-      } catch (err) {
-        console.error("Failed to load user ratings and reviews:", err);
-      } finally {
-        setIsLoading(false);
-      }
+      if (error || !data) return null;
+      return buildRatingsState(data as ReviewRow[]);
     },
     [supabase],
   );
 
   const refreshRatings = useCallback(async () => {
     if (userId) {
-      await fetchUserReviews(userId);
+      try {
+        const result = await loadUserReviewsState(userId);
+        if (result) {
+          setUserRatings(result.ratings);
+          setUserReviews(result.reviews);
+        }
+      } catch (err) {
+        console.error("Failed to load user ratings and reviews:", err);
+      } finally {
+        setIsLoading(false);
+      }
     } else {
       setUserRatings(new Map());
       setUserReviews(new Map());
     }
-  }, [userId, fetchUserReviews]);
+  }, [userId, loadUserReviewsState]);
 
   useEffect(() => {
     if (!userId) return;
 
     let isMounted = true;
-    supabase
-      .from("reviews")
-      .select("*")
-      .eq("user_id", userId)
-      .then(({ data, error }) => {
+    loadUserReviewsState(userId)
+      .then((result) => {
         if (!isMounted) return;
-        if (!error && data) {
-          const ratings = new Map<string, number>();
-          const reviews = new Map<string, ReviewRow>();
-          for (const r of data) {
-            reviews.set(r.media_id, r as ReviewRow);
-            if (r.rating !== null && r.rating !== undefined) {
-              ratings.set(r.media_id, r.rating);
-            }
-          }
-          setUserRatings(ratings);
-          setUserReviews(reviews);
+        if (result) {
+          setUserRatings(result.ratings);
+          setUserReviews(result.reviews);
         }
-        setIsLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to load user ratings and reviews:", err);
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
       });
 
     return () => {
       isMounted = false;
     };
-  }, [supabase, userId]);
+  }, [loadUserReviewsState, userId]);
 
   const getUserRating = useCallback(
-    (mediaId: string): number | null => {
-      return userRatings.get(mediaId) ?? null;
-    },
+    (mediaId: string): number | null => userRatings.get(mediaId) ?? null,
     [userRatings],
   );
 
   const getUserReview = useCallback(
-    (mediaId: string): ReviewRow | null => {
-      return userReviews.get(mediaId) ?? null;
-    },
+    (mediaId: string): ReviewRow | null => userReviews.get(mediaId) ?? null,
     [userReviews],
+  );
+
+  const revertEntry = useCallback(
+    (
+      mediaId: string,
+      previousRating: number | undefined,
+      existingReview: ReviewRow | undefined,
+    ) => {
+      setUserRatings((prev) => {
+        const next = new Map(prev);
+        if (previousRating !== undefined) next.set(mediaId, previousRating);
+        else next.delete(mediaId);
+        return next;
+      });
+      setUserReviews((prev) => {
+        const next = new Map(prev);
+        if (existingReview) next.set(mediaId, existingReview);
+        else next.delete(mediaId);
+        return next;
+      });
+    },
+    [],
   );
 
   const rateMedia = useCallback(
     async (mediaId: string, rating: number): Promise<boolean> => {
       if (!userId) {
-        const currentPath =
-          typeof window !== "undefined"
-            ? window.location.pathname + window.location.search
-            : "/";
-        const next = currentPath ? `?next=${encodeURIComponent(currentPath)}` : "";
-        router.push(`/login${next}`);
+        redirectToLogin(router);
         return false;
       }
 
@@ -189,46 +205,19 @@ export function RatingProvider({ children }: RatingProviderProps) {
           .select()
           .single();
 
-        if (error) {
-          // Revert optimistic update
-          setUserRatings((prev) => {
-            const next = new Map(prev);
-            if (previousRating !== undefined) {
-              next.set(mediaId, previousRating);
-            } else {
-              next.delete(mediaId);
-            }
-            return next;
-          });
-          if (existingReview) {
-            setUserReviews((prev) => new Map(prev).set(mediaId, existingReview));
-          }
-          console.error("Failed to rate media:", error);
-          return false;
-        }
+        if (error) throw error;
 
         if (data) {
           setUserReviews((prev) => new Map(prev).set(mediaId, data as ReviewRow));
         }
         return true;
       } catch (err) {
-        setUserRatings((prev) => {
-          const next = new Map(prev);
-          if (previousRating !== undefined) {
-            next.set(mediaId, previousRating);
-          } else {
-            next.delete(mediaId);
-          }
-          return next;
-        });
-        if (existingReview) {
-          setUserReviews((prev) => new Map(prev).set(mediaId, existingReview));
-        }
+        revertEntry(mediaId, previousRating, existingReview);
         console.error("Failed to rate media:", err);
         return false;
       }
     },
-    [userId, userReviews, userRatings, router, supabase],
+    [userId, userReviews, userRatings, router, supabase, revertEntry],
   );
 
   const submitReview = useCallback(
@@ -237,32 +226,31 @@ export function RatingProvider({ children }: RatingProviderProps) {
       data: { rating?: number | null; content?: string | null },
     ): Promise<ReviewRow | null> => {
       if (!userId) {
-        const currentPath =
-          typeof window !== "undefined"
-            ? window.location.pathname + window.location.search
-            : "/";
-        const next = currentPath ? `?next=${encodeURIComponent(currentPath)}` : "";
-        router.push(`/login${next}`);
+        redirectToLogin(router);
         return null;
       }
 
       const existingReview = userReviews.get(mediaId);
       const previousRating = userRatings.get(mediaId);
 
-      // Determine final rating and content to persist
       const finalRating =
         data.rating !== undefined ? data.rating : (previousRating ?? null);
       const finalContent =
-        data.content !== undefined ? data.content : (existingReview?.content ?? null);
+        data.content !== undefined
+          ? data.content
+          : (existingReview?.content ?? null);
 
       if (finalRating === null && (!finalContent || finalContent.trim() === "")) {
         return null;
       }
 
-      // Optimistic update (preserves prior moderation status until DB trigger returns final status)
-      if (finalRating !== null) {
-        setUserRatings((prev) => new Map(prev).set(mediaId, finalRating));
-      }
+      // Optimistic update
+      setUserRatings((prev) => {
+        const next = new Map(prev);
+        if (finalRating !== null) next.set(mediaId, finalRating);
+        else next.delete(mediaId);
+        return next;
+      });
       const optimisticReview: ReviewRow = {
         id: existingReview?.id || `temp-${Date.now()}`,
         user_id: userId,
@@ -290,65 +278,24 @@ export function RatingProvider({ children }: RatingProviderProps) {
           .select()
           .single();
 
-        if (error) {
-          // Revert optimistic updates
-          setUserRatings((prev) => {
-            const next = new Map(prev);
-            if (previousRating !== undefined) {
-              next.set(mediaId, previousRating);
-            } else {
-              next.delete(mediaId);
-            }
-            return next;
-          });
-          if (existingReview) {
-            setUserReviews((prev) => new Map(prev).set(mediaId, existingReview));
-          } else {
-            setUserReviews((prev) => {
-              const next = new Map(prev);
-              next.delete(mediaId);
-              return next;
-            });
-          }
-          console.error("Failed to submit review:", error);
-          return null;
-        }
+        if (error) throw error;
 
         const persisted = (savedReview as ReviewRow) ?? optimisticReview;
         setUserReviews((prev) => new Map(prev).set(mediaId, persisted));
         router.refresh();
         return persisted;
       } catch (err) {
-        setUserRatings((prev) => {
-          const next = new Map(prev);
-          if (previousRating !== undefined) {
-            next.set(mediaId, previousRating);
-          } else {
-            next.delete(mediaId);
-          }
-          return next;
-        });
-        if (existingReview) {
-          setUserReviews((prev) => new Map(prev).set(mediaId, existingReview));
-        } else {
-          setUserReviews((prev) => {
-            const next = new Map(prev);
-            next.delete(mediaId);
-            return next;
-          });
-        }
+        revertEntry(mediaId, previousRating, existingReview);
         console.error("Failed to submit review:", err);
         return null;
       }
     },
-    [userId, userReviews, userRatings, router, supabase],
+    [userId, userReviews, userRatings, router, supabase, revertEntry],
   );
 
   const deleteReview = useCallback(
     async (mediaId: string): Promise<boolean> => {
-      if (!userId) {
-        return false;
-      }
+      if (!userId) return false;
 
       const existingReview = userReviews.get(mediaId);
       const previousRating = userRatings.get(mediaId);
@@ -372,40 +319,17 @@ export function RatingProvider({ children }: RatingProviderProps) {
           .eq("user_id", userId)
           .eq("media_id", mediaId);
 
-        if (error) {
-          // Revert optimistic delete
-          setUserRatings((prev) => {
-            const next = new Map(prev);
-            if (previousRating !== undefined) {
-              next.set(mediaId, previousRating);
-            }
-            return next;
-          });
-          if (existingReview) {
-            setUserReviews((prev) => new Map(prev).set(mediaId, existingReview));
-          }
-          console.error("Failed to delete review:", error);
-          return false;
-        }
+        if (error) throw error;
 
         router.refresh();
         return true;
       } catch (err) {
-        setUserRatings((prev) => {
-          const next = new Map(prev);
-          if (previousRating !== undefined) {
-            next.set(mediaId, previousRating);
-          }
-          return next;
-        });
-        if (existingReview) {
-          setUserReviews((prev) => new Map(prev).set(mediaId, existingReview));
-        }
+        revertEntry(mediaId, previousRating, existingReview);
         console.error("Failed to delete review:", err);
         return false;
       }
     },
-    [userId, userReviews, userRatings, router, supabase],
+    [userId, userReviews, userRatings, router, supabase, revertEntry],
   );
 
   const value = useMemo(

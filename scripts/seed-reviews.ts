@@ -1,27 +1,7 @@
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "../types/database.types";
-
-// Load environment variables
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_SERVICE_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-  console.error(
-    "Error: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in .env.local",
-  );
-  process.exit(1);
-}
+import { createAdminSupabaseClient } from "./lib/env.ts";
 
 const TARGET_REVIEWS = parseInt(process.env.SEED_REVIEWS_COUNT || "300", 10);
-
-const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false,
-  },
-});
+const supabase = createAdminSupabaseClient();
 
 // Synthetic seed reviewer profiles only (never touches real user accounts)
 const SEED_REVIEWERS = [
@@ -231,6 +211,37 @@ async function seedReviews() {
     updated_at: string;
   }> = [];
 
+  const buildSeedReview = (
+    reviewerId: string,
+    media: { id: string; imdb_rating: number | null },
+  ) => {
+    const typeRoll = Math.random();
+    let rating: number | null = null;
+    let content: string | null = null;
+
+    if (typeRoll < 0.8) {
+      rating = getRatingForTitle(media.imdb_rating);
+      content = getReviewTemplateForRating(rating);
+    } else if (typeRoll < 0.95) {
+      rating = getRatingForTitle(media.imdb_rating);
+      content = null;
+    } else {
+      rating = null;
+      content = getReviewTemplateForRating(8);
+    }
+
+    const reviewDate = getRandomPastDate();
+    return {
+      user_id: reviewerId,
+      media_id: media.id,
+      rating,
+      content,
+      status: "approved",
+      created_at: reviewDate,
+      updated_at: reviewDate,
+    };
+  };
+
   // Pass 1: Guarantee 2 reviews for each under-reviewed item (up to TARGET_REVIEWS)
   for (const media of pool) {
     if (reviewsToInsert.length >= TARGET_REVIEWS) break;
@@ -251,31 +262,7 @@ async function seedReviews() {
       if (usedCombos.has(comboKey)) continue;
       usedCombos.add(comboKey);
 
-      const typeRoll = Math.random();
-      let rating: number | null = null;
-      let content: string | null = null;
-
-      if (typeRoll < 0.8) {
-        rating = getRatingForTitle(media.imdb_rating);
-        content = getReviewTemplateForRating(rating);
-      } else if (typeRoll < 0.95) {
-        rating = getRatingForTitle(media.imdb_rating);
-        content = null;
-      } else {
-        rating = null;
-        content = getReviewTemplateForRating(8);
-      }
-
-      const reviewDate = getRandomPastDate();
-      reviewsToInsert.push({
-        user_id: reviewerId,
-        media_id: media.id,
-        rating,
-        content,
-        status: "approved",
-        created_at: reviewDate,
-        updated_at: reviewDate,
-      });
+      reviewsToInsert.push(buildSeedReview(reviewerId, media));
       addedForTitle++;
     }
   }
@@ -291,31 +278,7 @@ async function seedReviews() {
     if (usedCombos.has(comboKey)) continue;
     usedCombos.add(comboKey);
 
-    const typeRoll = Math.random();
-    let rating: number | null = null;
-    let content: string | null = null;
-
-    if (typeRoll < 0.8) {
-      rating = getRatingForTitle(media.imdb_rating);
-      content = getReviewTemplateForRating(rating);
-    } else if (typeRoll < 0.95) {
-      rating = getRatingForTitle(media.imdb_rating);
-      content = null;
-    } else {
-      rating = null;
-      content = getReviewTemplateForRating(8);
-    }
-
-    const reviewDate = getRandomPastDate();
-    reviewsToInsert.push({
-      user_id: reviewerId,
-      media_id: media.id,
-      rating,
-      content,
-      status: "approved",
-      created_at: reviewDate,
-      updated_at: reviewDate,
-    });
+    reviewsToInsert.push(buildSeedReview(reviewerId, media));
   }
 
   console.log(

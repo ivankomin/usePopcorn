@@ -1,7 +1,7 @@
 import type { MediaItem } from "@/types/media";
 import { Star } from "lucide-react";
 import {
-  formatRuntime,
+  formatMediaDuration,
   formatCurrency,
   formatDate,
   isMatureRating,
@@ -14,9 +14,7 @@ export interface MovieDetailsMetadataProps {
 
 export function MovieDetailsMetadata({ media }: MovieDetailsMetadataProps) {
   const isTV = media.media_type === "tv";
-  const runtimeText = isTV
-    ? `${media.seasons_count || 1} ${(media.seasons_count || 1) === 1 ? "Season" : "Seasons"}`
-    : formatRuntime(media.runtime);
+  const runtimeText = formatMediaDuration(media);
 
   const formattedBudget = formatCurrency(media.budget);
   const formattedRevenue = formatCurrency(media.revenue);

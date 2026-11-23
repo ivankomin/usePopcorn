@@ -108,3 +108,31 @@ export function validateEmail(email: string): string | null {
   return null;
 }
 
+export interface ImageValidationOptions {
+  maxSizeBytes: number;
+  allowedTypes: readonly string[];
+  formatLabel?: string;
+}
+
+/**
+ * Validates an uploaded image File's MIME type and byte size.
+ * Returns a user-facing error message, or null when valid.
+ */
+export function validateImageFile(
+  file: Pick<File, "type" | "size">,
+  options: ImageValidationOptions
+): string | null {
+  const { maxSizeBytes, allowedTypes, formatLabel = "JPG, PNG, or WEBP" } = options;
+
+  if (!allowedTypes.includes(file.type)) {
+    return `Invalid image format. Please select a ${formatLabel} image.`;
+  }
+
+  if (file.size > maxSizeBytes) {
+    const maxMb = Math.round((maxSizeBytes / (1024 * 1024)) * 10) / 10;
+    return `Image size must be under ${maxMb} MB.`;
+  }
+
+  return null;
+}
+

@@ -1,23 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import dynamic from "next/dynamic";
 import { X } from "lucide-react";
 import { useRatings } from "@/hooks/useRatings";
 import { cn } from "@/lib/utils";
-
-const Rating = dynamic(() => import("@mui/material/Rating"), {
-  ssr: false,
-  loading: () => (
-    <span className="inline-flex items-center gap-1 text-[#383838] select-none">
-      {[0, 1, 2, 3, 4].map((i) => (
-        <span key={i} className="text-xl sm:text-2xl leading-none">
-          ★
-        </span>
-      ))}
-    </span>
-  ),
-});
+import { StarRating } from "@/components/StarRating";
 
 export interface ReviewFormProps {
   mediaId: string;
@@ -132,7 +119,7 @@ export function ReviewForm({
         </div>
 
         <div className="flex items-center gap-3 py-1">
-          <Rating
+          <StarRating
             value={stars5}
             precision={0.5}
             onChange={(_, val) => handleRatingChange(val)}

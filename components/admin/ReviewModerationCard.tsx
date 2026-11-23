@@ -16,6 +16,7 @@ import {
   User,
 } from "lucide-react";
 import { ProfileRoleBadge } from "@/components/profile/ProfileRoleBadge";
+import { getPosterUrl } from "@/lib/utils";
 import type { ModeratedReviewItem, ReviewModerationStatus } from "@/types/media";
 
 export interface ReviewModerationCardProps {
@@ -36,9 +37,7 @@ export function ReviewModerationCard({
   const media = review.media;
 
   const posterUrl = media?.poster_path
-    ? media.poster_path.startsWith("http")
-      ? media.poster_path
-      : `https://image.tmdb.org/t/p/w200${media.poster_path}`
+    ? getPosterUrl(media.poster_path, "w200")
     : null;
 
   const handleUpdateStatus = async (status: ReviewModerationStatus) => {

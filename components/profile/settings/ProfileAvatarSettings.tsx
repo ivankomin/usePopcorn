@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Upload, User, Loader2 } from "lucide-react";
 import type { ProfileRow } from "@/types/media";
 import { useProfile } from "@/hooks/useProfile";
+import { validateImageFile } from "@/lib/validation";
 import Button from "@/components/Button";
 import { SettingsMessage, type SettingsMessageData } from "./SettingsMessage";
 
@@ -27,20 +28,16 @@ export function ProfileAvatarSettings({ profile }: ProfileAvatarSettingsProps) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate size (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      setAvatarMessage({
-        type: "error",
-        text: "File size exceeds 2 MB. Please choose a smaller image.",
-      });
-      return;
-    }
+    const validationError = validateImageFile(file, {
+      maxSizeBytes: 2 * 1024 * 1024,
+      allowedTypes: ["image/jpeg", "image/png", "image/webp"],
+      formatLabel: "JPG, PNG, or WebP",
+    });
 
-    // Validate MIME type
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+    if (validationError) {
       setAvatarMessage({
         type: "error",
-        text: "Unsupported format. Only JPG, PNG, and WebP are allowed.",
+        text: validationError,
       });
       return;
     }

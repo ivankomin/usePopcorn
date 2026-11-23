@@ -1,20 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "../types/database.types";
+import { createAdminSupabaseClient } from "./lib/env.ts";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !serviceRoleKey) {
-  console.error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in environment");
-  process.exit(1);
-}
-
-const supabaseAdmin = createClient<Database>(supabaseUrl, serviceRoleKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-});
+const supabaseAdmin = createAdminSupabaseClient();
 
 async function main() {
   const adminEmail = "admin@usepopcorn.com";

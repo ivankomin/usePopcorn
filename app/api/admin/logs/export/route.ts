@@ -1,96 +1,49 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { verifyAdminSession } from "@/lib/auth/admin";
+import { buildSystemLogsQuery } from "@/lib/admin-queries";
 import {
   formatStructuredLogDocument,
   logSystemEvent,
 } from "@/lib/logger";
 import type { LogCategory, LogLevel, SystemLogItem } from "@/types/media";
 
-const VALID_LEVELS = new Set<LogLevel>(["info", "warn", "error", "critical"]);
-const VALID_CATEGORIES = new Set<LogCategory>([
-  "system",
-  "auth",
-  "admin",
-  "db",
-  "sync",
-]);
-
 /**
  * Admin-only endpoint that exports structured system logs as a `.log` file.
  * Supports optional query params: `level`, `category`, `search`.
  */
 export async function GET(request: NextRequest) {
-  const supabase = await createServerClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  const auth = await verifyAdminSession();
 
-  if (authError || !user) {
+  if (!auth.user) {
     return NextResponse.json(
       { error: "Authentication required" },
       { status: 401 }
     );
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("username, role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (profile?.role !== "admin") {
+  if (!auth.isAdmin) {
     return NextResponse.json(
       { error: "Administrator privileges required" },
       { status: 403 }
     );
   }
 
-  const { searchParams } = new URL(request.url);
-  const levelParam = (searchParams.get("level") || "all").toLowerCase();
-  const categoryParam = (searchParams.get("category") || "all").toLowerCase();
+  const searchParams = request.nextUrl.searchParams;
+  const levelParam = (searchParams.get("level") || "all").toLowerCase() as
+    | "all"
+    | LogLevel;
+  const categoryParam = (
+    searchParams.get("category") || "all"
+  ).toLowerCase() as "all" | LogCategory;
   const searchParam = (searchParams.get("search") || "").trim();
 
   const adminClient = createAdminClient();
-  let query = adminClient
-    .from("system_logs")
-    .select(
-      `
-      id,
-      created_at,
-      level,
-      category,
-      action,
-      message,
-      actor_id,
-      metadata,
-      actor:profiles!system_logs_actor_id_fkey(
-        id,
-        username,
-        role
-      )
-    `
-    )
-    .order("created_at", { ascending: false })
-    .limit(2000);
-
-  if (VALID_LEVELS.has(levelParam as LogLevel)) {
-    query = query.eq("level", levelParam);
-  }
-
-  if (VALID_CATEGORIES.has(categoryParam as LogCategory)) {
-    query = query.eq("category", categoryParam);
-  }
-
-  if (searchParam) {
-    const escaped = searchParam.replace(/[%_,]/g, "");
-    if (escaped) {
-      query = query.or(
-        `message.ilike.%${escaped}%,action.ilike.%${escaped}%`
-      );
-    }
-  }
+  const query = buildSystemLogsQuery(adminClient, {
+    level: levelParam,
+    category: categoryParam,
+    search: searchParam,
+  }).limit(2000);
 
   const { data, error } = await query;
 
@@ -103,7 +56,7 @@ export async function GET(request: NextRequest) {
 
   const entries = (data as unknown as SystemLogItem[]) || [];
   const documentText = formatStructuredLogDocument(entries, {
-    exportedBy: profile.username || user.email || user.id,
+    exportedBy: auth.username || auth.user.email || auth.user.id,
   });
 
   await logSystemEvent({
@@ -111,7 +64,7 @@ export async function GET(request: NextRequest) {
     category: "admin",
     action: "admin.logs_exported",
     message: `Exported ${entries.length} structured system log entries as .log.`,
-    actorId: user.id,
+    actorId: auth.user.id,
     metadata: {
       count: entries.length,
       levelFilter: levelParam,

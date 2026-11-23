@@ -1,16 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef, useTransition } from "react";
-import Image from "next/image";
-import Link from "next/link";
 import {
   Film,
   Tv,
-  Upload,
-  Link2,
-  X,
-  AlertTriangle,
-  CheckCircle2,
   Lock,
   Loader2,
   DollarSign,
@@ -18,17 +11,23 @@ import {
   Clock,
   User,
   Users,
-  Tag,
-  ExternalLink,
 } from "lucide-react";
 import Button from "@/components/Button";
 import type { GenreRow } from "@/types/media";
+import { getBudgetCategory } from "@/lib/utils";
+import { validateImageFile } from "@/lib/validation";
 import {
   createMediaItemAction,
   checkDuplicateMediaAction,
   uploadMediaPosterAction,
   type IngestMediaInput,
 } from "@/app/actions/admin";
+import {
+  AddMediaFormAlerts,
+  type DuplicateMediaWarning,
+} from "./AddMediaFormAlerts";
+import { GenreSelectorField } from "./GenreSelectorField";
+import { PosterArtworkField } from "./PosterArtworkField";
 
 export interface AddMediaFormProps {
   genres: GenreRow[];
@@ -50,7 +49,51 @@ const AGE_RATINGS = [
 ];
 
 const MAX_POSTER_SIZE_BYTES = 5 * 1024 * 1024;
-const ALLOWED_POSTER_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const ALLOWED_POSTER_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const;
+
+interface MediaFormState {
+  mediaType: "movie" | "tv";
+  title: string;
+  originalTitle: string;
+  releaseYear: number;
+  releaseDate: string;
+  runtime: number | "";
+  seasonsCount: number | "";
+  episodesCount: number | "";
+  overview: string;
+  directors: string;
+  cast: string;
+  selectedGenreIds: number[];
+  budget: number | "";
+  revenue: number | "";
+  ageRating: string;
+  country: string;
+}
+
+function createInitialFormState(): MediaFormState {
+  return {
+    mediaType: "movie",
+    title: "",
+    originalTitle: "",
+    releaseYear: new Date().getFullYear(),
+    releaseDate: "",
+    runtime: "",
+    seasonsCount: 1,
+    episodesCount: "",
+    overview: "",
+    directors: "",
+    cast: "",
+    selectedGenreIds: [],
+    budget: "",
+    revenue: "",
+    ageRating: "PG-13",
+    country: "United States",
+  };
+}
 
 function validatePosterUrl(raw: string): string | null {
   const trimmed = raw.trim();
@@ -66,41 +109,20 @@ function validatePosterUrl(raw: string): string | null {
   }
 }
 
-function formatBudgetBand(budgetNum?: number): string | null {
-  if (!budgetNum || budgetNum <= 0) return null;
-  if (budgetNum < 15_000_000) return "Low (< $15M)";
-  if (budgetNum <= 60_000_000) return "Medium ($15M–$60M)";
-  if (budgetNum <= 120_000_000) return "High ($60M–$120M)";
-  return "Blockbuster (> $120M)";
-}
-
 export function AddMediaForm({
   genres,
   systemStatus,
   onSuccess,
 }: AddMediaFormProps) {
   const [isPending, startTransition] = useTransition();
+  const [form, setForm] = useState<MediaFormState>(createInitialFormState);
 
-  // Form Fields
-  const [mediaType, setMediaType] = useState<"movie" | "tv">("movie");
-  const [title, setTitle] = useState("");
-  const [originalTitle, setOriginalTitle] = useState("");
-  const [releaseYear, setReleaseYear] = useState<number>(
-    new Date().getFullYear(),
-  );
-  const [releaseDate, setReleaseDate] = useState("");
-  const [runtime, setRuntime] = useState<number | "">("");
-  const [seasonsCount, setSeasonsCount] = useState<number | "">(1);
-  const [episodesCount, setEpisodesCount] = useState<number | "">("");
-  const [overview, setOverview] = useState("");
-  const [directors, setDirectors] = useState("");
-  const [cast, setCast] = useState("");
-  const [tagline, setTagline] = useState("");
-  const [selectedGenreIds, setSelectedGenreIds] = useState<number[]>([]);
-  const [budget, setBudget] = useState<number | "">("");
-  const [revenue, setRevenue] = useState<number | "">("");
-  const [ageRating, setAgeRating] = useState("PG-13");
-  const [country, setCountry] = useState("United States");
+  const updateField = <K extends keyof MediaFormState>(
+    key: K,
+    value: MediaFormState[K],
+  ) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
 
   // Poster State
   const [posterMode, setPosterMode] = useState<"file" | "url">("file");
@@ -113,7 +135,6 @@ export function AddMediaForm({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const objectUrlRef = useRef<string | null>(null);
 
-  // Revoke any object URL on unmount
   useEffect(() => {
     return () => {
       if (objectUrlRef.current) {
@@ -123,11 +144,8 @@ export function AddMediaForm({
   }, []);
 
   // Duplicate Check State (FR-17)
-  const [duplicateWarning, setDuplicateWarning] = useState<{
-    id: string;
-    title: string;
-    release_year: number;
-  } | null>(null);
+  const [duplicateWarning, setDuplicateWarning] =
+    useState<DuplicateMediaWarning | null>(null);
   const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false);
 
   // Submission Status
@@ -138,10 +156,10 @@ export function AddMediaForm({
 
   // Debounced duplicate detection check (FR-17)
   useEffect(() => {
-    const cleanTitle = title.trim();
+    const cleanTitle = form.title.trim();
 
     const timer = setTimeout(async () => {
-      if (!cleanTitle || !releaseYear || releaseYear < 1888) {
+      if (!cleanTitle || !form.releaseYear || form.releaseYear < 1888) {
         setDuplicateWarning(null);
         return;
       }
@@ -149,7 +167,7 @@ export function AddMediaForm({
       setIsCheckingDuplicate(true);
       const res = await checkDuplicateMediaAction(
         cleanTitle,
-        Number(releaseYear),
+        Number(form.releaseYear),
       );
       setIsCheckingDuplicate(false);
       if (res.exists && res.existingItem) {
@@ -160,18 +178,17 @@ export function AddMediaForm({
     }, 450);
 
     return () => clearTimeout(timer);
-  }, [title, releaseYear]);
+  }, [form.title, form.releaseYear]);
 
-  // Handle Genre Chip Toggle
   const toggleGenre = (genreId: number) => {
-    setSelectedGenreIds((prev) =>
-      prev.includes(genreId)
-        ? prev.filter((id) => id !== genreId)
-        : [...prev, genreId],
-    );
+    setForm((prev) => ({
+      ...prev,
+      selectedGenreIds: prev.selectedGenreIds.includes(genreId)
+        ? prev.selectedGenreIds.filter((id) => id !== genreId)
+        : [...prev.selectedGenreIds, genreId],
+    }));
   };
 
-  // Handle Poster Source Mode Switch
   const handlePosterModeChange = (mode: "file" | "url") => {
     if (mode === posterMode) return;
     setPosterMode(mode);
@@ -188,23 +205,18 @@ export function AddMediaForm({
     }
   };
 
-  // Handle File Selection for Poster (max 5 MB, JPG/PNG/WebP)
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!ALLOWED_POSTER_MIME_TYPES.includes(file.type)) {
-      setPosterError(
-        "Unsupported image format. Only JPG, PNG, and WebP files are allowed.",
-      );
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      return;
-    }
+    const validationError = validateImageFile(file, {
+      maxSizeBytes: MAX_POSTER_SIZE_BYTES,
+      allowedTypes: ALLOWED_POSTER_MIME_TYPES,
+      formatLabel: "JPG, PNG, or WebP",
+    });
 
-    if (file.size > MAX_POSTER_SIZE_BYTES) {
-      setPosterError(
-        "Poster file size exceeds the 5 MB limit. Please choose a smaller image.",
-      );
+    if (validationError) {
+      setPosterError(validationError);
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
@@ -220,7 +232,6 @@ export function AddMediaForm({
     setPosterPreview(nextObjectUrl);
   };
 
-  // Handle Direct Image URL Input
   const handlePosterUrlChange = (value: string) => {
     setPosterUrl(value);
     setPosterUrlLoadError(false);
@@ -254,8 +265,8 @@ export function AddMediaForm({
     }
   };
 
-  const budgetBand = formatBudgetBand(
-    typeof budget === "number" ? budget : undefined,
+  const budgetBand = getBudgetCategory(
+    typeof form.budget === "number" ? form.budget : undefined,
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -263,7 +274,6 @@ export function AddMediaForm({
     setErrorMessage(null);
     setCreatedMediaId(null);
 
-    // Front-end lock check (FR-19)
     if (isLocked) {
       setErrorMessage(
         "System synchronization is active ('Updating'). Manual media ingestion is locked. Try again later.",
@@ -271,7 +281,6 @@ export function AddMediaForm({
       return;
     }
 
-    // Duplicate check validation (FR-17)
     if (duplicateWarning) {
       setErrorMessage(
         `Cannot save duplicate: "${duplicateWarning.title}" (${duplicateWarning.release_year}) already exists in the catalog.`,
@@ -279,12 +288,12 @@ export function AddMediaForm({
       return;
     }
 
-    if (!title.trim()) {
+    if (!form.title.trim()) {
       setErrorMessage("Please enter a media title.");
       return;
     }
 
-    if (!releaseYear || releaseYear < 1888 || releaseYear > 2050) {
+    if (!form.releaseYear || form.releaseYear < 1888 || form.releaseYear > 2050) {
       setErrorMessage("Please specify a valid release year (1888–2050).");
       return;
     }
@@ -301,7 +310,6 @@ export function AddMediaForm({
     startTransition(async () => {
       let resolvedPosterUrl: string | null = null;
 
-      // 1. Resolve poster via file upload or direct image URL (FR-20)
       if (posterMode === "file" && posterFile) {
         setIsUploadingPoster(true);
         const formData = new FormData();
@@ -318,45 +326,43 @@ export function AddMediaForm({
         resolvedPosterUrl = posterUrl.trim();
       }
 
-      // 2. Prepare payload (FR-16, UC-03)
-      const directorsList = directors
+      const directorsList = form.directors
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
-      const castList = cast
+      const castList = form.cast
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
 
       const input: IngestMediaInput = {
-        title: title.trim(),
-        original_title: originalTitle.trim() || null,
-        media_type: mediaType,
-        release_year: Number(releaseYear),
-        release_date: releaseDate || null,
-        runtime: typeof runtime === "number" ? runtime : null,
+        title: form.title.trim(),
+        original_title: form.originalTitle.trim() || null,
+        media_type: form.mediaType,
+        release_year: Number(form.releaseYear),
+        release_date: form.releaseDate || null,
+        runtime: typeof form.runtime === "number" ? form.runtime : null,
         seasons_count:
-          mediaType === "tv" && typeof seasonsCount === "number"
-            ? seasonsCount
+          form.mediaType === "tv" && typeof form.seasonsCount === "number"
+            ? form.seasonsCount
             : null,
         episodes_count:
-          mediaType === "tv" && typeof episodesCount === "number"
-            ? episodesCount
+          form.mediaType === "tv" && typeof form.episodesCount === "number"
+            ? form.episodesCount
             : null,
-        overview: overview.trim() || null,
+        overview: form.overview.trim() || null,
         poster_path: resolvedPosterUrl,
-        budget: typeof budget === "number" ? budget : null,
-        revenue: typeof revenue === "number" ? revenue : null,
-        age_rating: ageRating || null,
-        country: country.trim() || null,
-        countries: country.trim() ? [country.trim()] : [],
-        genre_ids: selectedGenreIds,
+        budget: typeof form.budget === "number" ? form.budget : null,
+        revenue: typeof form.revenue === "number" ? form.revenue : null,
+        age_rating: form.ageRating || null,
+        country: form.country.trim() || null,
+        countries: form.country.trim() ? [form.country.trim()] : [],
+        genre_ids: form.selectedGenreIds,
         directors: directorsList,
         cast: castList,
-        tagline: tagline.trim() || null,
+        tagline: null,
       };
 
-      // 3. Commit to database
       const result = await createMediaItemAction(input);
 
       if (!result.success || !result.data?.mediaId) {
@@ -368,16 +374,11 @@ export function AddMediaForm({
         setCreatedMediaId(newId);
         onSuccess?.(newId);
 
-        // Reset form inputs
-        setTitle("");
-        setOriginalTitle("");
-        setOverview("");
-        setDirectors("");
-        setCast("");
-        setTagline("");
-        setSelectedGenreIds([]);
-        setBudget("");
-        setRevenue("");
+        setForm((prev) => ({
+          ...createInitialFormState(),
+          mediaType: prev.mediaType,
+        }));
+        setDuplicateWarning(null);
         if (objectUrlRef.current) {
           URL.revokeObjectURL(objectUrlRef.current);
           objectUrlRef.current = null;
@@ -397,77 +398,12 @@ export function AddMediaForm({
       onSubmit={handleSubmit}
       className="bg-brand-surface border border-neutral-800 rounded-2xl p-6 sm:p-8 flex flex-col gap-6 shadow-2xl relative"
     >
-      {/* FR-19 System Lock Alert Banner */}
-      {isLocked && (
-        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3 text-amber-300">
-          <Lock className="w-5 h-5 shrink-0 mt-0.5 text-amber-400" />
-          <div className="text-sm">
-            <p className="font-bold">
-              System Synchronization Active (Updating)
-            </p>
-            <p className="text-xs text-amber-300/90 mt-0.5">
-              Manual movie addition and catalog modifications are currently
-              locked to avoid write conflicts. Please{" "}
-              <strong>Try again later</strong> once background sync finishes.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* FR-17 Duplicate Detection Alert Banner */}
-      {duplicateWarning && (
-        <div className="p-4 flex items-start justify-between gap-3 text-rose-300 animate-fadeIn">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-rose-400" />
-            <div className="text-sm">
-              <p className="font-bold">Duplicate Entry Detected</p>
-              <p className="text-xs text-rose-300/90 mt-0.5">
-                A media item titled{" "}
-                <strong>&quot;{duplicateWarning.title}&quot;</strong> released
-                in <strong>{duplicateWarning.release_year}</strong> already
-                exists in the catalog. Creation is blocked to prevent duplicate
-                records.
-              </p>
-            </div>
-          </div>
-          <Link
-            href={`/movie/${duplicateWarning.id}`}
-            target="_blank"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-200 underline hover:text-white shrink-0 mt-0.5"
-          >
-            <span>View existing</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-      )}
-
-      {/* Success Notification */}
-      {createdMediaId && (
-        <div className="p-4 flex items-center justify-between gap-3 text-emerald-300">
-          <div className="flex items-center gap-3">
-            <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400" />
-            <div>
-              <p className="text-sm font-bold">
-                Media successfully ingested into catalog!
-              </p>
-            </div>
-          </div>
-          <Link
-            href={`/movie/${createdMediaId}`}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-lime text-black font-semibold text-xs hover:bg-[#96d862] transition-colors shrink-0"
-          >
-            <span>View Movie</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-      )}
-
-      {/* Error Message */}
-      {errorMessage && (
-        <div className="rounded-xl p-4 text-xs text-rose-300">
-          {errorMessage}
-        </div>
-      )}
+      <AddMediaFormAlerts
+        isLocked={isLocked}
+        duplicateWarning={duplicateWarning}
+        createdMediaId={createdMediaId}
+        errorMessage={errorMessage}
+      />
 
       {/* Section 1: Media Type & Primary Identifiers */}
       <div className="space-y-4">
@@ -476,13 +412,12 @@ export function AddMediaForm({
             Core Media Metadata
           </h3>
 
-          {/* Media Type Toggle */}
           <div className="flex items-center bg-neutral-900 border border-neutral-700/60 rounded-xl p-1 gap-1">
             <button
               type="button"
-              onClick={() => setMediaType("movie")}
+              onClick={() => updateField("mediaType", "movie")}
               className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                mediaType === "movie"
+                form.mediaType === "movie"
                   ? "bg-brand-lime text-black"
                   : "text-neutral-400 hover:text-white"
               }`}
@@ -492,9 +427,9 @@ export function AddMediaForm({
             </button>
             <button
               type="button"
-              onClick={() => setMediaType("tv")}
+              onClick={() => updateField("mediaType", "tv")}
               className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                mediaType === "tv"
+                form.mediaType === "tv"
                   ? "bg-brand-lime text-black"
                   : "text-neutral-400 hover:text-white"
               }`}
@@ -506,7 +441,6 @@ export function AddMediaForm({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Title */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-neutral-300 flex items-center gap-1">
               Title <span className="text-rose-400">*</span>
@@ -516,8 +450,8 @@ export function AddMediaForm({
             </label>
             <input
               type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              value={form.title}
+              onChange={(e) => updateField("title", e.target.value)}
               required
               disabled={isLocked}
               placeholder="e.g. Inception"
@@ -525,15 +459,14 @@ export function AddMediaForm({
             />
           </div>
 
-          {/* Original Title */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-neutral-300">
               Original Title (Optional)
             </label>
             <input
               type="text"
-              value={originalTitle}
-              onChange={(e) => setOriginalTitle(e.target.value)}
+              value={form.originalTitle}
+              onChange={(e) => updateField("originalTitle", e.target.value)}
               disabled={isLocked}
               placeholder="e.g. Inception"
               className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-lime transition-colors disabled:opacity-50"
@@ -542,7 +475,6 @@ export function AddMediaForm({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {/* Release Year */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-neutral-300 flex items-center gap-1">
               <Calendar className="w-3.5 h-3.5 text-neutral-400" />
@@ -550,9 +482,10 @@ export function AddMediaForm({
             </label>
             <input
               type="number"
-              value={releaseYear}
+              value={form.releaseYear}
               onChange={(e) =>
-                setReleaseYear(
+                updateField(
+                  "releaseYear",
                   e.target.value
                     ? Number(e.target.value)
                     : (0 as unknown as number),
@@ -566,22 +499,20 @@ export function AddMediaForm({
             />
           </div>
 
-          {/* Release Date */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-neutral-300">
               Release Date (YYYY-MM-DD)
             </label>
             <input
               type="date"
-              value={releaseDate}
-              onChange={(e) => setReleaseDate(e.target.value)}
+              value={form.releaseDate}
+              onChange={(e) => updateField("releaseDate", e.target.value)}
               disabled={isLocked}
               className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-lime transition-colors disabled:opacity-50"
             />
           </div>
 
-          {/* Runtime or Seasons */}
-          {mediaType === "movie" ? (
+          {form.mediaType === "movie" ? (
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-neutral-300 flex items-center gap-1">
                 <Clock className="w-3.5 h-3.5 text-neutral-400" />
@@ -589,9 +520,12 @@ export function AddMediaForm({
               </label>
               <input
                 type="number"
-                value={runtime}
+                value={form.runtime}
                 onChange={(e) =>
-                  setRuntime(e.target.value ? Number(e.target.value) : "")
+                  updateField(
+                    "runtime",
+                    e.target.value ? Number(e.target.value) : "",
+                  )
                 }
                 placeholder="148"
                 min={1}
@@ -607,9 +541,10 @@ export function AddMediaForm({
                 </label>
                 <input
                   type="number"
-                  value={seasonsCount}
+                  value={form.seasonsCount}
                   onChange={(e) =>
-                    setSeasonsCount(
+                    updateField(
+                      "seasonsCount",
                       e.target.value ? Number(e.target.value) : "",
                     )
                   }
@@ -624,9 +559,10 @@ export function AddMediaForm({
                 </label>
                 <input
                   type="number"
-                  value={episodesCount}
+                  value={form.episodesCount}
                   onChange={(e) =>
-                    setEpisodesCount(
+                    updateField(
+                      "episodesCount",
                       e.target.value ? Number(e.target.value) : "",
                     )
                   }
@@ -641,32 +577,12 @@ export function AddMediaForm({
       </div>
 
       {/* Section 2: Genres Multi-Selection */}
-      <div className="space-y-3">
-        <label className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-          <Tag className="w-4 h-4 text-brand-lime" />
-          Genres & Categories
-        </label>
-        <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-2 bg-neutral-900/60 border border-neutral-800 rounded-xl">
-          {genres.map((g) => {
-            const isSelected = selectedGenreIds.includes(g.id);
-            return (
-              <button
-                key={g.id}
-                type="button"
-                onClick={() => toggleGenre(g.id)}
-                disabled={isLocked}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                  isSelected
-                    ? "bg-[#85c355] text-black shadow-xs font-bold"
-                    : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700 hover:text-white"
-                } disabled:opacity-50`}
-              >
-                {g.name}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <GenreSelectorField
+        genres={genres}
+        selectedGenreIds={form.selectedGenreIds}
+        isLocked={isLocked}
+        onToggleGenre={toggleGenre}
+      />
 
       {/* Section 3: Cast, Crew & Synopsis */}
       <div className="space-y-4">
@@ -678,8 +594,8 @@ export function AddMediaForm({
             </label>
             <input
               type="text"
-              value={directors}
-              onChange={(e) => setDirectors(e.target.value)}
+              value={form.directors}
+              onChange={(e) => updateField("directors", e.target.value)}
               placeholder="e.g. Christopher Nolan"
               disabled={isLocked}
               className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-lime transition-colors disabled:opacity-50"
@@ -693,8 +609,8 @@ export function AddMediaForm({
             </label>
             <input
               type="text"
-              value={cast}
-              onChange={(e) => setCast(e.target.value)}
+              value={form.cast}
+              onChange={(e) => updateField("cast", e.target.value)}
               placeholder="e.g. Leonardo DiCaprio, Joseph Gordon-Levitt"
               disabled={isLocked}
               className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-lime transition-colors disabled:opacity-50"
@@ -708,8 +624,8 @@ export function AddMediaForm({
           </label>
           <textarea
             rows={3}
-            value={overview}
-            onChange={(e) => setOverview(e.target.value)}
+            value={form.overview}
+            onChange={(e) => updateField("overview", e.target.value)}
             placeholder="A thief who steals corporate secrets through the use of dream-sharing technology..."
             disabled={isLocked}
             className="w-full bg-neutral-900 border border-neutral-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-brand-lime transition-colors disabled:opacity-50 resize-y"
@@ -721,11 +637,10 @@ export function AddMediaForm({
       <div className="space-y-4">
         <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2 border-b border-neutral-800/80 pb-3">
           <DollarSign className="w-4 h-4 text-brand-lime" />
-          Financials & Classifications
+          Financials &amp; Classifications
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-          {/* Budget */}
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-semibold text-neutral-300">
@@ -739,9 +654,12 @@ export function AddMediaForm({
             </div>
             <input
               type="number"
-              value={budget}
+              value={form.budget}
               onChange={(e) =>
-                setBudget(e.target.value ? Number(e.target.value) : "")
+                updateField(
+                  "budget",
+                  e.target.value ? Number(e.target.value) : "",
+                )
               }
               placeholder="160000000"
               min={0}
@@ -750,16 +668,18 @@ export function AddMediaForm({
             />
           </div>
 
-          {/* Revenue */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-neutral-300">
               Revenue (USD)
             </label>
             <input
               type="number"
-              value={revenue}
+              value={form.revenue}
               onChange={(e) =>
-                setRevenue(e.target.value ? Number(e.target.value) : "")
+                updateField(
+                  "revenue",
+                  e.target.value ? Number(e.target.value) : "",
+                )
               }
               placeholder="836800000"
               min={0}
@@ -768,14 +688,13 @@ export function AddMediaForm({
             />
           </div>
 
-          {/* Age Rating */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-neutral-300 flex items-center gap-1">
               Age Rating
             </label>
             <select
-              value={ageRating}
-              onChange={(e) => setAgeRating(e.target.value)}
+              value={form.ageRating}
+              onChange={(e) => updateField("ageRating", e.target.value)}
               disabled={isLocked}
               className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-lime disabled:opacity-50"
             >
@@ -787,15 +706,14 @@ export function AddMediaForm({
             </select>
           </div>
 
-          {/* Country */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-neutral-300 flex items-center gap-1">
               Primary Country
             </label>
             <input
               type="text"
-              value={country}
-              onChange={(e) => setCountry(e.target.value)}
+              value={form.country}
+              onChange={(e) => updateField("country", e.target.value)}
               placeholder="United States"
               disabled={isLocked}
               className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-lime disabled:opacity-50"
@@ -805,155 +723,21 @@ export function AddMediaForm({
       </div>
 
       {/* Section 5: Poster Upload or Image URL (FR-20, UC-03) */}
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <label className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-            Poster Artwork
-          </label>
-
-          {/* Source Mode Toggle */}
-          <div className="flex items-center bg-neutral-900 border border-neutral-700/60 rounded-xl p-1 gap-1">
-            <button
-              type="button"
-              onClick={() => handlePosterModeChange("file")}
-              disabled={isLocked}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer disabled:opacity-50 ${
-                posterMode === "file"
-                  ? "bg-brand-lime text-black"
-                  : "text-neutral-400 hover:text-white"
-              }`}
-            >
-              <Upload className="w-3.5 h-3.5" />
-              <span>Upload File</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handlePosterModeChange("url")}
-              disabled={isLocked}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer disabled:opacity-50 ${
-                posterMode === "url"
-                  ? "bg-brand-lime text-black"
-                  : "text-neutral-400 hover:text-white"
-              }`}
-            >
-              <Link2 className="w-3.5 h-3.5" />
-              <span>Image URL</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-center gap-6 p-4 bg-neutral-900/60 border border-neutral-800 rounded-xl">
-          {/* Thumbnail Preview */}
-          <div className="w-24 h-36 relative bg-neutral-800 rounded-lg overflow-hidden border border-neutral-700 flex items-center justify-center shrink-0">
-            {posterPreview && !posterUrlLoadError ? (
-              <Image
-                src={posterPreview}
-                alt="Poster preview"
-                fill
-                className="object-cover"
-                unoptimized
-                onError={() => setPosterUrlLoadError(true)}
-              />
-            ) : (
-              <Film className="w-8 h-8 text-neutral-600" />
-            )}
-          </div>
-
-          {posterMode === "file" ? (
-            <div className="flex-1 space-y-2 text-center sm:text-left w-full">
-              <p className="text-xs text-neutral-300 font-medium">
-                Upload poster artwork (.jpg, .jpeg, .png, .webp — max 5 MB).
-              </p>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={handleFileChange}
-                disabled={isLocked}
-                className="hidden"
-                id="admin-poster-upload"
-              />
-
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isLocked}
-                  className="text-xs"
-                >
-                  <Upload className="w-3.5 h-3.5 mr-1.5" />
-                  <span>
-                    {posterFile ? "Change Selected Image" : "Choose Image File"}
-                  </span>
-                </Button>
-
-                {posterFile && (
-                  <button
-                    type="button"
-                    onClick={clearPosterSelection}
-                    disabled={isLocked}
-                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-neutral-400 hover:text-white bg-neutral-800/80 border border-neutral-700 transition-colors cursor-pointer disabled:opacity-50"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                    <span>Clear</span>
-                  </button>
-                )}
-              </div>
-
-              {posterFile && (
-                <p className="text-xs text-brand-lime font-mono">
-                  {posterFile.name} ({(posterFile.size / 1024).toFixed(0)} KB)
-                </p>
-              )}
-
-              {posterError && (
-                <p className="text-xs text-rose-400">{posterError}</p>
-              )}
-            </div>
-          ) : (
-            <div className="flex-1 space-y-2 w-full">
-              <p className="text-xs text-neutral-300 font-medium">
-                Paste a direct image URL (https://...) for live thumbnail
-                preview.
-              </p>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="url"
-                  value={posterUrl}
-                  onChange={(e) => handlePosterUrlChange(e.target.value)}
-                  disabled={isLocked}
-                  placeholder="https://image.tmdb.org/t/p/w500/..."
-                  className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-lime transition-colors disabled:opacity-50"
-                />
-                {posterUrl && (
-                  <button
-                    type="button"
-                    onClick={clearPosterSelection}
-                    disabled={isLocked}
-                    title="Clear poster URL"
-                    className="p-2.5 rounded-xl text-neutral-400 hover:text-white bg-neutral-800/80 border border-neutral-700 transition-colors cursor-pointer shrink-0 disabled:opacity-50"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-
-              {posterError && (
-                <p className="text-xs text-rose-400">{posterError}</p>
-              )}
-              {!posterError && posterUrlLoadError && (
-                <p className="text-xs text-amber-400">
-                  Preview could not be loaded from this URL. Verify that the
-                  link points directly to an accessible image.
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+      <PosterArtworkField
+        posterMode={posterMode}
+        posterFile={posterFile}
+        posterUrl={posterUrl}
+        posterPreview={posterPreview}
+        posterError={posterError}
+        posterUrlLoadError={posterUrlLoadError}
+        isLocked={isLocked}
+        fileInputRef={fileInputRef}
+        onModeChange={handlePosterModeChange}
+        onFileChange={handleFileChange}
+        onUrlChange={handlePosterUrlChange}
+        onClear={clearPosterSelection}
+        onPreviewLoadError={() => setPosterUrlLoadError(true)}
+      />
 
       {/* Action Footer */}
       <div className="flex items-center justify-between pt-4 border-t border-neutral-800/80">

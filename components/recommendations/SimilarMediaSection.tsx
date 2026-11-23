@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { Star } from "lucide-react";
 import type { SimilarMediaItem } from "@/types/media";
 import { getPosterUrl } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { MediaPoster } from "@/components/MediaPoster";
 
 interface SimilarMediaSectionProps {
   items: SimilarMediaItem[];
@@ -14,7 +13,6 @@ interface SimilarMediaSectionProps {
 
 function SimilarMediaCard({ item }: { item: SimilarMediaItem }) {
   const { media } = item;
-  const [imageError, setImageError] = useState(false);
 
   const posterSrc = getPosterUrl(media.poster_path, "w500");
   const hasUserReviews =
@@ -29,23 +27,15 @@ function SimilarMediaCard({ item }: { item: SimilarMediaItem }) {
       className="group bg-[#181818] border border-neutral-800/90 hover:border-neutral-700 rounded-2xl overflow-hidden flex flex-col transition-all duration-200 hover:shadow-xl hover:shadow-black/60"
     >
       <div className="relative w-full aspect-2/3 bg-neutral-900 overflow-hidden">
-        {!imageError && posterSrc ? (
-          <Image
-            src={posterSrc}
-            alt={media.title}
-            fill
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 220px"
-            className="object-cover object-center group-hover:scale-103 transition-transform duration-300"
-            onError={() => setImageError(true)}
-          />
-        ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center text-neutral-500">
-            <span className="text-3xl mb-1.5">🎬</span>
-            <span className="text-xs font-medium line-clamp-2">
-              {media.title}
-            </span>
-          </div>
-        )}
+        <MediaPoster
+          title={media.title}
+          src={posterSrc}
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 220px"
+          imageClassName="group-hover:scale-103 transition-transform duration-300"
+          fallbackClassName="p-4"
+          fallbackIconClassName="text-3xl mb-1.5"
+          fallbackTitleClassName="text-xs font-medium line-clamp-2"
+        />
       </div>
 
       <div className="p-3.5 flex flex-col gap-2 flex-1">

@@ -4,6 +4,7 @@ import { useTransition, Suspense } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { buildUrlWithParams } from "@/lib/navigation";
 
 export type ChipVariant = "lime" | "blue" | "yellow" | "purple" | "orange" | "neutral";
 
@@ -32,8 +33,7 @@ function ActiveFilterChipsInner() {
   const updateUrl = (params: URLSearchParams) => {
     // Always reset page to 1 on filter modifications
     params.delete("page");
-    const query = params.toString();
-    const target = query ? `${pathname}?${query}` : pathname;
+    const target = buildUrlWithParams(pathname, params);
     startTransition(() => {
       router.push(target);
     });

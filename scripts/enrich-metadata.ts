@@ -1,113 +1,23 @@
-import { createClient } from '@supabase/supabase-js';
-import * as fs from 'fs';
-import * as path from 'path';
+import type { Json } from '../types/database.types.ts';
+import {
+  createSeedContext,
+  getBudgetCategory,
+  mapConcurrent,
+  normalizeCountry,
+  tmdbFetch,
+  type TMDBMovieDetails,
+  type TMDBTVDetails,
+} from './lib/tmdb-seed.ts';
 
-// Load environment variables from .env.local
-const envPath = path.resolve(process.cwd(), '.env.local');
-if (fs.existsSync(envPath)) {
-  const envConfig = fs.readFileSync(envPath, 'utf8');
-  for (const line of envConfig.split('\n')) {
-    const trimmed = line.trim();
-    if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
-      const idx = trimmed.indexOf('=');
-      const key = trimmed.slice(0, idx).trim();
-      const val = trimmed.slice(idx + 1).trim();
-      if (!process.env[key]) {
-        process.env[key] = val;
-      }
-    }
-  }
-}
+const { supabase, tmdbToken } = createSeedContext();
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_SERVICE_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const tmdbToken = process.env.TMDB_ACCESS_TOKEN;
-
-if (!supabaseUrl || !supabaseKey) {
-  console.error('Error: Supabase URL and Key must be defined in .env.local');
-  process.exit(1);
-}
-
-if (!tmdbToken) {
-  console.error('Error: TMDB_ACCESS_TOKEN must be defined in .env.local');
-  process.exit(1);
-}
-
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-function normalizeCountry(name?: string): string | null {
-  if (!name) return null;
-  const trimmed = name.trim();
-  if (trimmed === 'United States of America') return 'United States';
-  if (trimmed.includes('Korea')) return 'South Korea';
-  return trimmed;
-}
-
-function getBudgetCategory(budget?: number | null): string | null {
-  if (!budget || budget <= 0) return null;
-  if (budget < 15_000_000) return 'Low (< $15M)';
-  if (budget <= 60_000_000) return 'Medium ($15M–$60M)';
-  if (budget <= 120_000_000) return 'High ($60M–$120M)';
-  return 'Blockbuster (> $120M)';
-}
-
-async function tmdbFetch<T>(endpoint: string): Promise<T | null> {
-  const url = `https://api.themoviedb.org/3${endpoint}`;
+async function fetchTmdbOptional<T>(endpoint: string): Promise<T | null> {
   try {
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${tmdbToken}`,
-        Accept: 'application/json',
-      },
-    });
-    if (!res.ok) {
-      console.warn(`TMDB returned ${res.status} for ${endpoint}`);
-      return null;
-    }
-    return (await res.json()) as T;
+    return await tmdbFetch<T>(endpoint, tmdbToken);
   } catch (err) {
     console.warn(`Failed fetching TMDB endpoint ${endpoint}:`, err);
     return null;
   }
-}
-
-async function mapConcurrent<T, R>(
-  items: T[],
-  limit: number,
-  fn: (item: T) => Promise<R>
-): Promise<R[]> {
-  const results: R[] = [];
-  const executing: Promise<void>[] = [];
-
-  for (const item of items) {
-    const p = fn(item).then((res) => {
-      results.push(res);
-    });
-
-    const runner = p.then(() => {
-      executing.splice(executing.indexOf(runner), 1);
-    });
-
-    executing.push(runner);
-
-    if (executing.length >= limit) {
-      await Promise.race(executing);
-    }
-  }
-
-  await Promise.all(executing);
-  return results;
-}
-
-interface MediaItemRecord {
-  id: string;
-  tmdb_id: number | null;
-  media_type: string;
-  title: string;
-  metadata: Record<string, unknown> | null;
 }
 
 async function runEnrichment() {
@@ -126,30 +36,23 @@ async function runEnrichment() {
 
   let enrichedCount = 0;
 
-  await mapConcurrent(items as MediaItemRecord[], 5, async (item) => {
+  await mapConcurrent(items, 5, async (item) => {
+    if (!item.tmdb_id) return;
+
     try {
-      let countries: string[] = [];
       let primaryCountry: string | null = null;
+      let countries: string[] = [];
       let budget: number | null = null;
       let budgetCategory: string | null = null;
-      let ageRating: string | null = null;
       let revenue: number | null = null;
       let status: string | null = null;
       let episodesCount: number | null = null;
+      let ageRating: string | null = null;
 
       if (item.media_type === 'movie') {
-        const details = await tmdbFetch<{
-          budget?: number;
-          revenue?: number;
-          status?: string;
-          production_countries?: Array<{ iso_3166_1: string; name: string }>;
-          release_dates?: {
-            results?: Array<{
-              iso_3166_1: string;
-              release_dates?: Array<{ certification?: string }>;
-            }>;
-          };
-        }>(`/movie/${item.tmdb_id}?append_to_response=release_dates&language=en`);
+        const details = await fetchTmdbOptional<TMDBMovieDetails>(
+          `/movie/${item.tmdb_id}?append_to_response=release_dates&language=en-US`
+        );
 
         if (details) {
           countries = (details.production_countries || [])
@@ -157,30 +60,25 @@ async function runEnrichment() {
             .filter((c): c is string => Boolean(c));
           primaryCountry = countries[0] || null;
 
-          const usRelease = details.release_dates?.results?.find(
-            (r) => r.iso_3166_1 === 'US'
-          );
-          ageRating =
-            usRelease?.release_dates?.find((x) => x.certification)?.certification ||
-            null;
-
           budget = details.budget && details.budget > 0 ? details.budget : null;
           budgetCategory = getBudgetCategory(budget);
           revenue = details.revenue && details.revenue > 0 ? details.revenue : null;
           status = details.status || null;
+
+          const usRelease = details.release_dates?.results?.find(
+            (r) => r.iso_3166_1 === 'US'
+          );
+          if (usRelease?.release_dates) {
+            const certObj = usRelease.release_dates.find(
+              (d) => d.certification && d.certification.trim() !== ''
+            );
+            ageRating = certObj?.certification?.trim() || null;
+          }
         }
-      } else {
-        const details = await tmdbFetch<{
-          number_of_episodes?: number;
-          status?: string;
-          production_countries?: Array<{ iso_3166_1: string; name: string }>;
-          content_ratings?: {
-            results?: Array<{
-              iso_3166_1: string;
-              rating?: string;
-            }>;
-          };
-        }>(`/tv/${item.tmdb_id}?append_to_response=content_ratings&language=en`);
+      } else if (item.media_type === 'tv') {
+        const details = await fetchTmdbOptional<TMDBTVDetails>(
+          `/tv/${item.tmdb_id}?append_to_response=content_ratings&language=en-US`
+        );
 
         if (details) {
           countries = (details.production_countries || [])
@@ -197,14 +95,17 @@ async function runEnrichment() {
       }
 
       // Ensure metadata only contains unstructured supplementary attributes
-      const {
-        country: _c,
-        countries: _cs,
-        budget: _b,
-        budget_category: _bc,
-        age_rating: _ar,
-        ...cleanMetadata
-      } = (item.metadata || {}) as Record<string, unknown>;
+      const cleanMetadata: Record<string, Json | undefined> =
+        item.metadata &&
+        typeof item.metadata === 'object' &&
+        !Array.isArray(item.metadata)
+          ? { ...(item.metadata as Record<string, Json | undefined>) }
+          : {};
+      delete cleanMetadata.country;
+      delete cleanMetadata.countries;
+      delete cleanMetadata.budget;
+      delete cleanMetadata.budget_category;
+      delete cleanMetadata.age_rating;
 
       const { error: updateError } = await supabase
         .from('media_items')
@@ -217,12 +118,15 @@ async function runEnrichment() {
           revenue,
           status,
           episodes_count: episodesCount,
-          metadata: cleanMetadata,
+          metadata: cleanMetadata as Json,
         })
         .eq('id', item.id);
 
       if (updateError) {
-        console.error(`Failed to update item ${item.title} (${item.id}):`, updateError);
+        console.error(
+          `Failed to update item ${item.title} (${item.id}):`,
+          updateError
+        );
       } else {
         enrichedCount++;
         if (enrichedCount % 10 === 0 || enrichedCount === items.length) {

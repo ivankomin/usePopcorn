@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { redirectToLogin } from "@/lib/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import type { WatchlistStatus } from "@/types/media";
 
@@ -44,6 +45,20 @@ export interface WatchlistProviderProps {
   children: ReactNode;
 }
 
+function buildWatchlistState(
+  rows: ReadonlyArray<{ media_id: string; status: string | null }>,
+) {
+  const ids = new Set<string>();
+  const statuses = new Map<string, WatchlistStatus>();
+  for (const r of rows) {
+    ids.add(r.media_id);
+    if (r.status) {
+      statuses.set(r.media_id, r.status as WatchlistStatus);
+    }
+  }
+  return { ids, statuses };
+}
+
 export function WatchlistProvider({ children }: WatchlistProviderProps) {
   const { user } = useAuth();
   const userId = user?.id;
@@ -69,85 +84,72 @@ export function WatchlistProvider({ children }: WatchlistProviderProps) {
 
   const supabase = useMemo(() => createClient(), []);
 
-  const fetchWatchlistIds = useCallback(
+  const loadWatchlistState = useCallback(
     async (currentUserId: string) => {
-      try {
-        const { data, error } = await supabase
-          .from("watchlists")
-          .select("media_id, status")
-          .eq("user_id", currentUserId);
+      const { data, error } = await supabase
+        .from("watchlists")
+        .select("media_id, status")
+        .eq("user_id", currentUserId);
 
-        if (!error && data) {
-          const ids = new Set<string>();
-          const statuses = new Map<string, WatchlistStatus>();
-          for (const r of data) {
-            ids.add(r.media_id);
-            if (r.status) {
-              statuses.set(r.media_id, r.status as WatchlistStatus);
-            }
-          }
-          setWatchlistIds(ids);
-          setWatchlistStatuses(statuses);
-        }
-      } catch (err) {
-        console.error("Failed to load user watchlist IDs:", err);
-      } finally {
-        setIsLoading(false);
-      }
+      if (error || !data) return null;
+      return buildWatchlistState(data);
     },
     [supabase],
   );
 
   const refreshWatchlist = useCallback(async () => {
     if (userId) {
-      await fetchWatchlistIds(userId);
+      try {
+        const result = await loadWatchlistState(userId);
+        if (result) {
+          setWatchlistIds(result.ids);
+          setWatchlistStatuses(result.statuses);
+        }
+      } catch (err) {
+        console.error("Failed to load user watchlist IDs:", err);
+      } finally {
+        setIsLoading(false);
+      }
     } else {
       setWatchlistIds(new Set());
       setWatchlistStatuses(new Map());
     }
-  }, [userId, fetchWatchlistIds]);
+  }, [userId, loadWatchlistState]);
 
   useEffect(() => {
     if (!userId) return;
 
     let isMounted = true;
-    supabase
-      .from("watchlists")
-      .select("media_id, status")
-      .eq("user_id", userId)
-      .then(({ data, error }) => {
+    loadWatchlistState(userId)
+      .then((result) => {
         if (!isMounted) return;
-        if (!error && data) {
-          const ids = new Set<string>();
-          const statuses = new Map<string, WatchlistStatus>();
-          for (const r of data) {
-            ids.add(r.media_id);
-            if (r.status) {
-              statuses.set(r.media_id, r.status as WatchlistStatus);
-            }
-          }
-          setWatchlistIds(ids);
-          setWatchlistStatuses(statuses);
+        if (result) {
+          setWatchlistIds(result.ids);
+          setWatchlistStatuses(result.statuses);
         }
-        setIsLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to load user watchlist IDs:", err);
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
       });
 
     return () => {
       isMounted = false;
     };
-  }, [supabase, userId]);
+  }, [loadWatchlistState, userId]);
 
   const isInWatchlist = useCallback(
-    (mediaId: string): boolean => {
-      return watchlistIds.has(mediaId);
-    },
+    (mediaId: string): boolean => watchlistIds.has(mediaId),
     [watchlistIds],
   );
 
   const getWatchlistStatus = useCallback(
-    (mediaId: string): WatchlistStatus | undefined => {
-      return watchlistStatuses.get(mediaId);
-    },
+    (mediaId: string): WatchlistStatus | undefined =>
+      watchlistStatuses.get(mediaId),
     [watchlistStatuses],
   );
 
@@ -157,14 +159,12 @@ export function WatchlistProvider({ children }: WatchlistProviderProps) {
       status: WatchlistStatus = "plan_to_watch",
     ): Promise<boolean> => {
       if (!userId) {
-        const currentPath =
-          typeof window !== "undefined"
-            ? window.location.pathname + window.location.search
-            : "/";
-        const next = currentPath ? `?next=${encodeURIComponent(currentPath)}` : "";
-        router.push(`/login${next}`);
+        redirectToLogin(router);
         return false;
       }
+
+      const wasInWatchlist = watchlistIds.has(mediaId);
+      const previousStatus = watchlistStatuses.get(mediaId);
 
       // Optimistic update
       setWatchlistIds((prev) => new Set(prev).add(mediaId));
@@ -180,39 +180,26 @@ export function WatchlistProvider({ children }: WatchlistProviderProps) {
           { onConflict: "user_id,media_id" },
         );
 
-        if (error) {
-          // Revert optimistic update
-          setWatchlistIds((prev) => {
-            const next = new Set(prev);
-            next.delete(mediaId);
-            return next;
-          });
-          setWatchlistStatuses((prev) => {
-            const next = new Map(prev);
-            next.delete(mediaId);
-            return next;
-          });
-          console.error("Error adding to watchlist:", error);
-          return false;
-        }
-
+        if (error) throw error;
         return true;
       } catch (err) {
         setWatchlistIds((prev) => {
           const next = new Set(prev);
-          next.delete(mediaId);
+          if (wasInWatchlist) next.add(mediaId);
+          else next.delete(mediaId);
           return next;
         });
         setWatchlistStatuses((prev) => {
           const next = new Map(prev);
-          next.delete(mediaId);
+          if (previousStatus) next.set(mediaId, previousStatus);
+          else next.delete(mediaId);
           return next;
         });
         console.error("Failed to add to watchlist:", err);
         return false;
       }
     },
-    [userId, router, supabase],
+    [userId, router, supabase, watchlistIds, watchlistStatuses],
   );
 
   const updateWatchlistStatus = useCallback(
@@ -222,6 +209,7 @@ export function WatchlistProvider({ children }: WatchlistProviderProps) {
     ): Promise<boolean> => {
       if (!userId) return false;
 
+      const wasInWatchlist = watchlistIds.has(mediaId);
       const previousStatus = watchlistStatuses.get(mediaId);
 
       // Optimistic update
@@ -235,36 +223,26 @@ export function WatchlistProvider({ children }: WatchlistProviderProps) {
           .eq("user_id", userId)
           .eq("media_id", mediaId);
 
-        if (error) {
-          setWatchlistStatuses((prev) => {
-            const next = new Map(prev);
-            if (previousStatus) {
-              next.set(mediaId, previousStatus);
-            } else {
-              next.delete(mediaId);
-            }
-            return next;
-          });
-          console.error("Error updating watchlist status:", error);
-          return false;
-        }
-
+        if (error) throw error;
         return true;
       } catch (err) {
+        setWatchlistIds((prev) => {
+          const next = new Set(prev);
+          if (wasInWatchlist) next.add(mediaId);
+          else next.delete(mediaId);
+          return next;
+        });
         setWatchlistStatuses((prev) => {
           const next = new Map(prev);
-          if (previousStatus) {
-            next.set(mediaId, previousStatus);
-          } else {
-            next.delete(mediaId);
-          }
+          if (previousStatus) next.set(mediaId, previousStatus);
+          else next.delete(mediaId);
           return next;
         });
         console.error("Failed to update watchlist status:", err);
         return false;
       }
     },
-    [userId, supabase, watchlistStatuses],
+    [userId, supabase, watchlistIds, watchlistStatuses],
   );
 
   const removeFromWatchlist = useCallback(
@@ -292,28 +270,13 @@ export function WatchlistProvider({ children }: WatchlistProviderProps) {
           .eq("user_id", userId)
           .eq("media_id", mediaId);
 
-        if (error) {
-          // Revert optimistic update
-          setWatchlistIds((prev) => new Set(prev).add(mediaId));
-          setWatchlistStatuses((prev) => {
-            const next = new Map(prev);
-            if (previousStatus) {
-              next.set(mediaId, previousStatus);
-            }
-            return next;
-          });
-          console.error("Error removing from watchlist:", error);
-          return false;
-        }
-
+        if (error) throw error;
         return true;
       } catch (err) {
         setWatchlistIds((prev) => new Set(prev).add(mediaId));
         setWatchlistStatuses((prev) => {
           const next = new Map(prev);
-          if (previousStatus) {
-            next.set(mediaId, previousStatus);
-          }
+          if (previousStatus) next.set(mediaId, previousStatus);
           return next;
         });
         console.error("Failed to remove from watchlist:", err);
@@ -329,21 +292,14 @@ export function WatchlistProvider({ children }: WatchlistProviderProps) {
       status: WatchlistStatus = "plan_to_watch",
     ): Promise<boolean> => {
       if (!userId) {
-        const currentPath =
-          typeof window !== "undefined"
-            ? window.location.pathname + window.location.search
-            : "/";
-        const next = currentPath ? `?next=${encodeURIComponent(currentPath)}` : "";
-        router.push(`/login${next}`);
+        redirectToLogin(router);
         return false;
       }
 
-      const currentlyIn = watchlistIds.has(mediaId);
-      if (currentlyIn) {
+      if (watchlistIds.has(mediaId)) {
         return await removeFromWatchlist(mediaId);
-      } else {
-        return await addToWatchlist(mediaId, status);
       }
+      return await addToWatchlist(mediaId, status);
     },
     [userId, router, watchlistIds, removeFromWatchlist, addToWatchlist],
   );

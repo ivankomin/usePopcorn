@@ -1,39 +1,32 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import dynamic from "next/dynamic";
-
-// MUI Rating component is dynamically imported to avoid SSR issues
-const Rating = dynamic(() => import("@mui/material/Rating"), {
-  ssr: false,
-  loading: () => (
-    <span
-      className="inline-flex items-center gap-0.5 text-[#383838] select-none"
-      aria-hidden="true"
-    >
-      {[0, 1, 2, 3, 4].map((i) => (
-        <span key={i} className="text-base sm:text-lg leading-none">
-          ★
-        </span>
-      ))}
-    </span>
-  ),
-});
 import { Plus, Check, Star } from "lucide-react";
 import type { MediaItem } from "@/types/media";
-import { formatRuntime, getPosterUrl } from "@/lib/utils";
+import { cn, formatMediaDuration, getPosterUrl } from "@/lib/utils";
 import { useWatchlist } from "@/hooks/useWatchlist";
 import { useAuth } from "@/hooks/useAuth";
 import { useRatings } from "@/hooks/useRatings";
+import { StarRating } from "./StarRating";
+import { MediaPoster } from "./MediaPoster";
 
 export interface MediaCardProps {
   media: MediaItem;
   initialInWatchlist?: boolean;
   initialUserRating?: number | null; // scale 1-10 (e.g. 9 or 10)
   fromWatchlist?: boolean;
+  /** Optional explicit detail route (e.g. `/movie/<id>?from=recommendations`). */
+  href?: string;
+  /** Optional navigation source stored in sessionStorage for back-link routing. */
+  navSource?: "catalog" | "watchlist" | "recommendations";
+  /** Optional slot rendered above the media title (e.g. recommendation match badges). */
+  headerSlot?: ReactNode;
+  /** When true, falls back to IMDb rating with numeric label if no user reviews exist. */
+  showImdbFallback?: boolean;
+  /** Optional override for the resting border color class. */
+  cardBorderClassName?: string;
   onWatchlistToggle?: (mediaId: string, inWatchlist: boolean) => void;
   onRate?: (mediaId: string, rating10: number) => void;
 }
@@ -43,14 +36,22 @@ export default function MediaCard({
   initialInWatchlist = false,
   initialUserRating = null,
   fromWatchlist = false,
+  href,
+  navSource,
+  headerSlot,
+  showImdbFallback = false,
+  cardBorderClassName = "border-[#181818]",
   onWatchlistToggle,
   onRate,
 }: MediaCardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  const { isInWatchlist, toggleWatchlist, isLoading: isWatchlistLoading } =
-    useWatchlist();
+  const {
+    isInWatchlist,
+    toggleWatchlist,
+    isLoading: isWatchlistLoading,
+  } = useWatchlist();
   const { getUserRating, rateMedia } = useRatings();
 
   // If watchlist is still loading on mount and initialInWatchlist was provided by SSR, trust it
@@ -61,14 +62,17 @@ export default function MediaCard({
   const userRating = liveRating !== null ? liveRating : initialUserRating;
 
   const [isRatingOpen, setIsRatingOpen] = useState<boolean>(false);
-  const [imageError, setImageError] = useState<boolean>(false);
 
   // User reviews rating 10-point scale into a 5-point scale for MUI Rating
   const hasUserReviews =
     (media.vote_count || 0) > 0 && (media.vote_average || 0) > 0;
-  const ratingStars = hasUserReviews
-    ? Math.min(5, Math.max(0, (media.vote_average || 0) / 2))
-    : 0;
+  const displayScore10 = hasUserReviews
+    ? media.vote_average || 0
+    : showImdbFallback
+      ? media.imdb_rating || 0
+      : 0;
+  const ratingStars =
+    displayScore10 > 0 ? Math.min(5, Math.max(0, displayScore10 / 2)) : 0;
 
   // User rating 10-point scale into a 5-point scale (or 0 if unrated)
   const userStars = userRating ? userRating / 2 : 0;
@@ -79,28 +83,25 @@ export default function MediaCard({
       ? media.genres.map((g) => g.name).join(", ")
       : null;
 
-  // Format runtime / duration
-  const runtimeText =
-    media.media_type === "tv"
-      ? `${media.seasons_count || 1} ${(media.seasons_count || 1) === 1 ? "Season" : "Seasons"}`
-      : formatRuntime(media.runtime);
-
+  const runtimeText = formatMediaDuration(media);
   const posterSrc = getPosterUrl(media.poster_path, "w500");
+
+  const resolvedNavSource =
+    navSource ?? (fromWatchlist ? "watchlist" : "catalog");
   const currentQuery = searchParams ? searchParams.toString() : "";
-  const movieHref = fromWatchlist
-    ? `/movie/${media.id}?from=watchlist`
-    : currentQuery
-      ? `/movie/${media.id}?${currentQuery}`
-      : `/movie/${media.id}`;
+  const movieHref =
+    href ??
+    (fromWatchlist
+      ? `/movie/${media.id}?from=watchlist`
+      : currentQuery
+        ? `/movie/${media.id}?${currentQuery}`
+        : `/movie/${media.id}`);
 
   const recordNavigation = () => {
     if (typeof window !== "undefined") {
       try {
-        sessionStorage.setItem(
-          "internal_nav_from",
-          fromWatchlist ? "watchlist" : "catalog"
-        );
-        if (!fromWatchlist) {
+        sessionStorage.setItem("internal_nav_from", resolvedNavSource);
+        if (resolvedNavSource === "catalog") {
           const currentUrl = currentQuery
             ? `/catalog?${currentQuery}`
             : "/catalog";
@@ -139,43 +140,39 @@ export default function MediaCard({
     const score10 = Math.round(newStars * 2);
     setIsRatingOpen(false);
 
-    if (onRate) {
+    const success = await rateMedia(media.id, score10);
+    if (success && onRate) {
       onRate(media.id, score10);
     }
-    await rateMedia(media.id, score10);
   };
+
+  const showRatingBlock = showImdbFallback ? ratingStars > 0 : hasUserReviews;
 
   return (
     <div
       onClick={handleCardClick}
-      className="group relative bg-[#181818] border-[#181818] rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-center sm:items-stretch gap-5 sm:gap-6 transition-all border duration-200 hover:border-neutral-700 hover:shadow-xl hover:shadow-black/50 cursor-pointer"
+      className={cn(
+        "group relative bg-[#181818] rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-center sm:items-stretch gap-5 sm:gap-6 transition-all border duration-200 hover:border-neutral-700 hover:shadow-xl hover:shadow-black/50 cursor-pointer",
+        cardBorderClassName,
+      )}
     >
       <Link
         href={movieHref}
         onClick={recordNavigation}
         className="relative w-28.75 sm:w-31 aspect-2/3 shrink-0 rounded-xl overflow-hidden bg-neutral-900 border border-white/5 shadow-md block cursor-pointer"
       >
-        {!imageError && posterSrc ? (
-          <Image
-            src={posterSrc}
-            alt={media.title}
-            fill
-            sizes="(max-width: 640px) 115px, 124px"
-            className="object-cover object-center group-hover:scale-102 transition-transform duration-300"
-            onError={() => setImageError(true)}
-          />
-        ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-neutral-900 text-neutral-500">
-            <span className="text-2xl mb-1">🎬</span>
-            <span className="text-[11px] font-medium leading-tight line-clamp-2">
-              {media.title}
-            </span>
-          </div>
-        )}
+        <MediaPoster
+          title={media.title}
+          src={posterSrc}
+          sizes="(max-width: 640px) 115px, 124px"
+          imageClassName="group-hover:scale-102 transition-transform duration-300"
+        />
       </Link>
 
       <div className="flex-1 min-w-0 flex flex-col justify-between self-stretch py-0.5">
         <div>
+          {headerSlot}
+
           <div className="flex items-baseline flex-wrap gap-x-2.5 leading-snug">
             <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight leading-tight">
               <Link
@@ -212,10 +209,12 @@ export default function MediaCard({
           onClick={(e) => e.stopPropagation()}
           className="flex items-center flex-wrap gap-y-2 text-xs sm:text-sm mt-auto pt-1 relative z-10"
         >
-          {hasUserReviews && (
+          {showRatingBlock && (
             <div className="flex items-center gap-1.5 mr-2">
-              <span className="font-semibold text-white">Rating:</span>
-              <Rating
+              <span className="font-semibold text-white">
+                {hasUserReviews ? "Rating:" : "IMDb:"}
+              </span>
+              <StarRating
                 value={ratingStars}
                 precision={0.1}
                 readOnly
@@ -230,17 +229,22 @@ export default function MediaCard({
                   },
                 }}
               />
+              {showImdbFallback && (
+                <span className="text-neutral-400 font-medium">
+                  {Number(displayScore10).toFixed(1)}
+                </span>
+              )}
             </div>
           )}
 
           {userStars > 0 ? (
             <>
-              {hasUserReviews && (
+              {showRatingBlock && (
                 <div className="h-3.5 w-px bg-neutral-700 mx-3 sm:mx-4 hidden xs:block" />
               )}
               <div className="flex items-center gap-1.5">
                 <span className="font-semibold text-white">Your rating:</span>
-                <Rating
+                <StarRating
                   value={userStars}
                   precision={0.5}
                   onChange={(_, val) => handleRatingChange(val)}
@@ -265,12 +269,12 @@ export default function MediaCard({
             </>
           ) : user && isRatingOpen ? (
             <>
-              {hasUserReviews && (
+              {showRatingBlock && (
                 <div className="h-3.5 w-px bg-neutral-700 mx-3 sm:mx-4 hidden xs:block" />
               )}
               <div className="flex items-center gap-1.5 animate-fadeIn">
                 <span className="font-semibold text-white">Rate:</span>
-                <Rating
+                <StarRating
                   value={0}
                   precision={0.5}
                   onChange={(_, val) => handleRatingChange(val)}
@@ -292,7 +296,7 @@ export default function MediaCard({
             </>
           ) : user ? (
             <>
-              {hasUserReviews && (
+              {showRatingBlock && (
                 <div className="h-3.5 w-px bg-neutral-700 mx-3 sm:mx-4 hidden xs:block" />
               )}
               <button

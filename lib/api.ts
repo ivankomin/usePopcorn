@@ -5,10 +5,12 @@ import {
   matchesMediaFilters,
   compareMediaItems,
 } from "@/lib/filters";
+import {
+  normalizeMediaRow,
+  type MediaRowWithGenres,
+} from "@/lib/media-mappers";
 import type {
   MediaItem,
-  MediaItemRow,
-  MediaMetadata,
   GenreRow,
   WatchlistRow,
   WatchlistEntry,
@@ -24,24 +26,12 @@ import type {
   UserCabinetStats,
 } from "@/types/media";
 
-interface MediaGenreJoin {
-  genre_id?: number;
-  genres: GenreRow | null;
-}
-
-interface MediaCatalogRow extends Omit<MediaItemRow, "metadata"> {
-  metadata?: MediaMetadata | null;
-  media_genres?: MediaGenreJoin[] | null;
-  all_genres?: MediaGenreJoin[] | null;
-}
-
 interface WatchlistMediaJoinRow extends WatchlistRow {
-  media:
-    | (Omit<MediaItemRow, "metadata"> & {
-        metadata?: MediaMetadata | null;
-        media_genres?: MediaGenreJoin[] | null;
-      })
-    | null;
+  media: MediaRowWithGenres | null;
+}
+
+interface ReviewMediaJoinRow extends ReviewRow {
+  media: MediaRowWithGenres | null;
 }
 
 export interface PaginatedResult<T> {
@@ -50,6 +40,50 @@ export interface PaginatedResult<T> {
   page: number;
   pageSize: number;
   totalPages: number;
+}
+
+/**
+ * Resolves a server Supabase client along with the target user ID (falling back to the active session).
+ */
+async function resolveServerUser(userId?: string) {
+  const supabase = await createClient();
+  if (userId) {
+    return { supabase, userId };
+  }
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return { supabase, userId: user?.id ?? null };
+}
+
+/**
+ * Counts watchlist rows grouped by status.
+ */
+function countWatchlistStatuses(
+  rows: ReadonlyArray<{ status: string }>,
+): WatchlistStatusCounts {
+  const counts: WatchlistStatusCounts = {
+    all: rows.length,
+    plan_to_watch: 0,
+    watched: 0,
+    favorite: 0,
+  };
+
+  for (const row of rows) {
+    if (row.status === "plan_to_watch") counts.plan_to_watch += 1;
+    else if (row.status === "watched") counts.watched += 1;
+    else if (row.status === "favorite") counts.favorite += 1;
+  }
+
+  return counts;
+}
+
+function mapWatchlistJoinRow(entry: WatchlistMediaJoinRow): WatchlistEntry {
+  if (!entry.media) return entry as WatchlistEntry;
+  return {
+    ...entry,
+    media: normalizeMediaRow(entry.media),
+  };
 }
 
 /**
@@ -125,7 +159,6 @@ export async function getMediaCatalog(
     .from("media_items")
     .select(selectQuery, { count: "exact" });
 
-  // Apply encapsulated filters, sorting, and pagination
   query = applyCatalogQueryFilters(query, params);
   query = applyCatalogQuerySorting(query, params.sortBy);
   query = query.range(from, to);
@@ -137,21 +170,10 @@ export async function getMediaCatalog(
     throw error;
   }
 
-  // Format joined genres cleanly
-  const rows = (data || []) as unknown as MediaCatalogRow[];
-  const items: MediaItem[] = rows.map((row) => {
-    const rawGenres = isFilteringGenre ? row.all_genres : row.media_genres;
-    const genres: GenreRow[] = (rawGenres || [])
-       .map((mg) => mg.genres)
-       .filter((g): g is GenreRow => Boolean(g));
-
-    const { media_genres: _mg, all_genres: _ag, ...mediaFields } = row;
-
-    return {
-      ...mediaFields,
-      genres,
-    };
-  });
+  const rows = (data || []) as unknown as MediaRowWithGenres[];
+  const items: MediaItem[] = rows.map((row) =>
+    normalizeMediaRow(row, { preferAllGenres: isFilteringGenre })
+  );
 
   const total = count || 0;
   const totalPages = Math.ceil(total / pageSize);
@@ -186,17 +208,7 @@ export async function getMediaById(id: string): Promise<MediaItem | null> {
 
   if (!data) return null;
 
-  const row = data as unknown as MediaCatalogRow;
-  const genres: GenreRow[] = (row.media_genres || [])
-    .map((mg) => mg.genres)
-    .filter((g): g is GenreRow => Boolean(g));
-
-  const { media_genres, all_genres, ...mediaFields } = row;
-
-  return {
-    ...mediaFields,
-    genres,
-  };
+  return normalizeMediaRow(data as unknown as MediaRowWithGenres);
 }
 
 /**
@@ -228,16 +240,8 @@ export async function getUserReviewForMedia(
   mediaId: string,
   userId?: string,
 ): Promise<ReviewRow | null> {
-  const supabase = await createClient();
-
-  let targetUserId = userId;
-  if (!targetUserId) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return null;
-    targetUserId = user.id;
-  }
+  const { supabase, userId: targetUserId } = await resolveServerUser(userId);
+  if (!targetUserId) return null;
 
   const { data, error } = await supabase
     .from("reviews")
@@ -261,16 +265,8 @@ export async function getUserWatchlistEntryForMedia(
   mediaId: string,
   userId?: string,
 ): Promise<WatchlistRow | null> {
-  const supabase = await createClient();
-
-  let targetUserId = userId;
-  if (!targetUserId) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return null;
-    targetUserId = user.id;
-  }
+  const { supabase, userId: targetUserId } = await resolveServerUser(userId);
+  if (!targetUserId) return null;
 
   const { data, error } = await supabase
     .from("watchlists")
@@ -297,16 +293,8 @@ export async function getUserWatchlist(
   status?: WatchlistStatus,
   userId?: string,
 ): Promise<WatchlistEntry[]> {
-  const supabase = await createClient();
-
-  let targetUserId = userId;
-  if (!targetUserId) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return [];
-    targetUserId = user.id;
-  }
+  const { supabase, userId: targetUserId } = await resolveServerUser(userId);
+  if (!targetUserId) return [];
 
   let query = supabase
     .from("watchlists")
@@ -326,24 +314,7 @@ export async function getUserWatchlist(
   }
 
   const rows = (data || []) as unknown as WatchlistMediaJoinRow[];
-  return rows.map((entry) => {
-    if (!entry.media) return entry as WatchlistEntry;
-
-    const rawGenres = entry.media.media_genres || [];
-    const genres: GenreRow[] = rawGenres
-      .map((mg) => mg.genres)
-      .filter((g): g is GenreRow => Boolean(g));
-
-    const { media_genres, ...mediaFields } = entry.media;
-
-    return {
-      ...entry,
-      media: {
-        ...mediaFields,
-        genres,
-      },
-    };
-  });
+  return rows.map(mapWatchlistJoinRow);
 }
 
 /**
@@ -353,32 +324,23 @@ export async function getWatchlistWithFilters(
   params: WatchlistFilterParams = {},
   userId?: string,
 ): Promise<WatchlistQueryResult> {
-  const supabase = await createClient();
-
-  let targetUserId = userId;
+  const { supabase, userId: targetUserId } = await resolveServerUser(userId);
   if (!targetUserId) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      return {
-        items: [],
-        total: 0,
-        page: 1,
-        pageSize: params.pageSize || 20,
-        totalPages: 0,
-        statusCounts: {
-          all: 0,
-          plan_to_watch: 0,
-          watched: 0,
-          favorite: 0,
-        },
-      };
-    }
-    targetUserId = user.id;
+    return {
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: params.pageSize || 20,
+      totalPages: 0,
+      statusCounts: {
+        all: 0,
+        plan_to_watch: 0,
+        watched: 0,
+        favorite: 0,
+      },
+    };
   }
 
-  // Fetch all user watchlist rows with joined media items and genres
   const { data, error } = await supabase
     .from("watchlists")
     .select("*, media:media_items(*, media_genres(genres(*)))")
@@ -391,40 +353,8 @@ export async function getWatchlistWithFilters(
   }
 
   const rawRows = (data || []) as unknown as WatchlistMediaJoinRow[];
-
-  // Calculate overall status counts across all user watchlist entries
-  const statusCounts: WatchlistStatusCounts = {
-    all: rawRows.length,
-    plan_to_watch: 0,
-    watched: 0,
-    favorite: 0,
-  };
-
-  for (const row of rawRows) {
-    if (row.status === "plan_to_watch") statusCounts.plan_to_watch += 1;
-    else if (row.status === "watched") statusCounts.watched += 1;
-    else if (row.status === "favorite") statusCounts.favorite += 1;
-  }
-
-  // Map to domain WatchlistEntry objects
-  const allEntries: WatchlistEntry[] = rawRows.map((entry) => {
-    if (!entry.media) return entry as WatchlistEntry;
-
-    const rawGenres = entry.media.media_genres || [];
-    const genres: GenreRow[] = rawGenres
-      .map((mg) => mg.genres)
-      .filter((g): g is GenreRow => Boolean(g));
-
-    const { media_genres: _mg, ...mediaFields } = entry.media;
-
-    return {
-      ...entry,
-      media: {
-        ...mediaFields,
-        genres,
-      },
-    };
-  });
+  const statusCounts = countWatchlistStatuses(rawRows);
+  const allEntries: WatchlistEntry[] = rawRows.map(mapWatchlistJoinRow);
 
   // Apply filters in-memory
   let filtered = allEntries;
@@ -477,17 +407,13 @@ export async function getWatchlistWithFilters(
  * Fetches the profile of the currently authenticated user.
  */
 export async function getCurrentUserProfile(): Promise<ProfileRow | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return null;
+  const { supabase, userId } = await resolveServerUser();
+  if (!userId) return null;
 
   const { data, error } = await supabase
     .from("profiles")
     .select("*")
-    .eq("id", user.id)
+    .eq("id", userId)
     .maybeSingle();
 
   if (error) {
@@ -516,31 +442,13 @@ export async function getUserReviewsArchive(
     throw error;
   }
 
-  type RawReviewJoin = ReviewRow & {
-    media: (Omit<MediaItemRow, "metadata"> & {
-      metadata?: MediaMetadata | null;
-      media_genres?: MediaGenreJoin[] | null;
-    }) | null;
-  };
-
-  const rawRows = (data || []) as unknown as RawReviewJoin[];
+  const rawRows = (data || []) as unknown as ReviewMediaJoinRow[];
 
   return rawRows.map((entry) => {
     if (!entry.media) return entry as UserReviewArchiveItem;
-
-    const rawGenres = entry.media.media_genres || [];
-    const genres: GenreRow[] = rawGenres
-      .map((mg) => mg.genres)
-      .filter((g): g is GenreRow => Boolean(g));
-
-    const { media_genres: _mg, ...mediaFields } = entry.media;
-
     return {
       ...entry,
-      media: {
-        ...mediaFields,
-        genres,
-      },
+      media: normalizeMediaRow(entry.media),
     };
   });
 }
@@ -553,36 +461,22 @@ export async function getUserCabinetStats(
 ): Promise<UserCabinetStats> {
   const supabase = await createClient();
 
-  // Watchlist stats
-  const { data: watchlistData, error: wlError } = await supabase
-    .from("watchlists")
-    .select("status")
-    .eq("user_id", userId);
+  const [
+    { data: watchlistData, error: wlError },
+    { data: reviewData, error: revError },
+  ] = await Promise.all([
+    supabase.from("watchlists").select("status").eq("user_id", userId),
+    supabase.from("reviews").select("rating").eq("user_id", userId),
+  ]);
 
   if (wlError) {
     console.error("Error fetching watchlist stats:", wlError);
   }
-
-  const wlItems = watchlistData || [];
-  let planToWatchCount = 0;
-  let watchedCount = 0;
-  let favoriteCount = 0;
-
-  for (const item of wlItems) {
-    if (item.status === "plan_to_watch") planToWatchCount++;
-    else if (item.status === "watched") watchedCount++;
-    else if (item.status === "favorite") favoriteCount++;
-  }
-
-  // Reviews stats
-  const { data: reviewData, error: revError } = await supabase
-    .from("reviews")
-    .select("rating")
-    .eq("user_id", userId);
-
   if (revError) {
     console.error("Error fetching review stats:", revError);
   }
+
+  const counts = countWatchlistStatuses(watchlistData || []);
 
   const reviews = reviewData || [];
   const reviewsCount = reviews.length;
@@ -599,12 +493,11 @@ export async function getUserCabinetStats(
       : null;
 
   return {
-    watchlistTotal: wlItems.length,
-    planToWatchCount,
-    watchedCount,
-    favoriteCount,
+    watchlistTotal: counts.all,
+    planToWatchCount: counts.plan_to_watch,
+    watchedCount: counts.watched,
+    favoriteCount: counts.favorite,
     reviewsCount,
     averageRatingGiven,
   };
 }
-

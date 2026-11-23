@@ -3,7 +3,7 @@
  */
 export function getPosterUrl(
   posterPath: string | null | undefined,
-  size: "w342" | "w500" | "w780" | "original" = "w500",
+  size: "w200" | "w342" | "w500" | "w780" | "original" = "w500",
 ): string {
   if (!posterPath) {
     return "/placeholder-poster.png";
@@ -12,6 +12,33 @@ export function getPosterUrl(
     return posterPath;
   }
   return `https://image.tmdb.org/t/p/${size}${posterPath}`;
+}
+
+/**
+ * Formats a media item's display duration: seasons count for TV series,
+ * or formatted runtime for movies.
+ */
+export function formatMediaDuration(media: {
+  media_type?: string | null;
+  runtime?: number | null;
+  seasons_count?: number | null;
+}): string | null {
+  if (media.media_type === "tv") {
+    const seasons = media.seasons_count || 1;
+    return `${seasons} ${seasons === 1 ? "Season" : "Seasons"}`;
+  }
+  return formatRuntime(media.runtime);
+}
+
+/**
+ * Categorizes a production budget (in USD) into a standardized display band.
+ */
+export function getBudgetCategory(budget?: number | null): string | null {
+  if (!budget || budget <= 0) return null;
+  if (budget < 15_000_000) return "Low (< $15M)";
+  if (budget <= 60_000_000) return "Medium ($15M–$60M)";
+  if (budget <= 120_000_000) return "High ($60M–$120M)";
+  return "Blockbuster (> $120M)";
 }
 
 /**

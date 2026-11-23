@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/components/AuthProvider";
 import { WatchlistProvider } from "@/components/WatchlistProvider";
+import { CollectionsProvider } from "@/components/CollectionsProvider";
 import { RatingProvider } from "@/components/RatingProvider";
 
 const geistSans = Geist({
@@ -36,11 +37,13 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-brand-bg text-white">
         <AuthProvider>
           <WatchlistProvider>
-            <RatingProvider>
-              <Navbar />
-              <main className="flex-1 flex flex-col">{children}</main>
-              <Footer />
-            </RatingProvider>
+            <CollectionsProvider>
+              <RatingProvider>
+                <Navbar />
+                <main className="flex-1 flex flex-col">{children}</main>
+                <Footer />
+              </RatingProvider>
+            </CollectionsProvider>
           </WatchlistProvider>
         </AuthProvider>
       </body>

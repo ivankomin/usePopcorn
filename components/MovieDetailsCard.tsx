@@ -12,6 +12,7 @@ import {
   MovieDetailsMetadata,
   MovieDetailsOverview,
   TrailerModal,
+  AddToCollectionMenu,
   useMovieDetailsWatchlist,
 } from "./movie-details";
 
@@ -96,6 +97,7 @@ export default function MovieDetailsCard({
               onStatusSelect={handleStatusSelect}
               onRemoveFromWatchlist={handleRemoveWatchlist}
             />
+            <AddToCollectionMenu mediaId={media.id} />
             {trailerKey && (
               <button
                 type="button"

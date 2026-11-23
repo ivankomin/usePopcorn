@@ -8,6 +8,7 @@ import type {
   UserCabinetStats,
   WatchlistEntry,
   UserReviewArchiveItem,
+  CollectionWithMedia,
 } from "@/types/media";
 import {
   ProfileHeader,
@@ -24,6 +25,7 @@ export interface ProfileCabinetContainerProps {
   profile: ProfileRow | null;
   stats: UserCabinetStats;
   watchlistEntries: WatchlistEntry[];
+  collections?: CollectionWithMedia[];
   reviewsArchive: UserReviewArchiveItem[];
   initialTab?: CabinetTabId;
 }
@@ -33,6 +35,7 @@ export function ProfileCabinetContainer({
   profile,
   stats,
   watchlistEntries,
+  collections = [],
   reviewsArchive,
   initialTab = "overview",
 }: ProfileCabinetContainerProps) {
@@ -89,7 +92,10 @@ export function ProfileCabinetContainer({
         )}
 
         {activeTab === "watchlist" && (
-          <CabinetWatchlist entries={watchlistEntries} />
+          <CabinetWatchlist
+            entries={watchlistEntries}
+            collections={collections}
+          />
         )}
 
         {activeTab === "reviews" && (

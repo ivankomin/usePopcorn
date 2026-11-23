@@ -3,6 +3,7 @@ export * from "./ProfileHeader";
 export * from "./CabinetTabs";
 export * from "./CabinetOverview";
 export * from "./CabinetWatchlist";
+export * from "./CabinetCollections";
 export * from "./UserReviewsArchive";
 export * from "./ProfileSettings";
 export * from "./ProfileCabinetContainer";

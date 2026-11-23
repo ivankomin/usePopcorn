@@ -8,6 +8,7 @@ import {
   getUserCabinetStats,
   getWatchlistWithFilters,
   getUserReviewsArchive,
+  getUserCollectionsWithMedia,
 } from "@/lib/api";
 import { ProfileCabinetContainer } from "@/components/profile";
 import type { CabinetTabId } from "@/components/profile";
@@ -46,12 +47,14 @@ async function ProfileCabinetContent({
   const initialTab = (resolvedParams.tab || "overview") as CabinetTabId;
 
   // Fetch all required data in parallel directly from Supabase
-  const [profile, stats, watchlistResult, reviewsArchive] = await Promise.all([
-    getCurrentUserProfile(),
-    getUserCabinetStats(user.id),
-    getWatchlistWithFilters({ pageSize: 100 }, user.id),
-    getUserReviewsArchive(user.id),
-  ]);
+  const [profile, stats, watchlistResult, reviewsArchive, collections] =
+    await Promise.all([
+      getCurrentUserProfile(),
+      getUserCabinetStats(user.id),
+      getWatchlistWithFilters({ pageSize: 100 }, user.id),
+      getUserReviewsArchive(user.id),
+      getUserCollectionsWithMedia(user.id),
+    ]);
 
   return (
     <ProfileCabinetContainer
@@ -59,6 +62,7 @@ async function ProfileCabinetContent({
       profile={profile}
       stats={stats}
       watchlistEntries={watchlistResult.items}
+      collections={collections}
       reviewsArchive={reviewsArchive}
       initialTab={initialTab}
     />

@@ -3,14 +3,23 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { Bookmark, ExternalLink } from "lucide-react";
-import type { WatchlistEntry, WatchlistStatus } from "@/types/media";
+import type {
+  CollectionWithMedia,
+  WatchlistEntry,
+  WatchlistStatus,
+} from "@/types/media";
 import { ProfileMovieCard } from "./ProfileMovieCard";
+import { CabinetCollections } from "./CabinetCollections";
 
 export interface CabinetWatchlistProps {
   entries: WatchlistEntry[];
+  collections?: CollectionWithMedia[];
 }
 
-export function CabinetWatchlist({ entries }: CabinetWatchlistProps) {
+export function CabinetWatchlist({
+  entries,
+  collections = [],
+}: CabinetWatchlistProps) {
   const [selectedStatus, setSelectedStatus] = useState<WatchlistStatus | "all">(
     "all",
   );
@@ -119,6 +128,9 @@ export function CabinetWatchlist({ entries }: CabinetWatchlistProps) {
           })}
         </div>
       )}
+
+      {/* Custom User-Named Collections */}
+      <CabinetCollections initialCollections={collections} />
     </div>
   );
 }

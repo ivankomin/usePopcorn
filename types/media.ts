@@ -3,6 +3,9 @@ import type { Database } from "./database.types";
 export type MediaItemRow = Database["public"]["Tables"]["media_items"]["Row"];
 export type GenreRow = Database["public"]["Tables"]["genres"]["Row"];
 export type WatchlistRow = Database["public"]["Tables"]["watchlists"]["Row"];
+export type CollectionRow = Database["public"]["Tables"]["collections"]["Row"];
+export type CollectionItemRow =
+  Database["public"]["Tables"]["collection_items"]["Row"];
 export type ReviewRow = Database["public"]["Tables"]["reviews"]["Row"];
 export type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -107,6 +110,20 @@ export interface WatchlistStatusCounts {
 
 export interface WatchlistQueryResult extends PaginatedResult<WatchlistEntry> {
   statusCounts: WatchlistStatusCounts;
+}
+
+export interface UserCollection extends CollectionRow {
+  mediaIds: string[];
+  itemCount: number;
+}
+
+export interface CollectionItemWithMedia extends CollectionItemRow {
+  media?: MediaItem | null;
+}
+
+export interface CollectionWithMedia extends CollectionRow {
+  items: CollectionItemWithMedia[];
+  itemCount: number;
 }
 
 export interface UserReviewArchiveItem extends ReviewRow {

@@ -11,6 +11,7 @@ import type { WatchlistStatus, WatchlistStatusCounts } from "@/types/media";
 export interface WatchlistStatusTabsProps {
   statusCounts: WatchlistStatusCounts;
   currentStatus?: WatchlistStatus | "all";
+  hasActiveCollection?: boolean;
 }
 
 interface TabConfig {
@@ -23,6 +24,7 @@ interface TabConfig {
 export default function WatchlistStatusTabs({
   statusCounts,
   currentStatus = "all",
+  hasActiveCollection = false,
 }: WatchlistStatusTabsProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -45,9 +47,10 @@ export default function WatchlistStatusTabs({
   ];
 
   const handleSelectTab = (tabValue: WatchlistStatus | "all") => {
-    if (tabValue === currentStatus) return;
+    if (!hasActiveCollection && tabValue === currentStatus) return;
 
     const params = new URLSearchParams(searchParams.toString());
+    params.delete("collection");
     if (tabValue === "all") {
       params.delete("status");
     } else {
@@ -66,7 +69,7 @@ export default function WatchlistStatusTabs({
   return (
     <div className="w-full flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none select-none">
       {tabs.map((tab) => {
-        const isActive = currentStatus === tab.value;
+        const isActive = !hasActiveCollection && currentStatus === tab.value;
         const Icon = tab.icon;
 
         return (

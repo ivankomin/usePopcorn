@@ -25,6 +25,10 @@ import type {
   UserReviewArchiveItem,
   UserCabinetStats,
   PaginatedResult,
+  CollectionRow,
+  CollectionItemRow,
+  CollectionWithMedia,
+  CollectionItemWithMedia,
 } from "@/types/media";
 
 export type { PaginatedResult };
@@ -471,5 +475,106 @@ export async function getUserCabinetStats(
     favoriteCount: counts.favorite,
     reviewsCount,
     averageRatingGiven,
+  };
+}
+
+interface CollectionItemJoinRow extends CollectionItemRow {
+  media: MediaRowWithGenres | null;
+}
+
+interface CollectionJoinRow extends CollectionRow {
+  collection_items?: CollectionItemJoinRow[] | null;
+}
+
+/**
+ * Fetches all custom user-named collections along with their hydrated media items.
+ */
+export async function getUserCollectionsWithMedia(
+  userId?: string,
+): Promise<CollectionWithMedia[]> {
+  const { supabase, userId: targetUserId } = await resolveServerUser(userId);
+  if (!targetUserId) return [];
+
+  const { data, error } = await supabase
+    .from("collections")
+    .select(
+      "*, collection_items(*, media:media_items(*, media_genres(genres(*))))",
+    )
+    .eq("user_id", targetUserId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching user collections:", error);
+    return [];
+  }
+
+  const rows = (data || []) as unknown as CollectionJoinRow[];
+  return rows.map((col) => {
+    const rawItems = col.collection_items || [];
+    const items: CollectionItemWithMedia[] = [...rawItems]
+      .sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      )
+      .map((entry) => ({
+        id: entry.id,
+        collection_id: entry.collection_id,
+        media_id: entry.media_id,
+        created_at: entry.created_at,
+        media: entry.media ? normalizeMediaRow(entry.media) : null,
+      }));
+
+    return {
+      id: col.id,
+      user_id: col.user_id,
+      name: col.name,
+      description: col.description,
+      created_at: col.created_at,
+      updated_at: col.updated_at,
+      items,
+      itemCount: items.length,
+    };
+  });
+}
+
+/**
+ * Applies the same WatchlistFilterParams (search, metadata filters, sorting, pagination)
+ * to a specific custom collection's items.
+ */
+export function filterCollectionItems(
+  collection: CollectionWithMedia,
+  params: WatchlistFilterParams = {},
+): PaginatedResult<CollectionItemWithMedia> {
+  let filtered = collection.items.filter((entry) =>
+    matchesMediaFilters(entry.media, params),
+  );
+
+  const sortBy = params.sortBy || "added_desc";
+  filtered = [...filtered].sort((a, b) => {
+    if (sortBy === "added_desc") {
+      return (
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    }
+    if (sortBy === "added_asc") {
+      return (
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+    }
+    return compareMediaItems(a.media, b.media, sortBy);
+  });
+
+  const total = filtered.length;
+  const page = Math.max(1, params.page || 1);
+  const pageSize = Math.max(1, Math.min(100, params.pageSize || 20));
+  const totalPages = Math.ceil(total / pageSize);
+  const from = (page - 1) * pageSize;
+
+  return {
+    items: filtered.slice(from, from + pageSize),
+    total,
+    page,
+    pageSize,
+    totalPages,
   };
 }

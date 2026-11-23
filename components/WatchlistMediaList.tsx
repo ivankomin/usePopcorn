@@ -3,8 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Film } from "lucide-react";
+import { Film, Folder, Pencil, Trash2, X } from "lucide-react";
 import type {
+  CollectionItemWithMedia,
+  CollectionWithMedia,
   WatchlistEntry,
   WatchlistStatus,
   WatchlistStatusCounts,
@@ -14,8 +16,11 @@ import Pagination from "./Pagination";
 import SortDropdown, { WATCHLIST_SORT_OPTIONS } from "./SortDropdown";
 import ActiveFilterChips from "./ActiveFilterChips";
 import WatchlistStatusTabs from "./WatchlistStatusTabs";
+import { WatchlistCollectionsBar } from "./WatchlistCollectionsBar";
+import { CollectionFormModal } from "./CollectionFormModal";
 import Button from "./Button";
 import { getWatchlistStatusLabel } from "@/lib/watchlist-status";
+import { useCollections } from "@/hooks/useCollections";
 
 export interface WatchlistMediaListProps {
   items: WatchlistEntry[];
@@ -27,6 +32,9 @@ export interface WatchlistMediaListProps {
   currentSort?: string;
   searchQuery?: string;
   hasAnyWatchlistItems?: boolean;
+  collections?: CollectionWithMedia[];
+  activeCollection?: CollectionWithMedia | null;
+  collectionItems?: CollectionItemWithMedia[];
 }
 
 export default function WatchlistMediaList({
@@ -39,24 +47,39 @@ export default function WatchlistMediaList({
   currentSort = "added_desc",
   searchQuery,
   hasAnyWatchlistItems = true,
+  collections = [],
+  activeCollection = null,
+  collectionItems = [],
 }: WatchlistMediaListProps) {
   const router = useRouter();
+  const { updateCollection, deleteCollection, removeMediaFromCollection } =
+    useCollections();
 
   // Local state to allow instant removal animation & immediate count updates
   const [prevItems, setPrevItems] = useState(items);
   const [displayedItems, setDisplayedItems] = useState(items);
+  const [prevCollectionItems, setPrevCollectionItems] =
+    useState(collectionItems);
+  const [displayedCollectionItems, setDisplayedCollectionItems] =
+    useState(collectionItems);
   const [liveTotalFound, setLiveTotalFound] = useState(totalFound);
   const [liveStatusCounts, setLiveStatusCounts] = useState(statusCounts);
 
-  // Sync state if server props change (e.g., page navigation, filter change, or tab switch)
-  if (prevItems !== items) {
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+
+  if (prevItems !== items || prevCollectionItems !== collectionItems) {
     setPrevItems(items);
     setDisplayedItems(items);
+    setPrevCollectionItems(collectionItems);
+    setDisplayedCollectionItems(collectionItems);
     setLiveTotalFound(totalFound);
     setLiveStatusCounts(statusCounts);
+    setIsConfirmingDelete(false);
   }
 
   const handleWatchlistToggle = (mediaId: string, inWatchlist: boolean) => {
+    if (activeCollection) return;
     if (!inWatchlist) {
       const itemToRemove = displayedItems.find(
         (e) => e.media_id === mediaId || e.media?.id === mediaId,
@@ -86,48 +109,151 @@ export default function WatchlistMediaList({
     }
   };
 
-  const getStatusLabel = () => {
+  const handleRemoveFromCollection = async (mediaId: string) => {
+    if (!activeCollection) return;
+    const ok = await removeMediaFromCollection(activeCollection.id, mediaId);
+    if (ok) {
+      setDisplayedCollectionItems((prev) =>
+        prev.filter((entry) => entry.media_id !== mediaId),
+      );
+      setLiveTotalFound((prev) => Math.max(0, prev - 1));
+      router.refresh();
+    }
+  };
+
+  const handleEditCollection = async (values: {
+    name: string;
+    description: string | null;
+  }) => {
+    if (!activeCollection) return { success: false, error: "No list selected" };
+    const res = await updateCollection(activeCollection.id, values);
+    if (res.success) {
+      router.refresh();
+    }
+    return res;
+  };
+
+  const handleDeleteCollection = async () => {
+    if (!activeCollection) return;
+    const res = await deleteCollection(activeCollection.id);
+    if (res.success) {
+      router.push("/watchlist");
+      router.refresh();
+    }
+  };
+
+  const getHeadingLabel = () => {
     if (searchQuery) return `Results for "${searchQuery}"`;
+    if (activeCollection) return activeCollection.name;
     return getWatchlistStatusLabel(currentStatus, true);
   };
 
-  // 1. Completely empty watchlist (user has not saved anything at all yet)
-  if (!hasAnyWatchlistItems || liveStatusCounts.all === 0) {
+  // Completely empty watchlist AND no custom lists selected/created
+  if (
+    !activeCollection &&
+    collections.length === 0 &&
+    (!hasAnyWatchlistItems || liveStatusCounts.all === 0)
+  ) {
     return (
-      <div className="w-full bg-[#181818] border border-neutral-800 rounded-3xl p-10 sm:p-16 text-center flex flex-col items-center justify-center my-4 shadow-xl">
-        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3 tracking-tight">
-          Your watchlist is empty
-        </h2>
-        <p className="text-sm sm:text-base text-neutral-400 max-w-md mb-8 leading-relaxed">
-          Explore thousands of movies and TV series, and click the plus icon to
-          save titles you want to watch later.
-        </p>
-        <Button href="/catalog?mediaType=movie" size="lg">
-          <Film className="w-4 h-4 mr-2 inline-block" />
-          Browse Catalog
-        </Button>
+      <div className="w-full flex flex-col gap-5">
+        <WatchlistCollectionsBar
+          collections={collections}
+          activeCollectionId={null}
+        />
+        <div className="w-full bg-[#181818] border border-neutral-800 rounded-3xl p-10 sm:p-16 text-center flex flex-col items-center justify-center my-4 shadow-xl">
+          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3 tracking-tight">
+            Your watchlist is empty
+          </h2>
+          <p className="text-sm sm:text-base text-neutral-400 max-w-md mb-8 leading-relaxed">
+            Explore thousands of movies and TV series, click the plus icon to
+            save titles, or create custom lists above.
+          </p>
+          <Button href="/catalog?mediaType=movie" size="lg">
+            <Film className="w-4 h-4 mr-2 inline-block" />
+            Browse Catalog
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="w-full flex flex-col gap-6">
-      {/* Top Status Tabs with live counts */}
-      <WatchlistStatusTabs
-        statusCounts={liveStatusCounts}
-        currentStatus={currentStatus}
-      />
+      {/* Top Status Tabs + Custom Lists Bar */}
+      <div className="flex flex-col gap-2.5">
+        <WatchlistStatusTabs
+          statusCounts={liveStatusCounts}
+          currentStatus={currentStatus}
+          hasActiveCollection={Boolean(activeCollection)}
+        />
+        <WatchlistCollectionsBar
+          collections={collections}
+          activeCollectionId={activeCollection?.id ?? null}
+        />
+      </div>
 
       {/* Header with Title & Sort */}
       <div className="mb-2 flex flex-col gap-3">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-baseline flex-wrap gap-2">
-            <h1 className="text-2xl sm:text-3xl md:text-[32px] font-bold text-white tracking-tight leading-tight">
-              {getStatusLabel()}
-            </h1>
-            <span className="text-neutral-400 font-normal italic text-lg sm:text-xl ml-1">
-              ({liveTotalFound} {liveTotalFound === 1 ? "Item" : "Items"})
-            </span>
+        <div className="flex items-start justify-between flex-wrap gap-4">
+          <div className="flex flex-col gap-1.5 min-w-0">
+            <div className="flex items-baseline flex-wrap gap-2">
+              <h1 className="text-2xl sm:text-3xl md:text-[32px] font-bold text-white tracking-tight leading-tight flex items-center gap-2.5">
+                {activeCollection && (
+                  <Folder className="w-6 h-6 text-brand-lime shrink-0" />
+                )}
+                <span>{getHeadingLabel()}</span>
+              </h1>
+              <span className="text-neutral-400 font-normal italic text-lg sm:text-xl ml-1">
+                ({liveTotalFound} {liveTotalFound === 1 ? "Item" : "Items"})
+              </span>
+            </div>
+
+            {activeCollection?.description && (
+              <p className="text-xs sm:text-sm text-neutral-400 max-w-2xl">
+                {activeCollection.description}
+              </p>
+            )}
+
+            {activeCollection && (
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-neutral-300 hover:text-white transition-colors cursor-pointer"
+                >
+                  <Pencil className="w-3 h-3" />
+                  <span>Edit List</span>
+                </button>
+
+                {isConfirmingDelete ? (
+                  <div className="inline-flex items-center gap-1.5 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteCollection()}
+                      className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold cursor-pointer"
+                    >
+                      Confirm Delete
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsConfirmingDelete(false)}
+                      className="px-2.5 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsConfirmingDelete(true)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-neutral-900 border border-neutral-800 hover:border-rose-500/40 text-neutral-400 hover:text-rose-400 transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>Delete List</span>
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           <SortDropdown
@@ -141,7 +267,61 @@ export default function WatchlistMediaList({
       </div>
 
       {/* Media Cards List */}
-      {displayedItems.length > 0 ? (
+      {activeCollection ? (
+        displayedCollectionItems.length > 0 ? (
+          <div className="flex flex-col gap-5 sm:gap-6 w-full">
+            {displayedCollectionItems.map((entry) => {
+              if (!entry.media) return null;
+              return (
+                <div key={entry.id} className="relative group/listcard">
+                  <MediaCard media={entry.media} fromWatchlist={true} />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void handleRemoveFromCollection(entry.media_id)
+                    }
+                    title={`Remove from "${activeCollection.name}"`}
+                    aria-label={`Remove ${entry.media.title} from ${activeCollection.name}`}
+                    className="absolute top-3 right-3 z-20 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-neutral-900/90 border border-neutral-700/80 text-neutral-300 hover:text-rose-300 hover:border-rose-500/50 transition-colors cursor-pointer"
+                  >
+                    <X className="w-3 h-3" />
+                    <span>Remove from list</span>
+                  </button>
+                </div>
+              );
+            })}
+
+            {totalPages !== undefined && totalPages > 1 && (
+              <Pagination currentPage={currentPage} totalPages={totalPages} />
+            )}
+          </div>
+        ) : (
+          <div className="bg-[#181818] border border-neutral-800 rounded-2xl p-12 text-center flex flex-col items-center justify-center my-6">
+            <h2 className="text-xl font-bold text-white mb-2">
+              {activeCollection.itemCount === 0
+                ? "This list is empty"
+                : "No titles found"}
+            </h2>
+            <p className="text-sm text-neutral-400 max-w-md mb-6">
+              {activeCollection.itemCount === 0
+                ? "Open any movie or TV series page and click Add to Custom List to save titles here."
+                : "No items in this list match your selected filters."}
+            </p>
+            <Link
+              href={
+                activeCollection.itemCount === 0
+                  ? "/catalog"
+                  : `/watchlist?collection=${activeCollection.id}`
+              }
+              className="px-5 py-2.5 rounded-md bg-brand-lime text-black font-semibold text-sm hover:bg-[#a8e63e] transition-colors"
+            >
+              {activeCollection.itemCount === 0
+                ? "Browse Catalog"
+                : "Reset List Filters"}
+            </Link>
+          </div>
+        )
+      ) : displayedItems.length > 0 ? (
         <div className="flex flex-col gap-5 sm:gap-6 w-full">
           {displayedItems.map((entry) => {
             if (!entry.media) return null;
@@ -174,6 +354,19 @@ export default function WatchlistMediaList({
             Reset Watchlist Filters
           </Link>
         </div>
+      )}
+
+      {/* Edit Active Collection Modal */}
+      {activeCollection && isEditModalOpen && (
+        <CollectionFormModal
+          key={`edit-${activeCollection.id}`}
+          isOpen={true}
+          mode="edit"
+          initialName={activeCollection.name}
+          initialDescription={activeCollection.description}
+          onClose={() => setIsEditModalOpen(false)}
+          onSubmit={handleEditCollection}
+        />
       )}
     </div>
   );

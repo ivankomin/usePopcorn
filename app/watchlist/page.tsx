@@ -3,7 +3,12 @@ import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { getWatchlistWithFilters, getGenres } from "@/lib/api";
+import {
+  getWatchlistWithFilters,
+  getGenres,
+  getUserCollectionsWithMedia,
+  filterCollectionItems,
+} from "@/lib/api";
 import {
   parseMediaFilterParams,
   type RawMediaFilterSearchParams,
@@ -15,7 +20,7 @@ import type { WatchlistSortOption, WatchlistStatus } from "@/types/media";
 
 export const metadata: Metadata = {
   title: "My Watchlist - usePopcorn",
-  description: "View and manage your watchlist on usePopcorn.",
+  description: "View and manage your watchlist and custom lists on usePopcorn.",
 };
 
 export const instant = false;
@@ -24,6 +29,7 @@ interface WatchlistPageProps {
   searchParams: Promise<
     RawMediaFilterSearchParams & {
       status?: string;
+      collection?: string;
       sortBy?: WatchlistSortOption;
     }
   >;
@@ -55,42 +61,64 @@ async function WatchlistContent({
   const parsed = parseMediaFilterParams(resolvedParams, "all");
   const status = (resolvedParams.status || "all") as WatchlistStatus | "all";
   const sortBy = resolvedParams.sortBy || "added_desc";
+  const collectionIdParam = resolvedParams.collection?.trim() || null;
 
-  const result = await getWatchlistWithFilters(
-    {
-      status,
-      search: parsed.search,
-      mediaType: parsed.mediaType,
-      genreId: parsed.genreId,
-      genres: parsed.genres,
-      runtime: parsed.mediaType === "tv" ? undefined : parsed.runtime,
-      seasons: parsed.mediaType === "movie" ? undefined : parsed.seasons,
-      country: parsed.country,
-      budget: parsed.mediaType === "tv" ? undefined : parsed.budget,
-      ageRating: parsed.ageRating,
-      minRating: parsed.minRating,
-      maxRating: parsed.maxRating,
-      minYear: parsed.minYear,
-      maxYear: parsed.maxYear,
-      sortBy,
-      page: parsed.page,
-      pageSize: 20,
-    },
-    user.id,
-  );
+  const filterParams = {
+    status,
+    search: parsed.search,
+    mediaType: parsed.mediaType,
+    genreId: parsed.genreId,
+    genres: parsed.genres,
+    runtime: parsed.mediaType === "tv" ? undefined : parsed.runtime,
+    seasons: parsed.mediaType === "movie" ? undefined : parsed.seasons,
+    country: parsed.country,
+    budget: parsed.mediaType === "tv" ? undefined : parsed.budget,
+    ageRating: parsed.ageRating,
+    minRating: parsed.minRating,
+    maxRating: parsed.maxRating,
+    minYear: parsed.minYear,
+    maxYear: parsed.maxYear,
+    sortBy,
+    page: parsed.page,
+    pageSize: 20,
+  };
+
+  const [watchlistResult, collections] = await Promise.all([
+    getWatchlistWithFilters(filterParams, user.id),
+    getUserCollectionsWithMedia(user.id),
+  ]);
+
+  const activeCollection = collectionIdParam
+    ? collections.find((c) => c.id === collectionIdParam) ?? null
+    : null;
+
+  const filteredCollection = activeCollection
+    ? filterCollectionItems(activeCollection, filterParams)
+    : null;
 
   return (
     <div className="flex flex-col gap-6 w-full">
       <WatchlistMediaList
-        items={result.items}
-        totalFound={result.total}
-        statusCounts={result.statusCounts}
+        items={watchlistResult.items}
+        totalFound={
+          filteredCollection ? filteredCollection.total : watchlistResult.total
+        }
+        statusCounts={watchlistResult.statusCounts}
         currentStatus={status}
-        currentPage={result.page}
-        totalPages={result.totalPages}
+        currentPage={
+          filteredCollection ? filteredCollection.page : watchlistResult.page
+        }
+        totalPages={
+          filteredCollection
+            ? filteredCollection.totalPages
+            : watchlistResult.totalPages
+        }
         currentSort={sortBy}
         searchQuery={parsed.search}
-        hasAnyWatchlistItems={result.statusCounts.all > 0}
+        hasAnyWatchlistItems={watchlistResult.statusCounts.all > 0}
+        collections={collections}
+        activeCollection={activeCollection}
+        collectionItems={filteredCollection?.items ?? []}
       />
     </div>
   );

@@ -126,7 +126,7 @@
     * **Option A (Code):** Implement a lightweight EN/UK language switcher backed by JSON dictionaries for UI labels.
     * **Option B (Doc):** Update those 3 spots in `ргр кпі (7).docx` to specify an English interface (matching your Figma mockups and `docs/spec.md`).
 
-- [ ] **17. Custom User-Named Watchlist Collections**
+- [x] **17. Custom User-Named Watchlist Collections**
   * **Source:** ПЗ — FR-13 (*«створювати власні тематичні підбірки»*)
   * **Conflict:** Current schema (`watchlists`) supports 3 fixed statuses (`plan_to_watch`, `watched`, `favorite`).
   * **Options:**

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Play } from "lucide-react";
 import type { MediaItem, WatchlistStatus } from "@/types/media";
-import { getPosterUrl } from "@/lib/utils";
+import { extractYouTubeVideoId, getPosterUrl } from "@/lib/utils";
 import {
   MovieDetailsBackLink,
   MovieDetailsPoster,
@@ -10,6 +11,7 @@ import {
   MovieDetailsHeader,
   MovieDetailsMetadata,
   MovieDetailsOverview,
+  TrailerModal,
   useMovieDetailsWatchlist,
 } from "./movie-details";
 
@@ -35,6 +37,9 @@ export default function MovieDetailsCard({
   onStatusChange,
 }: MovieDetailsCardProps) {
   const [imageError, setImageError] = useState(false);
+  const [isTrailerOpen, setIsTrailerOpen] = useState(false);
+
+  const trailerKey = extractYouTubeVideoId(media.metadata?.trailer_key);
 
   const {
     inWatchlist,
@@ -91,6 +96,16 @@ export default function MovieDetailsCard({
               onStatusSelect={handleStatusSelect}
               onRemoveFromWatchlist={handleRemoveWatchlist}
             />
+            {trailerKey && (
+              <button
+                type="button"
+                onClick={() => setIsTrailerOpen(true)}
+                className="w-full h-11 px-4 rounded-xl bg-[#181818] border border-neutral-700/80 hover:border-brand-lime hover:text-brand-lime text-white font-medium text-sm flex items-center justify-center gap-2 transition-all cursor-pointer select-none group"
+              >
+                <Play className="w-4 h-4 fill-current text-brand-lime transition-transform group-hover:scale-110" />
+                <span>Watch Trailer</span>
+              </button>
+            )}
           </div>
 
           {/* Right Column: Title, Rating, Badges, and Metadata Box */}
@@ -107,6 +122,15 @@ export default function MovieDetailsCard({
           addedAt={addedAt}
         />
       </div>
+
+      {trailerKey && (
+        <TrailerModal
+          isOpen={isTrailerOpen}
+          title={media.title}
+          videoId={trailerKey}
+          onClose={() => setIsTrailerOpen(false)}
+        />
+      )}
     </div>
   );
 }

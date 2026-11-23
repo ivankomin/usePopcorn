@@ -11,10 +11,11 @@ import {
   Clock,
   User,
   Users,
+  Play,
 } from "lucide-react";
 import Button from "@/components/Button";
 import type { GenreRow } from "@/types/media";
-import { getBudgetCategory } from "@/lib/utils";
+import { extractYouTubeVideoId, getBudgetCategory } from "@/lib/utils";
 import { validateImageFile } from "@/lib/validation";
 import {
   createMediaItemAction,
@@ -67,6 +68,7 @@ interface MediaFormState {
   overview: string;
   directors: string;
   cast: string;
+  trailerUrl: string;
   selectedGenreIds: number[];
   budget: number | "";
   revenue: number | "";
@@ -87,6 +89,7 @@ function createInitialFormState(): MediaFormState {
     overview: "",
     directors: "",
     cast: "",
+    trailerUrl: "",
     selectedGenreIds: [],
     budget: "",
     revenue: "",
@@ -307,6 +310,13 @@ export function AddMediaForm({
       }
     }
 
+    if (form.trailerUrl.trim() && !extractYouTubeVideoId(form.trailerUrl)) {
+      setErrorMessage(
+        "Invalid trailer URL. Please enter a valid YouTube link (e.g. https://www.youtube.com/watch?v=...) or video ID.",
+      );
+      return;
+    }
+
     startTransition(async () => {
       let resolvedPosterUrl: string | null = null;
 
@@ -361,6 +371,7 @@ export function AddMediaForm({
         directors: directorsList,
         cast: castList,
         tagline: null,
+        trailer_url: form.trailerUrl.trim() || null,
       };
 
       const result = await createMediaItemAction(input);
@@ -614,6 +625,33 @@ export function AddMediaForm({
               className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-lime transition-colors disabled:opacity-50"
             />
           </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <label className="text-xs font-semibold text-neutral-300 flex items-center gap-1">
+              <Play className="w-3.5 h-3.5 text-neutral-400" />
+              YouTube Trailer URL (Optional)
+            </label>
+            {form.trailerUrl.trim() &&
+              (extractYouTubeVideoId(form.trailerUrl) ? (
+                <span className="text-[10px] font-mono text-brand-lime bg-brand-lime/10 px-1.5 py-0.5 rounded">
+                  Valid YouTube ID: {extractYouTubeVideoId(form.trailerUrl)}
+                </span>
+              ) : (
+                <span className="text-[10px] font-mono text-rose-400">
+                  Invalid YouTube URL
+                </span>
+              ))}
+          </div>
+          <input
+            type="text"
+            value={form.trailerUrl}
+            onChange={(e) => updateField("trailerUrl", e.target.value)}
+            placeholder="https://www.youtube.com/watch?v=YoHD9XEInc0"
+            disabled={isLocked}
+            className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-lime transition-colors disabled:opacity-50"
+          />
         </div>
 
         <div className="flex flex-col gap-1.5">

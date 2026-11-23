@@ -22,6 +22,7 @@ export interface PaginatedResult<T> extends PaginationMeta {
 
 export interface MediaMetadata {
   tagline?: string | null;
+  trailer_key?: string | null;
   directors?: string[];
   creators?: string[];
   cast?: string[];

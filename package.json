@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "seed:reviews": "node scripts/seed-reviews.ts",
-    "seed:weekly": "node scripts/seed-weekly.ts"
+    "seed:weekly": "node scripts/seed-weekly.ts",
+    "seed:trailers": "node scripts/backfill-trailers.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

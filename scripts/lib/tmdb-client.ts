@@ -47,6 +47,20 @@ export interface TMDBCredits {
   crew?: Array<{ id: number; name: string; job: string; department?: string }>;
 }
 
+export interface TMDBVideo {
+  id: string;
+  key: string;
+  name: string;
+  site: string;
+  type: string;
+  official?: boolean;
+  published_at?: string;
+}
+
+export interface TMDBVideosResponse {
+  results?: TMDBVideo[];
+}
+
 export interface TMDBMovieDetails {
   id: number;
   title: string;
@@ -64,6 +78,7 @@ export interface TMDBMovieDetails {
   tagline?: string | null;
   genres?: TMDBGenre[];
   credits?: TMDBCredits;
+  videos?: TMDBVideosResponse;
   release_dates?: {
     results?: Array<{
       iso_3166_1: string;
@@ -91,6 +106,7 @@ export interface TMDBTVDetails {
   genres?: TMDBGenre[];
   created_by?: Array<{ id: number; name: string }>;
   credits?: TMDBCredits;
+  videos?: TMDBVideosResponse;
   content_ratings?: {
     results?: Array<{
       iso_3166_1: string;
@@ -187,4 +203,33 @@ export function normalizeCountry(name?: string): string | null {
 
 export function makeTitleYearKey(title: string, year: number): string {
   return `${title.trim().toLowerCase()}::${year}`;
+}
+
+/**
+ * Selects the best YouTube trailer video key from a TMDB videos array.
+ * Preference order: Official Trailer > Trailer > Official Teaser > Teaser.
+ */
+export function pickBestYouTubeTrailerKey(
+  videos?: TMDBVideo[] | null
+): string | null {
+  if (!videos || videos.length === 0) return null;
+
+  const youtubeVideos = videos.filter(
+    (v) => v.site === 'YouTube' && Boolean(v.key?.trim())
+  );
+  if (youtubeVideos.length === 0) return null;
+
+  const scoreVideo = (v: TMDBVideo): number => {
+    const isOfficial = v.official ? 1 : 0;
+    if (v.type === 'Trailer') return 4 + isOfficial;
+    if (v.type === 'Teaser') return 2 + isOfficial;
+    return 0;
+  };
+
+  const candidates = youtubeVideos
+    .map((video) => ({ video, score: scoreVideo(video) }))
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  return candidates[0]?.video.key.trim() ?? null;
 }

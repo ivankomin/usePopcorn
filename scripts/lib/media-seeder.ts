@@ -5,6 +5,7 @@ import {
   makeTitleYearKey,
   mapConcurrent,
   normalizeCountry,
+  pickBestYouTubeTrailerKey,
   tmdbFetch,
   type TMDBGenreListResponse,
   type TMDBMovieDetails,
@@ -119,7 +120,7 @@ export async function fetchMovieSeedDetails(
   const detailed = await mapConcurrent(candidateIds, concurrency, async (tmdbId) => {
     try {
       const details = await tmdbFetch<TMDBMovieDetails>(
-        `/movie/${tmdbId}?append_to_response=credits,release_dates&language=${language}`,
+        `/movie/${tmdbId}?append_to_response=credits,release_dates,videos&language=${language}`,
         tmdbToken
       );
 
@@ -174,6 +175,8 @@ export async function fetchMovieSeedDetails(
       const revenue =
         details.revenue && details.revenue > 0 ? details.revenue : null;
 
+      const trailerKey = pickBestYouTubeTrailerKey(details.videos?.results);
+
       const item: TablesInsert<'media_items'> = {
         tmdb_id: details.id,
         media_type: 'movie',
@@ -198,6 +201,7 @@ export async function fetchMovieSeedDetails(
         age_rating: ageRating,
         metadata: {
           tagline: details.tagline || null,
+          trailer_key: trailerKey,
           directors,
           cast: topCast,
         },
@@ -240,7 +244,7 @@ export async function fetchTVSeedDetails(
   const detailed = await mapConcurrent(candidateIds, concurrency, async (tmdbId) => {
     try {
       const details = await tmdbFetch<TMDBTVDetails>(
-        `/tv/${tmdbId}?append_to_response=credits,content_ratings&language=${language}`,
+        `/tv/${tmdbId}?append_to_response=credits,content_ratings,videos&language=${language}`,
         tmdbToken
       );
 
@@ -289,6 +293,8 @@ export async function fetchTVSeedDetails(
         details.last_episode_to_air?.runtime ||
         null;
 
+      const trailerKey = pickBestYouTubeTrailerKey(details.videos?.results);
+
       const item: TablesInsert<'media_items'> = {
         tmdb_id: details.id,
         media_type: 'tv',
@@ -313,6 +319,7 @@ export async function fetchTVSeedDetails(
         age_rating: usRating,
         metadata: {
           tagline: details.tagline || null,
+          trailer_key: trailerKey,
           creators,
           cast: topCast,
         },

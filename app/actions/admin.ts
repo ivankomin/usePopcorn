@@ -13,7 +13,7 @@ import {
   type GetSystemLogsParams,
 } from "@/lib/admin-queries";
 import { logSystemEvent } from "@/lib/logger";
-import { getBudgetCategory } from "@/lib/utils";
+import { extractYouTubeVideoId, getBudgetCategory } from "@/lib/utils";
 import type {
   MediaMetadata,
   ModeratedReviewsResult,
@@ -56,6 +56,7 @@ export interface IngestMediaInput {
   directors?: string[];
   cast?: string[];
   tagline?: string | null;
+  trailer_url?: string | null;
 }
 
 export interface ActionResult<T = unknown> {
@@ -327,8 +328,21 @@ export async function createMediaItemAction(
     }
   }
 
+  let trailerKey: string | null = null;
+  if (input.trailer_url && input.trailer_url.trim()) {
+    trailerKey = extractYouTubeVideoId(input.trailer_url);
+    if (!trailerKey) {
+      return {
+        success: false,
+        error:
+          "Invalid trailer URL. Please provide a valid YouTube link or 11-character video ID.",
+      };
+    }
+  }
+
   const metadata: MediaMetadata = {
     tagline: input.tagline?.trim() || null,
+    trailer_key: trailerKey,
     directors:
       input.directors && input.directors.length > 0
         ? input.directors

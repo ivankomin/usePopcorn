@@ -6,3 +6,4 @@ export * from "./MovieDetailsActions";
 export * from "./MovieDetailsHeader";
 export * from "./MovieDetailsMetadata";
 export * from "./MovieDetailsOverview";
+export * from "./TrailerModal";

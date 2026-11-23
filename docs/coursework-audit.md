@@ -82,7 +82,7 @@
   * **Current State:** `lib/filters.ts` only searches `title` (`ilike("title", ...)`).
   * **Recommended Implementation:** Extend catalog search (or add a Director input filter) to also match `metadata->directors` / `metadata->creators`.
 
-- [ ] **11. Movie / Series Trailer Support on Details Page**
+- [x] **11. Movie / Series Trailer Support on Details Page**
   * **Source:** ПЗ — FR-9 (*«синопсис, акторський склад, тривалість, трейлер та поточний глобальний рейтинг»*)
   * **Current State:** Trailers are not fetched, stored, or displayed.
   * **Recommended Implementation:**

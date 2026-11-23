@@ -130,3 +130,61 @@ export function formatVoteCount(count: number | null | undefined): string {
   return count.toString();
 }
 
+const YOUTUBE_ID_REGEX = /^[A-Za-z0-9_-]{11}$/;
+
+/**
+ * Extracts a validated 11-character YouTube video ID from a raw key or YouTube URL
+ * (supports youtube.com/watch?v=, youtu.be/, youtube.com/embed/, youtube.com/shorts/).
+ */
+export function extractYouTubeVideoId(
+  input: string | null | undefined,
+): string | null {
+  if (!input) return null;
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+
+  if (YOUTUBE_ID_REGEX.test(trimmed)) {
+    return trimmed;
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    const host = parsed.hostname.replace(/^www\./i, "").toLowerCase();
+
+    let candidate: string | null = null;
+    if (host === "youtu.be") {
+      candidate = parsed.pathname.split("/").filter(Boolean)[0] ?? null;
+    } else if (
+      host === "youtube.com" ||
+      host === "m.youtube.com" ||
+      host === "youtube-nocookie.com"
+    ) {
+      if (parsed.pathname === "/watch") {
+        candidate = parsed.searchParams.get("v");
+      } else {
+        const segments = parsed.pathname.split("/").filter(Boolean);
+        if (
+          segments.length >= 2 &&
+          (segments[0] === "embed" ||
+            segments[0] === "shorts" ||
+            segments[0] === "live" ||
+            segments[0] === "v")
+        ) {
+          candidate = segments[1];
+        }
+      }
+    }
+
+    return candidate && YOUTUBE_ID_REGEX.test(candidate) ? candidate : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Builds a privacy-enhanced YouTube embed URL for a validated video ID.
+ */
+export function getYouTubeEmbedUrl(videoId: string): string {
+  return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?autoplay=1&rel=0`;
+}
+

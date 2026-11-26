@@ -7,6 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "seed:reviews": "node scripts/seed-reviews.ts",
     "seed:weekly": "node scripts/seed-weekly.ts",
     "seed:trailers": "node scripts/backfill-trailers.ts"
@@ -24,12 +27,15 @@
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
+    "@types/jest": "^30.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "^16.4.6",
+    "jest": "^30.5.2",
     "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }

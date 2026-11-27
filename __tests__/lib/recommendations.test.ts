@@ -33,7 +33,7 @@ function makeMediaRow(
     poster_path: `/${id}.jpg`,
     budget: 50_000_000,
     revenue: 150_000_000,
-    budget_category: "Medium ($15M–$60M)",
+    budget_category: "Medium ($15M–$60M)",                                                                                
     country: "United States",
     countries: ["United States"],
     age_rating: "PG-13",

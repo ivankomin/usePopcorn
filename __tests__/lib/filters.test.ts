@@ -305,11 +305,14 @@ describe("lib/filters", () => {
 
   describe("applyCatalogQueryFilters & applyCatalogQuerySorting", () => {
     interface SpyFilterBuilder
-      extends CatalogFilterQueryBuilder<SpyFilterBuilder> {}
+      extends CatalogFilterQueryBuilder<SpyFilterBuilder> {
+      calls: Array<{ method: string; args: unknown[] }>;
+    }
 
     function createSpyFilterBuilder() {
       const calls: Array<{ method: string; args: unknown[] }> = [];
       const builder: SpyFilterBuilder = {
+        calls,
         eq(column, value) {
           calls.push({ method: "eq", args: [column, value] });
           return builder;
@@ -400,12 +403,15 @@ describe("lib/filters", () => {
 
     it("applies the expected order clauses for sorting options", () => {
       interface SpySortBuilder
-        extends CatalogSortQueryBuilder<SpySortBuilder> {}
+        extends CatalogSortQueryBuilder<SpySortBuilder> {
+        orders: Array<{ column: string; options?: { ascending?: boolean } }>;
+      }
 
       const createSortSpy = () => {
         const orders: Array<{ column: string; options?: { ascending?: boolean } }> =
           [];
         const builder: SpySortBuilder = {
+          orders,
           order(column, options) {
             orders.push({ column, options });
             return builder;
